@@ -1,0 +1,17 @@
+{
+  "name": "aruna",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Aruna — contract mutability measurement, agent containment and parametric coverage for NEAR Protocol",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "clean": "pnpm -r run clean"
+  }
+}

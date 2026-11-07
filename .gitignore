@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# rust
+contracts/*/target/
+lab/target/
+
+# env
+.env
+.env.*
+!.env.example
+
+# os
+.DS_Store
+Thumbs.db
+
+# ide
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# test
+coverage/
+
+# near
+neardev/
+*.wasm
+!contracts/*/res/*.wasm
