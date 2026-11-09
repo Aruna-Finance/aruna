@@ -1,0 +1,227 @@
+[
+  {
+    "id": "T3.hashes",
+    "value": {
+      "v1": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+      "v2": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA"
+    },
+    "what": "sha256 of wasm (CryptoHash)"
+  },
+  {
+    "error": null,
+    "id": "T3A.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "5nYeqApf7gLjdciiZ2hL2TSGKE6e7aAD5CXwck2CUmk8",
+    "what": "owner: DeployGlobalContract(v1, mode=AccountId)"
+  },
+  {
+    "error": null,
+    "id": "T3A.1",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "zFgg625qxow8tZvhBYLiQap5xvXkVhUHrRQ5NK4RkfL",
+    "what": "user-a: UseGlobalContract(AccountId(owner))"
+  },
+  {
+    "id": "T3A.2",
+    "value": {
+      "label": "before",
+      "version_view_call": {
+        "Ok": "\"v1\""
+      },
+      "view_account": {
+        "amount": "9999941342148274100000000",
+        "block_hash": "H3B53vFdF1yU2wD4BD6Ju8VYqnBqDaujVGcbv6Nbsnt3",
+        "block_height": 315,
+        "code_hash": "11111111111111111111111111111111",
+        "global_contract_account_id": "owner.sandbox",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 195
+      },
+      "view_code": {
+        "code_len": 50916,
+        "hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN"
+      }
+    },
+    "what": "BEFORE owner redeploy: view_account / view_code / version()"
+  },
+  {
+    "error": null,
+    "id": "T3A.2tx",
+    "kind": "Ok",
+    "logs": [
+      "target.version height=317 account=user-a.sandbox returns=v1"
+    ],
+    "tx_hash": "2Wja7vaRVfrJMh3TZFWpwUgrVFRhhqg2DNMTAXmNgShr",
+    "what": "user-a.version() as transaction (before)"
+  },
+  {
+    "error": null,
+    "id": "T3A.3",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "A513ub127StsukXSsgFQxzDAMmDPCGGBzUBDnbvABu3g",
+    "what": "owner: DeployGlobalContract(v2, mode=AccountId) — no tx touches user-a"
+  },
+  {
+    "id": "T3A.4",
+    "value": {
+      "global_redeploy_tx_height": 322,
+      "user_a_runs_v2_at_height": 325
+    },
+    "what": "propagation"
+  },
+  {
+    "id": "T3A.5",
+    "value": {
+      "label": "after",
+      "version_view_call": {
+        "Ok": "\"v2\""
+      },
+      "view_account": {
+        "amount": "9999812961823033200000000",
+        "block_hash": "5JfKzq2TxaoBpRAyRURmLECWRr4QqN5fVgfbDBph3xpT",
+        "block_height": 325,
+        "code_hash": "11111111111111111111111111111111",
+        "global_contract_account_id": "owner.sandbox",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 195
+      },
+      "view_code": {
+        "code_len": 50916,
+        "hash": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA"
+      }
+    },
+    "what": "AFTER owner redeploy: view_account / view_code / version()"
+  },
+  {
+    "error": null,
+    "id": "T3A.5tx",
+    "kind": "Ok",
+    "logs": [
+      "target.version height=327 account=user-a.sandbox returns=v2"
+    ],
+    "tx_hash": "A3bj73H7DXrZmGbv7cePNg9UZLpq974ypKiAa95fr34a",
+    "what": "user-a.version() as transaction (after)"
+  },
+  {
+    "error": null,
+    "id": "T3B.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "Cb4fD6Fux32ryVEycsHV7MPhcerFYN1ixiLgCZAvvpLM",
+    "what": "publisher: DeployGlobalContract(v2, mode=CodeHash)"
+  },
+  {
+    "error": null,
+    "id": "T3B.0b",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "AyYoyuKcgi1EUDsVbXzxY5HnYUPAGTq1m8PTFZqE9L1H",
+    "what": "publisher: DeployGlobalContract(v1, mode=CodeHash) (second blob, different hash)"
+  },
+  {
+    "error": null,
+    "id": "T3B.1",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "GPZBpVvdtERHfnoqpdKyBGXAdrjDjv2Jmv4VFdCGLQsn",
+    "what": "user-b: UseGlobalContract(CodeHash(v2))"
+  },
+  {
+    "id": "T3B.2",
+    "value": {
+      "version": "\"v2\"",
+      "view_account": {
+        "amount": "9999941206514982400000000",
+        "block_hash": "4XdDhuhxArbqcrbbrYkiMxRR9G8Tz6s81tZEtm58B2ax",
+        "block_height": 359,
+        "code_hash": "11111111111111111111111111111111",
+        "global_contract_hash": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 214
+      },
+      "view_code": {
+        "code_len": 50916,
+        "hash": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA"
+      }
+    },
+    "what": "user-b view_account / view_code / version()"
+  },
+  {
+    "error": null,
+    "id": "T3B.3",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "CPJKocRUwMdd4YkSF52u419y9frYAkgHWFjodzoDKouG",
+    "what": "user-b (has full key) re-points to CodeHash(v1)"
+  },
+  {
+    "id": "T3B.4",
+    "value": {
+      "version": "\"v1\"",
+      "view_account": {
+        "amount": "9999882413029964800000000",
+        "block_hash": "FjzTHXm5RSv84FyFaTSuByDt5HMSeTrhc6v5Ex2zAMEu",
+        "block_height": 365,
+        "code_hash": "11111111111111111111111111111111",
+        "global_contract_hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 214
+      }
+    },
+    "what": "user-b after re-point"
+  },
+  {
+    "error": null,
+    "id": "T3C.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "5nNCjTnHMtsmNwA5P6DZZy6FCpufxKQZccUSpJyQkpSG",
+    "what": "user-c: [CreateAccount, Transfer, UseGlobalContract(CodeHash v1)] — no keys added (locked)"
+  },
+  {
+    "id": "T3C.1",
+    "value": {
+      "keys": {
+        "block_hash": "3gz8piD7Q1LQ35NYixUVme2Y3WG3U1KNV9NA5YLfcML6",
+        "block_height": 372,
+        "keys": []
+      },
+      "version": "\"v1\"",
+      "view_account": {
+        "amount": "5000000000000000000000000",
+        "block_hash": "3gz8piD7Q1LQ35NYixUVme2Y3WG3U1KNV9NA5YLfcML6",
+        "block_height": 372,
+        "code_hash": "11111111111111111111111111111111",
+        "global_contract_hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 132
+      }
+    },
+    "what": "user-c locked: keys / view_account / version"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "FunctionCallError": {
+            "ExecutionError": "Smart contract panicked: Method self_upgrade is private"
+          }
+        }
+      }
+    },
+    "id": "T3C.2",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "DRVTTDZW423MSSMs8gdmBymrsFqzt69jcXmV9w4rfiFf",
+    "what": "parent calls user-c.self_upgrade(v2) (#[private] guard)"
+  }
+]

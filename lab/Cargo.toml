@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["contracts/gate", "contracts/target", "contracts/usdc", "contracts/funder", "harness"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

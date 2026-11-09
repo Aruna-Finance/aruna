@@ -1,0 +1,28 @@
+{
+  "accountId": "fx-upg.arunafi.testnet",
+  "network": "testnet",
+  "recordedAt": "2026-11-09T17:01:26.832Z",
+  "viewAccount": {
+    "exists": true,
+    "blockHeight": 276948030,
+    "codeHash": "8ijWM1kfo9EdYWpRJfsa7HKsx3zAWkXTVr3tHsA9CEoW",
+    "globalContractHash": null,
+    "globalContractAccountId": null
+  },
+  "viewAccessKeyList": {
+    "keys": [
+      {
+        "publicKey": "ed25519:CcEvXfYC6V71kUyLxfw3hqmwtmLiJ7xgTaVqY6WssEdr",
+        "permission": "full_access"
+      }
+    ]
+  },
+  "viewCode": {
+    "codeBase64": "AGFzbQEAAAABCQJgAn5+AGAAAAIUAQNlbnYMdmFsdWVfcmV0dXJuAAADAgEBBQMBABEGEQJ/AEGEgMAAC38AQZCAwAALBy8EBm1lbW9yeQIAB3ZlcnNpb24AAQpfX2RhdGFfZW5kAwALX19oZWFwX2Jhc2UDAQwBAQoNAQsAQgRCgIDAABAACwsNAQBBgIDAAAsEInYxIg==",
+    "hash": "8ijWM1kfo9EdYWpRJfsa7HKsx3zAWkXTVr3tHsA9CEoW"
+  },
+  "classifiedLive": {
+    "class": "local_upgradeable",
+    "basis": "full_access_key"
+  }
+}

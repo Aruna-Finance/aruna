@@ -1,0 +1,111 @@
+[
+  {
+    "error": null,
+    "id": "T9.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "8pxYyLfA44c1eXqmmRNsDjoLbsRQY5pwBk4b7hniwNDt",
+    "what": "child (keymgr, imports delete_account): DeleteKey(own full-access key)"
+  },
+  {
+    "id": "T9.1",
+    "value": {
+      "keys": {
+        "full_access": 0,
+        "function_call": 0,
+        "keys": []
+      },
+      "scanned_imports_present": [
+        "promise_batch_action_delete_account"
+      ],
+      "view_account": {
+        "amount": "9999959398775000000000000",
+        "block_hash": "QpVCGdMd5TL9ubBCARXih4MjHbxkiW81rdzBz4Gfzie",
+        "block_height": 854,
+        "code_hash": "4FXmDsP55BdLWZD7ZDFB8gMmV7RPXjkpUfdPh8iH6Hmt",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 95654
+      }
+    },
+    "what": "child before: view_account / keys / imports"
+  },
+  {
+    "error": null,
+    "id": "T9.2",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "9CtzhFZYrjTXwF8YBrnekH9pRJyBDEh18pWBLX7VFLe5",
+    "what": "anyone calls child.delete_self(parent)"
+  },
+  {
+    "id": "T9.3",
+    "value": {
+      "view_account": "query rpc error: {\"cause\":{\"info\":{\"block_hash\":\"7qHY38sPPRvT91g78bZYDs7nQh4td1W4vZHtHoWdzf8U\",\"block_height\":861,\"requested_account_id\":\"child.parent.sandbox\"},\"name\":\"UNKNOWN_ACCOUNT\"},\"code\":-32000,\"data\":\"account child.parent.sandbox does not exist while viewing\",\"message\":\"Server error\",\"name\":\"HANDLER_ERROR\"}"
+    },
+    "what": "child after delete"
+  },
+  {
+    "error": null,
+    "id": "T9.4",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "9rUR6LoJ7cbkmmFT8qgrbHdxR4d6q3Xbqi7hCy5dKCw6",
+    "what": "parent recreates child.parent.sandbox with a full-access key and other code (fconly)"
+  },
+  {
+    "id": "T9.5",
+    "value": {
+      "keys": {
+        "full_access": 1,
+        "function_call": 0,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 863000000,
+              "permission": "FullAccess"
+            },
+            "public_key": "ed25519:8TjSTrtaWFGv9g88sd1d6kv987XSg31tgdxrots14Gj2"
+          }
+        ]
+      },
+      "version": "\"fconly\"",
+      "view_account": {
+        "amount": "5000000000000000000000000",
+        "block_hash": "BrDYGSsHdo8hDyVTFXVwJ9L6cMibucKDv51BXFC57y1g",
+        "block_height": 868,
+        "code_hash": "3P9mEtfBuzbafR3x9HWY2ksfnAUcACcnjWNnrHSBPGha",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 85512
+      }
+    },
+    "what": "child after recreate"
+  },
+  {
+    "error": null,
+    "id": "T9.6",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "F88mq6UkHkpfmfkFTnW5V9fyP7AHxK1Rb6wnUNhBPwuL",
+    "what": "control: root creates a fresh top-level name (root is the parent of *.sandbox)"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "CreateAccountNotAllowed": {
+            "account_id": "child2.parent.sandbox",
+            "predecessor_id": "stranger.sandbox"
+          }
+        }
+      }
+    },
+    "id": "T9.7",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "CAk2PZqr9KVkeW36GBPxULsYAUTrZNtuTwmSU6zuHG11",
+    "what": "control: a non-parent tries to create a sub-account of parent.sandbox"
+  }
+]

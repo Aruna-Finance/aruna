@@ -2,7 +2,7 @@
   "name": "aruna",
   "private": true,
   "version": "0.0.0",
-  "description": "Aruna — contract mutability measurement, agent containment and parametric coverage for NEAR Protocol",
+  "description": "Aruna \u2014 contract mutability measurement, agent containment and parametric coverage for NEAR Protocol",
   "license": "MIT",
   "engines": {
     "node": ">=20"
@@ -12,6 +12,8 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
-    "clean": "pnpm -r run clean"
+    "clean": "pnpm -r run clean",
+    "secret-scan": "scripts/secret-scan.sh",
+    "measure": "pnpm --filter @aruna/classifier-core --filter @aruna/rpc --filter @aruna/cli build && node packages/cli/dist/index.js measure --in measurement/raw/top-accounts-2026-10-09_2026-11-08.csv --out measurement/results/rerun --network mainnet --concurrency 4 --retries 4 --backoff-ms 2000; node measurement/report.mjs measurement/results/rerun"
   }
 }

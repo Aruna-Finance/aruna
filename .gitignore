@@ -6,8 +6,7 @@ dist/
 *.tsbuildinfo
 
 # rust
-contracts/*/target/
-lab/target/
+target/
 
 # env
 .env
@@ -31,8 +30,18 @@ coverage/
 neardev/
 *.wasm
 !contracts/*/res/*.wasm
+# fixture builds are committed: the testnet accounts and the drift demo use these exact bytes
+!fixtures/wasm/**/*.wasm
 
 # next
 .next/
 out/
 next-env.d.ts
+
+# keys — NEAR credentials live in ~/.near-credentials, never in the repo
+.near-credentials/
+*credentials*.json
+*.key
+
+# local re-runs of the measurement
+measurement/results/rerun/

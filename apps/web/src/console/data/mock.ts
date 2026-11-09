@@ -1,4 +1,5 @@
 import type { ClassEvidence, CodeRef, RiskClass } from "@/landing/lib/classifier-types";
+import { ZERO_HASH } from "@aruna/classifier-core";
 import type { TargetPreset, TargetRecord, TargetsReader } from "./types";
 
 // SIMULATED. Targets, labels, test cases and their classes follow the prototype's mock data. Nothing here
@@ -36,6 +37,9 @@ function record(s: Spec): TargetRecord {
         codeRef: s.codeRef,
         fullAccessKeyCount: s.fullKeys,
         functionCallKeyCount: s.fcKeys,
+        // view_account.code_hash: the local hash, or the zero hash for global contracts and no code
+        // (docs/NEAR-FACTS.md §6).
+        monitoredCodeHash: s.codeRef?.kind === "local" ? s.codeRef.codeHash : ZERO_HASH,
         resolvedCodeHash: s.resolved,
         upgradeImports: s.imports ?? [],
         mutabilityBasis: s.basis,

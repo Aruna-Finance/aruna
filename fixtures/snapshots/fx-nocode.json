@@ -1,0 +1,25 @@
+{
+  "accountId": "fx-nocode.arunafi.testnet",
+  "network": "testnet",
+  "recordedAt": "2026-11-09T17:01:29.285Z",
+  "viewAccount": {
+    "exists": true,
+    "blockHeight": 276948035,
+    "codeHash": "11111111111111111111111111111111",
+    "globalContractHash": null,
+    "globalContractAccountId": null
+  },
+  "viewAccessKeyList": {
+    "keys": [
+      {
+        "publicKey": "ed25519:GNsRbW3rbWkWyvHkSsjPUM9mH9458PTrT3M8n38UtrVs",
+        "permission": "full_access"
+      }
+    ]
+  },
+  "viewCode": null,
+  "classifiedLive": {
+    "class": "unknown",
+    "basis": "undetermined"
+  }
+}

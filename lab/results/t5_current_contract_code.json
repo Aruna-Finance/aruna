@@ -1,0 +1,71 @@
+[
+  {
+    "id": "T5.hashes",
+    "value": {
+      "v1": "G4VtxNcuHKbig6bkoeRzNp7fjzGzSMEpVkg9uhwKQ5dy",
+      "v2": "3w7RiseGti5uHZAfFq2BzvJw253sxMF8oiuTVHPykj1x"
+    },
+    "what": "wasm hashes"
+  },
+  {
+    "id": "T5.local",
+    "value": {
+      "Ok": "\"local:G4VtxNcuHKbig6bkoeRzNp7fjzGzSMEpVkg9uhwKQ5dy\""
+    },
+    "what": "local DeployContract(v1) -> code_info (view call)"
+  },
+  {
+    "error": null,
+    "id": "T5.local.tx",
+    "kind": "Ok",
+    "logs": [
+      "code_info height=171 local:G4VtxNcuHKbig6bkoeRzNp7fjzGzSMEpVkg9uhwKQ5dy"
+    ],
+    "tx_hash": "8NEqj1RuJMkg9DG6X7H3Bchy1x13trq2jDsaVo7eMrxu",
+    "what": "code_info as tx"
+  },
+  {
+    "error": null,
+    "id": "T5.hash.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "2nEgVTApWiiPFxBw9Shew4Ab4KTv7b9zUK1Sf7acsE4d",
+    "what": "t5-byhash: create + UseGlobalContract(CodeHash v1), no keys"
+  },
+  {
+    "id": "T5.hash",
+    "value": {
+      "Ok": "\"global_hash:G4VtxNcuHKbig6bkoeRzNp7fjzGzSMEpVkg9uhwKQ5dy\""
+    },
+    "what": "by-hash -> code_info"
+  },
+  {
+    "error": null,
+    "id": "T5.acct.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "9gGA3Q19x7TyfhNCGdQ9as7wtD5R5jPFqEhfeFMbV6CT",
+    "what": "t5-byacct: create + UseGlobalContract(AccountId owner), no keys"
+  },
+  {
+    "id": "T5.acct.before",
+    "value": {
+      "code_info": {
+        "Ok": "\"global_account:t5-owner.sandbox\""
+      },
+      "version": "\"v1\""
+    },
+    "what": "by-account BEFORE owner redeploy"
+  },
+  {
+    "id": "T5.acct.after",
+    "value": {
+      "code_info": {
+        "Ok": "\"global_account:t5-owner.sandbox\""
+      },
+      "version": "\"v2\"",
+      "view_code_hash": "3w7RiseGti5uHZAfFq2BzvJw253sxMF8oiuTVHPykj1x"
+    },
+    "what": "by-account AFTER owner redeploy v2"
+  }
+]

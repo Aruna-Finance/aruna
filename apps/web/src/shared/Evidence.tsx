@@ -113,7 +113,7 @@ export function ClassResult({ c }: { c: Classification }) {
           <tbody>
             <tr>
               <td className={`${cell} mono`}>view_account.code_hash</td>
-              <td className={`${cell} mono`}>{ZERO_HASH}</td>
+              <td className={`${cell} mono`}>{e.monitoredCodeHash ?? ZERO_HASH}</td>
               <td className={`${cell} text-dawn-ink`}>Wrong. Does not change when the owner redeploys.</td>
             </tr>
             <tr>

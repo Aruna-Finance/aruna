@@ -1,46 +1,11 @@
-// Mirrors docs/CLASSIFIER.md. These are the shapes @aruna/classifier-core will export.
-// When that package exists, delete this file and import from it. Do not add logic here.
+// The classification shapes are owned by @aruna/classifier-core; this file only re-exports them
+// and adds the app's own lookup result. Never define a classification type here (CLAUDE.md rule 10).
+import type { Classification } from "@aruna/classifier-core";
 
-export type RiskClass =
-  | "immutable_verified"
-  | "local_upgradeable"
-  | "global_by_account"
-  | "unknown";
-
-export type MutabilityBasis =
-  | "no_detected_path"
-  | "full_access_key"
-  | "upgrade_imports"
-  | "own_code"
-  | "global_owner"
-  | "undetermined";
-
-export type CodeRef =
-  | { kind: "local"; codeHash: string }
-  | { kind: "global_hash"; globalHash: string }
-  | { kind: "global_account"; ownerAccount: string };
-
-export interface ClassEvidence {
-  accountId: string;
-  checkedAtBlock: number;
-  codeRef: CodeRef | null;
-  fullAccessKeyCount: number;
-  functionCallKeyCount: number;
-  /** from viewCode, NOT viewAccount. For global_by_account the two differ. */
-  resolvedCodeHash: string | null;
-  upgradeImports: string[];
-  mutabilityBasis: MutabilityBasis;
-  wasmParsed: boolean;
-}
-
-export interface Classification {
-  class: RiskClass;
-  evidence: ClassEvidence;
-}
-
-export type Network = "mainnet" | "testnet";
+export type { ClassEvidence, Classification, CodeRef, MutabilityBasis, RiskClass } from "@aruna/classifier-core";
+export type { Network } from "@aruna/rpc";
 
 /** Result of a lookup. A failed lookup is a normal outcome, not an exception. */
 export type LookupResult =
-  | { ok: true; classification: Classification; source: "live" | "stub" }
+  | { ok: true; classification: Classification; source: "live" }
   | { ok: false; reason: string };
