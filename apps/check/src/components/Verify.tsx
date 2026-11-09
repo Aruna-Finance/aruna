@@ -1,3 +1,4 @@
+import { Disclosure } from "./Disclosure";
 import type { Network } from "@/lib/classifier-types";
 import { VERIFY_REQUEST_TYPES, curlFor, isSafeAccountId } from "@/lib/verify-commands";
 
@@ -10,20 +11,23 @@ const WHAT: Record<(typeof VERIFY_REQUEST_TYPES)[number], string> = {
 export function Verify({ accountId, network }: { accountId: string; network: Network }) {
   if (!isSafeAccountId(accountId)) return null;
   return (
-    <details className="verify">
-      <summary>Verify this yourself</summary>
-      <p className="note">
+    <Disclosure title="Verify this yourself" className="mt-3">
+      <p className="mt-3 max-w-[62ch] bg-dawn-wash px-3 py-2 text-sm">
         Three read-only RPC calls produce all of the evidence. Anyone running them gets the same
         answer for the same block.
       </p>
-      <ol>
+      <ol className="list-decimal pl-5">
         {VERIFY_REQUEST_TYPES.map((t) => (
-          <li key={t}>
-            <p><span className="mono">{t}</span>: {WHAT[t]}</p>
-            <pre className="term">{curlFor(t, accountId, network)}</pre>
+          <li key={t} className="mt-3">
+            <p>
+              <span className="mono">{t}</span>: {WHAT[t]}
+            </p>
+            <pre className="mt-2 overflow-x-auto bg-ink p-3 font-mono text-[13px] break-words whitespace-pre-wrap text-paper">
+              {curlFor(t, accountId, network)}
+            </pre>
           </li>
         ))}
       </ol>
-    </details>
+    </Disclosure>
   );
 }
