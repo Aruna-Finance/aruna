@@ -23,6 +23,28 @@ Expected: `"class": "immutable_verified"`. `fx-guser` shows `monitoredCodeHash`
 `11111111111111111111111111111111` next to a real `resolvedCodeHash`: the field most monitoring
 watches says "no code" while code runs.
 
+## The invisible drift demo
+
+```bash
+node fixtures/drift-demo.mjs                                   # read-only, our accounts
+ARUNA_TESTNET_ACCOUNT=you.testnet node fixtures/drift-demo.mjs --redeploy   # your own pair, after deploy.sh
+```
+
+`--redeploy` flips `fx-gowner.<you>` between v1 and v2 by account id and prints `fx-guser.<you>`
+before and after. Recorded on 10 November 2026 against our pair (`snapshots/fx-guser.json` before,
+`snapshots/fx-guser-after-v2.json` after):
+
+| | before | after |
+|---|---|---|
+| `view_account.code_hash` | `11111111111111111111111111111111` | `11111111111111111111111111111111` — unchanged |
+| `view_code` hash | `8ijWM1kfo9EdYWpRJfsa7HKsx3zAWkXTVr3tHsA9CEoW` | `6ptQjUdp6CHh7crhRVTDoSwFJ2inLHESt4q4b8FcxdeA` |
+| `version()` | `v1` | `v2` |
+| class | `global_by_account` | `global_by_account` |
+
+No transaction touched `fx-guser`. The new code ran within 12 blocks of the start of the run,
+an upper bound that includes the CLI's own submission and polling. Because of this run, `fx-guser`
+currently executes v2; the next `--redeploy` flips it back.
+
 ## Files
 
 | Path | What |

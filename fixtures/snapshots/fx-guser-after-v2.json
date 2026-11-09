@@ -1,0 +1,28 @@
+{
+  "accountId": "fx-guser.arunafi.testnet",
+  "network": "testnet",
+  "recordedAt": "2026-11-09T17:03:47.830Z",
+  "viewAccount": {
+    "exists": true,
+    "blockHeight": 276948267,
+    "codeHash": "11111111111111111111111111111111",
+    "globalContractHash": null,
+    "globalContractAccountId": "fx-gowner.arunafi.testnet"
+  },
+  "viewAccessKeyList": {
+    "keys": [
+      {
+        "publicKey": "ed25519:B1QRLZQufUCg4NHLTaRNrkr34rmHzwptPboTMqKGnURw",
+        "permission": "full_access"
+      }
+    ]
+  },
+  "viewCode": {
+    "codeBase64": "AGFzbQEAAAABCQJgAn5+AGAAAAIUAQNlbnYMdmFsdWVfcmV0dXJuAAADAgEBBQMBABEGEQJ/AEGEgMAAC38AQZCAwAALBy8EBm1lbW9yeQIAB3ZlcnNpb24AAQpfX2RhdGFfZW5kAwALX19oZWFwX2Jhc2UDAQwBAQoNAQsAQgRCgIDAABAACwsNAQBBgIDAAAsEInYyIg==",
+    "hash": "6ptQjUdp6CHh7crhRVTDoSwFJ2inLHESt4q4b8FcxdeA"
+  },
+  "classifiedLive": {
+    "class": "global_by_account",
+    "basis": "global_owner"
+  }
+}
