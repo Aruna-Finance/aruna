@@ -1,7 +1,7 @@
 //! Owner and operator, every action in docs/CONTRACTS.md's table from each role.
 use super::*;
 use near_sdk::test_utils::{get_logs, VMContextBuilder};
-use near_sdk::testing_env;
+use near_sdk::{testing_env, NearToken};
 
 fn acc(s: &str) -> AccountId {
     s.parse().unwrap()
@@ -16,6 +16,7 @@ fn as_caller(who: &str) {
         .current_account_id(acc("vault.factory.testnet"))
         .predecessor_account_id(acc(who))
         .block_height(100)
+        .attached_deposit(NearToken::from_yoctonear(1))
         .build());
 }
 fn ceiling() -> Ceiling {
@@ -240,4 +241,57 @@ fn owner_withdraws_and_changes_owner() {
     assert!(get_logs().iter().any(|l| l.contains("\"event\":\"withdrawal\"")));
     v.set_owner(acc("client2.testnet"));
     assert_eq!(v.get_config().owner, acc("client2.testnet"));
+}
+
+fn as_caller_with_key_only(who: &str) {
+    // A function-call key cannot attach a deposit: model it as a call with none.
+    testing_env!(VMContextBuilder::new()
+        .current_account_id(acc("vault.factory.testnet"))
+        .predecessor_account_id(acc(who))
+        .attached_deposit(NearToken::from_yoctonear(0))
+        .build());
+}
+
+#[test]
+#[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+fn a_function_call_key_of_the_owner_cannot_change_the_owner() {
+    let mut v = vault();
+    as_caller_with_key_only("client.testnet");
+    v.set_owner(acc("thief.testnet"));
+}
+
+#[test]
+#[should_panic(expected = "Requires attached deposit of exactly 1 yoctoNEAR")]
+fn a_function_call_key_of_the_operator_cannot_add_an_agent() {
+    let mut v = vault();
+    as_caller_with_key_only("company.testnet");
+    v.add_agent(pk(1), "a".into(), policy(1));
+}
+
+#[test]
+fn a_function_call_key_can_still_pause_and_revoke() {
+    let mut v = vault();
+    as_caller("company.testnet");
+    v.add_agent(pk(1), "a".into(), policy(1));
+    as_caller_with_key_only("company.testnet");
+    v.pause_agent(pk(1));
+    v.revoke_agent(pk(1));
+}
+
+#[test]
+#[should_panic(expected = "ARUNA_TOO_MANY_AGENTS")]
+fn the_operator_cannot_add_agents_without_bound() {
+    let mut v = vault();
+    as_caller("company.testnet");
+    for i in 0..=aruna_common::MAX_AGENTS {
+        v.add_agent(pk(i as u8 + 1), "zero-cap".into(), policy(0));
+    }
+}
+
+#[test]
+#[should_panic(expected = "ARUNA_TARGET_NOT_IN_CEILING")]
+fn nobody_can_grow_the_class_cache_with_arbitrary_targets() {
+    let mut v = vault();
+    as_caller("stranger.testnet");
+    v.refresh_class(acc("anything.testnet"));
 }

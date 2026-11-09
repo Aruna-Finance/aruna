@@ -295,6 +295,13 @@ price (`NEAR-FACTS.md` §10), held until the call finishes. An agent's allowance
 how many of its calls can be in flight at once, not only its total gas. Agents call `spend` with
 60 Tgas; size `agent_allowance` for the parallelism an agent needs.
 
+### D-52 — Power-granting vault methods need a full-access key; agents are capped at 32
+Owner-only methods, `add_agent`, `update_policy` and `resume_agent` require exactly 1 yoctoNEAR, so
+a function-call key on the owner's or operator's account cannot call them; pause and revoke do not.
+At most 32 agents that are not revoked per vault, and `refresh_class` only for targets in the
+owner's ceiling, so neither the operator nor a stranger can drain the vault through gas allowances
+or storage. From the internal review in `AUDIT-v0.md`.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

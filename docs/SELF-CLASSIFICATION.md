@@ -69,3 +69,7 @@ be patched, which is why migration tooling is required before any mainnet vault
 
 The same property is proven on a local sandbox, with the agent-key refusals:
 `cd contracts && cargo test -p aruna-integration -- --nocapture`.
+
+**This vault version predates the fixes in `docs/AUDIT-v0.md`** (H1, M1, M2, L2). Vaults are
+immutable, so it keeps them; it holds no real value and exists to show self-classification. The
+fixed version is the one built from `contracts/vault` today and tested in `contracts/integration`.

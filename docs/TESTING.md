@@ -203,7 +203,7 @@ be reproduced.
 
 ## Before submission
 
-- [ ] The `near-contract-audit` skill run against `contracts/vault`
+- [x] The `near-contract-audit` skill run against `contracts/vault` (`docs/AUDIT-v0.md`)
 - [ ] No keys or `.env` anywhere in git history
 - [ ] Every claim in the README has a command that proves it
 - [ ] The demo runs on testnet from a freshly cloned repo, not from the author's machine

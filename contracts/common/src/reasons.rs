@@ -77,6 +77,8 @@ pub mod panics {
     pub const OPERATOR_CANNOT_RESUME: &str = "ARUNA_OPERATOR_CANNOT_RESUME";
     pub const REVOKED: &str = "ARUNA_AGENT_REVOKED";
     pub const BAD_METHOD_NAME: &str = "ARUNA_CALLBACK_IN_AGENT_KEY";
+    pub const TOO_MANY_AGENTS: &str = "ARUNA_TOO_MANY_AGENTS";
+    pub const TARGET_NOT_IN_CEILING: &str = "ARUNA_TARGET_NOT_IN_CEILING";
 }
 
 #[cfg(test)]

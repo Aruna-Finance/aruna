@@ -158,6 +158,12 @@ impl Vault {
             emit("execution_failed", json!({ "agent": agent, "target": target, "amount": amount }));
             return false;
         }
+        let today = Self::today();
+        if a.budget.day_index != today {
+            // Settled after midnight: it counts toward the day it settles in, not a day already reset.
+            a.budget.spent_today = U128(0);
+            a.budget.day_index = today;
+        }
         a.budget.spent_today = U128(a.budget.spent_today.0 + amount.0);
         let now = env::block_height();
         let mut e = self.exposure.get(&target).cloned().unwrap_or(Exposure { amount: U128(0), class_at_record: class, first_seen: now, last_updated: now });

@@ -41,6 +41,7 @@ async fn add_agent(env: &Env, label: &str, policy: Value) -> anyhow::Result<rpc:
     env.company
         .call(&env.vault_ws(), "add_agent")
         .args_json(json!({ "public_key": agent.pk().to_string(), "label": label, "policy": policy }))
+        .deposit(near_workspaces::types::NearToken::from_yoctonear(1))
         .transact()
         .await?
         .into_result()?;
@@ -181,9 +182,9 @@ async fn injected_agent_is_auto_disabled_and_only_the_owner_resumes() -> anyhow:
     assert_eq!(reason(&s), "ARUNA_AGENT_AUTO_DISABLED");
 
     // The operator cannot undo it; the owner can.
-    let r = env.company.call(&env.vault_ws(), "resume_agent").args_json(json!({ "public_key": agent.pk().to_string() })).transact().await?;
+    let r = env.company.call(&env.vault_ws(), "resume_agent").args_json(json!({ "public_key": agent.pk().to_string() })).deposit(near_workspaces::types::NearToken::from_yoctonear(1)).transact().await?;
     assert!(format!("{:?}", r.failures()).contains("ARUNA_OPERATOR_CANNOT_RESUME"));
-    env.client.call(&env.vault_ws(), "resume_agent").args_json(json!({ "public_key": agent.pk().to_string() })).transact().await?.into_result()?;
+    env.client.call(&env.vault_ws(), "resume_agent").args_json(json!({ "public_key": agent.pk().to_string() })).deposit(near_workspaces::types::NearToken::from_yoctonear(1)).transact().await?.into_result()?;
     assert_eq!(agent_state(&env, &agent).await?["status"], "Active");
     println!("operator resume -> refused; owner resume -> Active");
     Ok(())

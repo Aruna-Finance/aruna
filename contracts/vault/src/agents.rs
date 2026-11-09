@@ -1,12 +1,14 @@
 //! Agents are function-call keys on this account, managed by the contract itself with low-level
 //! promises (docs/NEAR-FACTS.md §10, T7). Owner and operator can add, pause, revoke and tighten; only
-//! the owner can loosen a policy or resume an agent.
+//! the owner can loosen a policy or resume an agent. Adding an agent, changing a policy and resuming
+//! need 1 yoctoNEAR (a full-access key); pausing and revoking do not, so a stop is never harder than
+//! a start.
 
 use crate::{Agent, AgentStatus, Policy, Vault, VaultExt, AGENT_METHODS};
-use aruna_common::emit;
+use aruna_common::{emit, MAX_AGENTS};
 use aruna_common::reasons::panics;
 use near_sdk::serde_json::json;
-use near_sdk::{env, near, require, Allowance, PublicKey};
+use near_sdk::{assert_one_yocto, env, near, require, Allowance, PublicKey};
 
 /// True if `next` permits anything `prev` did not.
 pub(crate) fn loosens(prev: &Policy, next: &Policy) -> bool {
@@ -54,9 +56,13 @@ impl Vault {
 #[near]
 impl Vault {
     /// Owner or operator. Adds the key to this account, restricted to AGENT_METHODS on this account.
+    #[payable]
     pub fn add_agent(&mut self, public_key: PublicKey, label: String, policy: Policy) {
+        assert_one_yocto();
         self.assert_owner_or_operator();
         require!(!self.agents.contains_key(&public_key), panics::AGENT_EXISTS);
+        let live = self.agents.values().filter(|a| a.status != AgentStatus::Revoked).count() as u32;
+        require!(live < MAX_AGENTS, panics::TOO_MANY_AGENTS);
         self.assert_within_ceiling(&policy, None);
 
         let methods = AGENT_METHODS.join(",");
@@ -89,7 +95,9 @@ impl Vault {
     }
 
     /// Owner only: the operator cannot undo a pause, including an auto-disable.
+    #[payable]
     pub fn resume_agent(&mut self, public_key: PublicKey) {
+        assert_one_yocto();
         require!(self.is_owner(), if self.is_operator() { panics::OPERATOR_CANNOT_RESUME } else { panics::NOT_OWNER });
         self.set_status(&public_key, AgentStatus::Active);
     }
@@ -103,7 +111,9 @@ impl Vault {
     }
 
     /// Owner: any policy inside the ceiling. Operator: only one that permits nothing new.
+    #[payable]
     pub fn update_policy(&mut self, public_key: PublicKey, policy: Policy) {
+        assert_one_yocto();
         self.assert_owner_or_operator();
         let prev = self.agents.get(&public_key).unwrap_or_else(|| env::panic_str(panics::UNKNOWN_AGENT)).policy.clone();
         if !self.is_owner() {

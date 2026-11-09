@@ -2,6 +2,7 @@
 //! by anyone, including agent keys, and accepts no class as input: it only pulls the registry's value.
 
 use crate::{CachedClass, Vault, VaultExt};
+use aruna_common::reasons::panics;
 use aruna_common::{emit, RiskClass};
 use near_sdk::serde_json::{self, json, Value};
 use near_sdk::{env, near, require, AccountId, Gas, NearToken};
@@ -17,7 +18,10 @@ pub(crate) fn assert_self() {
 
 #[near]
 impl Vault {
+    /// Only for targets in the owner's ceiling: an open target list would let anyone grow this vault's
+    /// storage, paid from its balance.
     pub fn refresh_class(&mut self, target: AccountId) {
+        require!(self.ceiling.allowed_targets.contains(&target), panics::TARGET_NOT_IN_CEILING);
         let args = json!({ "target": target }).to_string();
         let p = env::promise_create(self.registry.clone(), "get_class", args, NearToken::from_yoctonear(0), GAS_GET_CLASS);
         let cb_args = json!({ "target": target }).to_string();

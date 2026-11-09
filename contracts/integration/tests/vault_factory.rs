@@ -113,6 +113,7 @@ async fn factory_vault_has_no_key_and_agents_are_contained() -> anyhow::Result<(
     company
         .call(&vault_ws, "add_agent")
         .args_json(json!({ "public_key": agent.pk().to_string(), "label": "trader-1", "policy": policy() }))
+        .deposit(NearToken::from_yoctonear(1))
         .transact()
         .await?
         .into_result()?;

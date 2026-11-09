@@ -22,3 +22,8 @@ pub const AUTO_DISABLE_WINDOW_BLOCKS: u64 = 1_200;
 
 /// One day, for the daily cap, in nanoseconds of block time.
 pub const DAY_NS: u64 = 86_400 * 1_000_000_000;
+
+/// Agents that can still act (not revoked) per vault. Each carries a gas allowance and state paid
+/// from the vault's balance, so the operator must not be able to add them without bound.
+/// Recorded in docs/DECISIONS.md D-52.
+pub const MAX_AGENTS: u32 = 32;
