@@ -4,7 +4,7 @@ import { SCREENS, type ScreenId } from "./nav";
 export function ScreenPlaceholder({ id }: { id: ScreenId }) {
   const s = SCREENS[id];
   return (
-    <article className="max-w-[760px]">
+    <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">{s.title}</h1>
       <p className="mt-4 leading-[1.6] text-slate">{s.plan}</p>
       <p className="mt-8 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">

@@ -6,7 +6,6 @@ import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./globals.css";
-import { SmoothScroll } from "@/shared/SmoothScroll";
 import { Toaster } from "@/shared/Toaster";
 
 export const metadata: Metadata = {
@@ -20,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         {children}
-        <SmoothScroll />
         <Toaster />
       </body>
     </html>
