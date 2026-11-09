@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { Button } from "./Button";
 
 const LINKS = [
-  { href: "#spec", label: "Spec" },
-  { href: "#proof", label: "Lab results" },
+  { href: "/spec/", label: "Spec" },
+  { href: "/proof/", label: "Lab results" },
   { href: "#developers", label: "SDK and MCP" },
   { href: "#simulation", label: "Simulation" },
 ] as const;
@@ -29,9 +30,9 @@ export function Closing() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/logo.png" alt="Aruna" width={40} height={40} className="size-10 mix-blend-lighten invert" />
           {LINKS.map((l) => (
-            <a key={l.href} href={l.href} className="label text-sm hover:text-[#bdbdbd]">
+            <Link key={l.href} href={l.href} className="label text-sm hover:text-[#bdbdbd]">
               {l.label}
-            </a>
+            </Link>
           ))}
           <span className="label ml-auto text-xs text-[#9a9a9a]">Testnet only. Prototype with simulated data.</span>
         </div>

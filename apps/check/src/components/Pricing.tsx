@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { premium, type PricedClass } from "@/lib/premium-model";
 
 const REACH: { value: PricedClass; label: string }[] = [
@@ -93,7 +94,7 @@ export function Pricing() {
             </p>
             <div aria-live="polite" aria-atomic="true">
               <p className="label text-sm text-[#bdbdbd]">
-                Premium <span className="ml-2 border border-white/40 px-1.5 py-0.5 text-[11px]">assumption</span>
+                Premium <Link href="/spec/#assumptions" className="ml-2 border border-white/40 px-1.5 py-0.5 text-[11px] hover:border-white">assumption</Link>
               </p>
               {r.priced ? (
                 <>

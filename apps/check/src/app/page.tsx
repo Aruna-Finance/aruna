@@ -12,7 +12,7 @@ import { CheckBox } from "@/components/CheckBox";
 export default function Page() {
   return (
     <>
-      <Navbar />
+      <Navbar home />
       <main id="top">
         <section id="check" className="lines page scroll-mt-16 py-16">
           <div className="mx-auto w-full max-w-[1440px] px-5 md:px-16">
