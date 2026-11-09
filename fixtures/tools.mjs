@@ -1,0 +1,42 @@
+#!/usr/bin/env node
+// Helpers for deploy.sh. Never touches a private key.
+//   node tools.mjs hash <file.wasm>          base58 sha256: the global contract code hash
+//   node tools.mjs random-pk                 a fresh ed25519 public key; its private half is discarded
+//   node tools.mjs full-access-keys <id>     full-access public keys on a testnet account, comma-separated
+//   node tools.mjs exists <id>               exit 0 if the testnet account exists
+import { createHash, generateKeyPairSync } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createFetchReader } from "@aruna/rpc";
+
+const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58(bytes) {
+  let n = BigInt("0x" + (Buffer.from(bytes).toString("hex") || "0"));
+  let out = "";
+  while (n > 0n) {
+    out = ALPHABET[Number(n % 58n)] + out;
+    n /= 58n;
+  }
+  for (const b of bytes) {
+    if (b !== 0) break;
+    out = "1" + out;
+  }
+  return out;
+}
+
+const [cmd, arg] = process.argv.slice(2);
+const reader = createFetchReader({ network: "testnet" });
+if (cmd === "hash") {
+  console.log(base58(createHash("sha256").update(readFileSync(arg)).digest()));
+} else if (cmd === "random-pk") {
+  const { publicKey } = generateKeyPairSync("ed25519");
+  const raw = publicKey.export({ format: "der", type: "spki" }).subarray(-32);
+  console.log("ed25519:" + base58(raw));
+} else if (cmd === "full-access-keys") {
+  const { keys } = await reader.viewAccessKeyList(arg);
+  console.log(keys.filter((k) => k.permission === "full_access").map((k) => k.publicKey).join(","));
+} else if (cmd === "exists") {
+  process.exit((await reader.viewAccount(arg)).exists ? 0 : 1);
+} else {
+  console.error("usage: tools.mjs hash|random-pk|full-access-keys|exists");
+  process.exit(2);
+}

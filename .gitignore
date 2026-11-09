@@ -6,8 +6,7 @@ dist/
 *.tsbuildinfo
 
 # rust
-contracts/*/target/
-lab/target/
+target/
 
 # env
 .env
@@ -31,6 +30,8 @@ coverage/
 neardev/
 *.wasm
 !contracts/*/res/*.wasm
+# fixture builds are committed: the testnet accounts and the drift demo use these exact bytes
+!fixtures/wasm/**/*.wasm
 
 # next
 .next/

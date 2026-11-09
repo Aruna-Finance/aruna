@@ -1,0 +1,19 @@
+[package]
+name = "versioned"
+edition.workspace = true
+version.workspace = true
+publish = false
+repository = "https://github.com/Aruna-Finance/aruna"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = "5.30"
+
+[features]
+v2 = []
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(near)']
