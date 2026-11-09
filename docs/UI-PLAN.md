@@ -13,8 +13,8 @@ not code to port. See "Prototype map" for how each of its screens lands in a pha
 - Never reimplement a classification, policy or pricing check. Consume `@aruna/classifier-core` and `@aruna/sdk`
   (CLAUDE.md rule 10). The prototype's in-browser "core" is a mock of contract behaviour; none of it is copied.
 - `apps/web` stays static, keyless and backend-free (non-negotiable 1).
-- Screens that run before the SDK/indexer exist read from a **data port** with a mock adapter, and show a visible
-  "Simulated data" marker. Nothing simulated may be described in the README as a live result.
+- Screens that run before the SDK/indexer exist read from a **data port** with a mock adapter, and the team knows
+  they are mock (the user removed the on-screen marker). Nothing simulated may be described in the README as a live result.
 - Every phase ends with `pnpm typecheck`, `pnpm test`, `pnpm build` green and its checklist ticked here.
 - Commit format: Conventional Commits, no attribution lines. Nothing is committed unless the owner asks.
 
@@ -37,8 +37,7 @@ outcomes · 5 class always has evidence one click away · 6 `unknown` shown as u
 | F7 | `ui/f7-developer-demo` | MCP/SDK reference, simulate and injected-agent playground, guided demo | F4, F5 | after v0 |
 | F8 | `ui/f8-hardening` | E2E, accessibility, performance, remove all stubs, submission polish | whatever shipped | v0 |
 
-Deadline for v0: **14 November 2026, 23:59 UTC**. F0–F2 are the committed UI scope. F3–F4 only if time and only with
-the "Simulated data" marker. F8 runs against whatever has shipped.
+Deadline for v0: **14 November 2026, 23:59 UTC**. F0–F2 are the committed UI scope. F3–F4 only if time. F8 runs against whatever has shipped.
 
 ---
 
@@ -183,7 +182,7 @@ Step 1 (done, uncommitted):
 - [x] Static export (`output: "export"`, no server) already applies to the single app, because wallet and signing are client-only
 - [x] Design tokens shared by construction: same `globals.css`, no copy
 - [x] Top bar with logo, role switcher (six roles), testnet badge and signer; sidebar per role from the prototype's NAV table
-- [x] Persistent "Simulated data. Nothing is signed or sent." marker
+- [x] ~~Persistent "Simulated data" marker~~ removed on the user's request: the backend team already knows the data is mock
 - [x] Twelve section routes as static pages (`/console/dashboard/`, `/console/agents/`, ...) that name the phase that builds them; not-found page
 - [x] Role follows the route: a deep link to a screen the current role lacks switches role; role kept in `localStorage`, optional
 - [x] 5 tests on the navigation table (every item has a screen, homes exist, role switching, no em dash) and 2 boundary tests (console code is not imported by the landing; no wallet libraries outside the console)
@@ -205,7 +204,8 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 - [ ] Look up an agent by vault, label or public key
 - [ ] Public agent page: what the agent **cannot** do and who enforces it; owner and operator limits; limits and usage today; exposure by class; verify commands. One `view_access_key_list` call backs most of it
 - [ ] Refusals shown as outcomes with `ARUNA_*` reason codes
-- [ ] Targets table: class, certainty, premium effect, last recorded, freshness; target detail with the four drift channels and stored evidence
+- [x] Targets table (list): class, certainty, premium effect, last recorded, freshness, evidence reachable per row. Data port `TargetsReader` with a mock adapter (`src/console/data`), `MAX_CLASS_AGE_BLOCKS = 7200` is the prototype's assumption
+- [ ] Target detail with the four drift channels and stored evidence (`/console/targets/<target>/`)
 - [ ] Reports and claims list and report detail, readable by everyone
 - [ ] Recorded exposure described as what was sent, not position value
 - [ ] Copy-link for the page
@@ -274,3 +274,17 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 | 2026-11-09 | F3 | User decision: one Next.js app. Console moved into `apps/check` under `/console/`; `apps/console`, `console-url.ts`, `.env.example` and port 3100 removed; "Open the demo" is an internal link to `/console/`; `boundary.test.ts` guards non-negotiable 1 (19 tests pass). Parent docs still say `apps/console`: team to update |
 | 2026-11-09 | F3 | Tidied `apps/check/src`: `landing/` (components, lib), `console/`, `shared/` (5 base components), route group `app/(landing)`. Imports rewritten; typecheck, 19 tests and build green. Folder was still `apps/check` at this point |
 | 2026-11-09 | F3 | Renamed `apps/check` to `apps/web` (package `@aruna/web`) because it now holds landing, spec, proof and console. Leftover `apps/console` removed. Parent docs still say `apps/check` and `apps/console`: team to update |
+| 2026-11-09 | F4 | Branch `ui/f4-public-pages` from `main` after F3 merged (PR #4). Step 1: Targets screen with the first data port (`TargetsReader`, mock of four targets, one per class, one stale); `Evidence` moved from `landing/components` to `shared/` since the console reuses it. 22 tests pass |
+| 2026-11-09 | F4 | Targets matched to the prototype: its seven seeded targets and nine test cases (`TargetsReader.presets/classify`, mock only, classes are the prototype's stated results, no classification logic), "Classify a new target" panel with toasts, per-row evidence disclosures removed on request. Row to detail link waits for the target detail route. 22 tests pass |
+| 2026-11-09 | F4 | Removed the "Simulated data. Nothing is signed or sent." strip from the console shell (user: the backend already knows it is mock). Deviation from the earlier rule that simulated screens carry a marker; README must still not describe mock results as live |
+| 2026-11-09 | F4 | Targets table and the classify panel wrapped in the landing card style (`border-line-2 bg-paper p-6 md:p-8`) |
+| 2026-11-09 | F4 | Console sidebar stays in view while the page scrolls (sticky under the 57px top bar on large screens, scrolls inside itself if long) |
+| 2026-11-09 | F4 | `SmoothScroll` (framer-motion) moved from the root layout to `app/(landing)/layout.tsx`; the console scrolls natively |
+| 2026-11-09 | F4 | Targets table: header cells never wrap (one line); rows wrap as before |
+| 2026-11-09 | F4 | Console content is full width: page max-width removed from Targets and the placeholder screens. Paragraph line-length limits kept |
+| 2026-11-09 | F4 | Targets: "Last recorded" and "Freshness" cells never wrap |
+| 2026-11-09 | F4 | Targets: "Last recorded" and "Freshness" cells and the freshness chip never wrap |
+| 2026-11-09 | F4 | "Classify a new target" moved into a right-hand drawer opened by a button (new `shared/Drawer.tsx`, native dialog: Escape and backdrop close, focus trapped, slide-in via `--animate-drawer-in`, off with reduced motion). The targets table now uses the full width |
+| 2026-11-09 | F4 | Drawer smoother: slide-out and backdrop fade on close (Escape and backdrop click go through the parent so the exit plays), softer easing on open; reduced motion closes at once |
+| 2026-11-09 | F4 | Drawer content hides its scrollbar but still scrolls (wheel, touch, keyboard) |
+| 2026-11-09 | F4 | Console content area uses the landing wash grey (`bg-wash`, as in the "Three layers" section); top bar and sidebar stay white, cards stay white |

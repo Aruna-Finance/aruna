@@ -5,7 +5,7 @@ import type { LookupResult, Network } from "@/landing/lib/classifier-types";
 import { Button } from "@/shared/Button";
 import { Select } from "@/shared/Select";
 import { toast } from "@/shared/Toaster";
-import { ClassResult } from "./Evidence";
+import { ClassResult } from "@/shared/Evidence";
 import { Verify } from "./Verify";
 
 const field = "border border-line-2 bg-white px-3 py-3.5";
