@@ -135,6 +135,15 @@ describe("createFetchReader", () => {
     expect(seen).toHaveLength(1);
   });
 
+  it("rotate starts each request at the next endpoint", async () => {
+    const { fetch, seen } = fakeFetch(() => ok({ block_height: 1, keys: [] }));
+    const r = createFetchReader({ endpoints: [A, B], fetch, rotate: true });
+    await r.viewAccessKeyList("x.testnet");
+    await r.viewAccessKeyList("x.testnet");
+    await r.viewAccessKeyList("x.testnet");
+    expect(seen.map((s) => s.url)).toEqual([A, B, A]);
+  });
+
   it("uses the built-in endpoints for a network", () => {
     expect(createFetchReader({ network: "testnet" }).endpoints[0]).toBe("https://rpc.testnet.fastnear.com");
     expect(createFetchReader({ network: "mainnet" }).endpoints[0]).toBe("https://rpc.mainnet.fastnear.com");

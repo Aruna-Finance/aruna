@@ -26,10 +26,10 @@ function network(v: string | undefined): Network {
   return n;
 }
 
-function reader(net: Network) {
+function reader(net: Network, rotate = false) {
   const override = process.env[net === "mainnet" ? "ARUNA_RPC_MAINNET" : "ARUNA_RPC_TESTNET"];
   const endpoints = override ? override.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
-  return createFetchReader({ network: net, endpoints });
+  return createFetchReader({ network: net, endpoints, rotate });
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -62,7 +62,8 @@ async function main(argv: string[]): Promise<number> {
     if (!values.in || !values.out) throw new Error("measure needs --in <accounts.csv> and --out <dir>");
     const net = network(values.network);
     const rows = await readAccounts(values.in);
-    const r = reader(net);
+    // A batch spreads requests across every endpoint; one lookup uses the best one first.
+    const r = reader(net, true);
     const started = new Date().toISOString();
     const results = await runMeasure(rows, r, {
       concurrency: Number(values.concurrency),

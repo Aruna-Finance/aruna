@@ -13,6 +13,11 @@ export interface FetchReaderOptions {
   endpoints?: readonly string[];
   /** Per-attempt timeout. Default 10 seconds. */
   timeoutMs?: number;
+  /**
+   * Start each request at the next endpoint in turn instead of always the first, spreading a batch
+   * across providers' rate limits. Off by default: a single lookup should use the best endpoint.
+   */
+  rotate?: boolean;
   /** Injected for tests and non-standard runtimes. Defaults to the global `fetch`. */
   fetch?: typeof fetch;
 }
@@ -35,6 +40,7 @@ export function createFetchReader(options: FetchReaderOptions = {}): FetchReader
   if (endpoints.length === 0) throw new RpcRequestError("at least one RPC endpoint is required");
   const timeoutMs = options.timeoutMs ?? 10_000;
   const doFetch = options.fetch ?? ((...args: Parameters<typeof fetch>) => fetch(...args));
+  let turn = 0;
 
   async function attempt(url: string, params: Record<string, unknown>): Promise<Record<string, unknown> | Handled> {
     const controller = new AbortController();
@@ -91,7 +97,9 @@ export function createFetchReader(options: FetchReaderOptions = {}): FetchReader
     if (!isValidAccountId(accountId)) throw new RpcRequestError(`invalid NEAR account id: ${JSON.stringify(accountId)}`);
     const params = { request_type: requestType, finality: "final", account_id: accountId };
     const attempts: { url: string; error: string }[] = [];
-    for (const url of endpoints) {
+    const start = options.rotate ? turn++ % endpoints.length : 0;
+    for (let i = 0; i < endpoints.length; i++) {
+      const url = endpoints[(start + i) % endpoints.length];
       try {
         return map(await attempt(url, params));
       } catch (e) {
