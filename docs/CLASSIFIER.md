@@ -93,7 +93,8 @@ Read the fields in **this** order:
 viewAccessKeyList(target)
 ```
 
-Count keys whose permission is **FullAccess**.
+Count keys whose permission is **FullAccess**, including full-access gas keys (`GasKeyFullAccess`):
+a gas key with full access can sign any action, so it counts the same.
 
 - **any full-access key** → its holder can re-point the reference with
   `UseGlobalContract`, or deploy over local code → **`local_upgradeable`**
@@ -145,7 +146,9 @@ Decision:
 > as "no detected upgrade path under these checks" rather than as an unqualified
 > proof. See `DECISIONS.md` D-10.
 
-Parse the import section only; do not attempt flow analysis.
+Parse the import section only; do not attempt flow analysis. Scanned names are matched in any import
+module, the conservative reading: NEAR host functions live under `env`, and a contract importing one
+from elsewhere is never classified more favourably for it.
 
 **Presence is not proof of a path.** Measured with near-sdk 5.30.1: a contract using `Promise`
 imports all of these functions even when it calls none of them (`NEAR-FACTS.md` §4). Those
@@ -184,6 +187,7 @@ type ClassEvidence = {
     | { kind: "global_account"; ownerAccount: string };
   fullAccessKeyCount: number;
   functionCallKeyCount: number;        // recorded, does not affect the class
+  monitoredCodeHash: string | null;    // view_account.code_hash verbatim: the field most monitoring watches
   resolvedCodeHash: string | null;     // from viewCode, NOT viewAccount
   upgradeImports: string[];            // empty means clean
   mutabilityBasis: "no_detected_path" | "full_access_key" | "upgrade_imports"
@@ -193,7 +197,12 @@ type ClassEvidence = {
 ```
 
 `resolvedCodeHash` comes from `viewCode`, **not** from `viewAccount.code_hash`. For
-`global_by_account` targets the two differ, and the first is the true one.
+`global_by_account` targets the two differ, and the first is the true one. `monitoredCodeHash`
+keeps the second next to it, so a surface can show which field is wrong.
+
+**A failed read is not a class.** When an RPC call fails or times out, `classify` rejects and the
+surface reports a failed lookup. `unknown` is reserved for an account with no code, or code that was
+fetched but cannot be parsed. Otherwise a flaky endpoint would inflate `unknown` in the measurement.
 
 ---
 
