@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["common"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "MIT"
+repository = "https://github.com/Aruna-Finance/aruna"
+
+[workspace.dependencies]
+near-sdk = "5.30"
+aruna-common = { path = "common" }
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

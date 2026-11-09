@@ -1,0 +1,16 @@
+[package]
+name = "aruna-common"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+near-sdk.workspace = true
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(near)']
+
+[dev-dependencies]
+near-sdk = { workspace = true, features = ["unit-testing"] }
