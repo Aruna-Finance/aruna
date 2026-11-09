@@ -143,7 +143,9 @@ for c in registry vault factory; do (cd $c && cargo near build non-reproducible-
 cargo test -p aruna-integration -- --nocapture --test-threads 2
 ```
 
-Runs on a local sandbox, no account needed; 5 tests pass. A factory creates a vault with zero access
+Runs on a local sandbox, no account needed; 5 tests pass in about 1–3 minutes after compiling. One
+test fast-forwards the chain 3,601 blocks, so cargo may report it running for over 60 seconds; that
+is expected. A factory creates a vault with zero access
 keys and the operator adds agents. Expected output:
 
 - **Isolation.** The agent's key tries forbidden actions, each rejected by the network before
