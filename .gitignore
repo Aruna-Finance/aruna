@@ -31,3 +31,8 @@ coverage/
 neardev/
 *.wasm
 !contracts/*/res/*.wasm
+
+# next
+.next/
+out/
+next-env.d.ts
