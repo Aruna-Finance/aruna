@@ -51,16 +51,16 @@ sidebar, a bottom "simulated testnet" dock and a simulated wallet dialog. Routes
 
 | Order | Section (route) | Content | Phase | Notes |
 |---|---|---|---|---|
-| 0 | Navbar | Floating pill: brand, Classifier, Risk classes, Vault, Coverage, Spec, primary button | F1 | "Spec" is a soon-link until F2 |
+| 0 | Navbar | Floating pill: brand, Classifier, Risk classes, Vault, Coverage, Spec, primary button | F1, F2 | Navbar is a sticky bar with the logo only; Spec links to `/spec/` (F2) |
 | 1 | `#check` | H1 "Can this NEAR contract still change under your agent?", input, examples, result with the two fields and how it was reached | F1 | The front door. Live RPC for reads |
 | 2 | `#hero` | Diagram: owner policy, agent key, vault, targets, refused target, pool. Heading "A vault acts on the class, then prices what's left." | F1 | Pause control and `prefers-reduced-motion` |
 | 3 | `#problem` | Access keys stop at who may be called; three problems; access control vs economic policy table; refusal log | F1 | Refusal log labelled as an illustration |
 | 4 | `#layers` | Measurement, Protection, Coverage | F1 | Protection list is the six refusals from `NEAR-FACTS.md` |
 | 5 | `#classes` | Four risk classes with certainty and price; "A change most monitors miss" | F1 | Must show basis; `unknown` never styled as safe |
 | 6 | `#pricing` | "A tighter policy costs less to cover": sliders, class pills, exposure, premium, premium by class | F1 | Illustrative model, every figure marked assumption |
-| 7 | `#roles` | Client, Operator, Anyone checking, Underwriter | F1 | Links to app screens are soon-links until F3 to F6 |
+| 7 | `#roles` | Client, Operator, Anyone checking, Underwriter | F1 | Cards carry no links until the app screens exist (F3 to F6) |
 | 8 | `#sdk` | Keyless and vault code samples | F1 | Samples must match `SDK.md` and `MCP.md` |
-| 9 | `#trust` (footer) | Closing statement with the two trust assumptions, primary button, legal row | F1 | Legal links are soon-links until F2 and F7 |
+| 9 | `#trust` (footer) | Closing statement with the two trust assumptions, primary button, legal row | F1 | Spec and Lab results link to `/spec/` and `/proof/` (F2); SDK and MCP, Simulation have no target until F7 |
 | - | `#spec` | Limits, closed detection routes, assumption register, three contracts, coverage state machine | F2 | Static page |
 | - | `#proof` | Lab results with exact errors | F2 | Copy from `NEAR-FACTS.md`, never retype from memory |
 
@@ -98,7 +98,7 @@ actions, note, confirm/cancel), tables with row links, tabs, crumbs, copy-to-cli
 | "3 blocks from redeploy to new code" in the hero | Add "single-shard lower bound" | `NEAR-FACTS.md` §5 |
 | Navbar and closing button "Open the demo" | Same label as the prototype, scrolling to the classifier until the guided demo exists (F7) | Decided by the user; the button always has a working target |
 | Each landing section is at least one viewport tall | Padding-based sections | Forced full-height sections hide the content below on short screens |
-| Links to screens not built yet | Soon-links: visible, not clickable, with a note | No dead links, and the plan stays visible |
+| Links to screens not built yet | Decided by the user: no "soon" labels. Links without a target are left as plain anchors | The user wants the page to read as finished |
 | Landing fragments built from simulated numbers (exposure bars, budget bars) | Dropped or replaced by sourced text | No invented figures on the first page |
 | Animated vault diagram drawn by script | Static SVG with one calm flow animation, pausable | Same message, far less code and motion |
 | "Simulate the owner redeploying" button | Kept for stub examples only, using the lab's real before/after hashes (`73ETF…` to `J2gKR…`), labelled illustration | It is the finding, but a live account cannot be redeployed from a tab |
@@ -128,18 +128,21 @@ Environment: `corepack enable` fails without admin here; pnpm 9.15.4 installed w
 The complete landing page of the prototype, in its order (see "Site" above), as one static page. The classifier
 is its first section, not a page of its own.
 
-Unblocked now:
-- [x] RPC client with fallback and error kinds (FastNEAR primary, dRPC fallback), paginated access keys (`last_key` as `after_key`, verified on mainnet `near`), account id check, lookup failures as results, live test suite (`ARUNA_LIVE=1`)
-- [x] Custom select (Radix), global toast (`sonner`) with a global error catcher, regular-weight icons (Phosphor), disclosure with a regular caret
-- [ ] Navbar, footer and page frame following the prototype
-- [ ] `#check` section with the prototype's result layout: class, basis sentence, the two fields, "how it was reached"
-- [ ] Examples that show every basis, including `upgrade_imports` and `unknown` (stub data, labelled)
-- [ ] `#hero` vault diagram with pause control and reduced motion
-- [ ] `#problem`, `#layers`, `#classes`, `#pricing`, `#roles`, `#sdk`, closing footer
-- [ ] Pricing model isolated in one mock module, parameters listed under the dial, every figure marked assumption, `unknown` shown as "Not priced"
-- [ ] Soon-links (visible, not clickable) for destinations that do not exist yet
-- [ ] Copy audit: no em dash, no "trustless", comparisons scoped to "the five projects surveyed", "3 blocks" stated as a single-shard lower bound
-- [ ] Responsive to 360px, keyboard pass, contrast check
+Done (merged to `main`, PR #2):
+- [x] Styling follows bitnomial.com (`docs/UI-STYLE.md`): square corners, mono uppercase buttons, accent `#FF7756`, IBM Plex self-hosted; column lines only on `#check`
+- [x] Shared components: `Button`, `Select` (Radix), `Toaster` (sonner, also catches uncaught errors), `Disclosure`, Phosphor regular icons
+- [x] Navbar (logo only, "Open the demo"), one section per screen, `SmoothScroll` (framer-motion)
+- [x] `#check` classifier card on the stub adapter, Evidence panel with plain-language rows, examples as pills (stub data, labelled)
+- [x] `#hero` vault diagram (static, the user's chosen design with the artifact's names), dark section
+- [x] `#problem`, `#layers`, `#classes`, `#pricing`, `#roles`, `#sdk`, closing footer
+- [x] Pricing model isolated in `src/lib/premium-model.ts` (mock, assumptions listed under the dial, `unknown` shown as "not priced", 4 tests)
+- [x] Copy audit by test and grep: no em dash, no "trustless"
+
+Not done:
+- [ ] `#hero` pause control (the diagram is static, so none is needed) and the artifact's vertical mobile layout (the diagram scrolls sideways under 900px)
+- [ ] Examples that show every basis, including `upgrade_imports` (the stub has four examples)
+- [ ] Responsive check to 360px, keyboard pass, contrast check, look in a real browser
+- [ ] Live RPC client: the earlier version was deleted at the user's request; rebuild when `@aruna/rpc` exists
 
 Blocked on the engine:
 - [ ] Replace `lookup()` with `classify(accountId, fetchRpcReader(network))`; delete `classifier-types.ts` and the stub
@@ -153,9 +156,9 @@ mainnet account classify live once the engine lands; every link either works or 
 
 ## F2 - Spec and Lab results pages · `ui/f2-spec-proof`
 
-- [ ] `#spec` page: closed detection routes, limits, assumption register, three contracts, coverage state machine
-- [ ] `#proof` page: lab results copied from `NEAR-FACTS.md` with exact error strings; state they ran under the older gas-key model
-- [ ] Navbar and footer links to these pages go live; the assumption chip on the pricing dial links to the register
+- [x] `/spec/` page (built as a static route): closed detection routes, limits, assumption register, three contracts, coverage state machine
+- [x] `/proof/` page (built as a static route, data in `src/lib/facts.ts`): lab results copied from `NEAR-FACTS.md` with exact error strings; state they ran under the older gas-key model
+- [x] Navbar and footer links to these pages go live; the assumption chip on the pricing dial links to the register
 - [ ] Stage 2 measurement table slot once the CLI produces it (source, query, date)
 - [ ] Deploy to a plain static host; record URL and build command
 - [ ] README steps for this app: numbered "do X, see Y", each with an expected result
@@ -243,3 +246,5 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 | 2026-11-09 | all | Plan rewritten after reading every prototype screen: phases F1–F8 aligned to its menus, deviations listed |
 | 2026-11-09 | F1 | RPC client with fallback and error kinds, paginated access keys, account id check, lookup failures as results, live test suite (`ARUNA_LIVE=1`). Class itself still waits for the engine |
 | 2026-11-09 | all | Phases corrected: the classifier is the first section of the landing page, not a page of its own. F1 is now the whole landing; spec and proof moved to F2. Branch renamed `ui/f1-landing` |
+| 2026-11-09 | F1 | Landing page built and merged (PR #2): Tailwind, bitnomial style, IBM Plex, all sections, mock pricing model, smooth scroll |
+| 2026-11-09 | F2 | Branch `ui/f2-spec-proof` from `main`. `/spec/` and `/proof/` built from `NEAR-FACTS.md`, `PRODUCT.md`, `ARCHITECTURE.md`, `ATTESTOR.md`, `CONTRACTS.md`, `DECISIONS.md` via `src/lib/facts.ts`; nav, footer and pricing chip links live. Deploy and README stay in the F2 list, deploy waits for a host decision |
