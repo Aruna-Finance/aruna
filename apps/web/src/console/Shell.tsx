@@ -10,7 +10,7 @@ const screenOf = (path: string): ScreenId | null => {
   return (SCREEN_IDS as string[]).includes(seg) ? (seg as ScreenId) : null;
 };
 
-/** Top bar, role switcher, sidebar, and the persistent "Simulated data" marker. */
+/** Top bar, role switcher, sidebar. */
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const screen = screenOf(path);
@@ -28,7 +28,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const current = roleById(role);
 
   return (
-    <div className="flex min-h-svh flex-col pb-10">
+    <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b border-line bg-paper">
         <div className="flex items-center gap-4 px-4 py-2 md:px-6">
           <Link href="/" aria-label="Aruna site" className="shrink-0">
@@ -58,7 +58,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="flex flex-1 flex-col lg:flex-row">
         <nav
           aria-label="Sections"
-          className="flex gap-1 overflow-x-auto border-b border-line p-3 lg:w-56 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:p-4"
+          className="flex gap-1 overflow-x-auto border-b border-line bg-paper p-3 lg:sticky lg:top-[57px] lg:h-[calc(100svh-57px)] lg:w-56 lg:shrink-0 lg:flex-col lg:self-start lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:border-b-0 lg:p-4"
         >
           {current.items.map((i) => (
             <Link
@@ -71,15 +71,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <main className="min-w-0 flex-1 px-4 py-8 md:px-10 md:py-10">{children}</main>
-      </div>
-
-      <div
-        role="status"
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-4 border-t border-line-2 bg-fog px-4 py-2 md:px-6"
-      >
-        <span className="label border border-dawn bg-dawn-wash px-2 py-0.5 text-xs text-dawn-ink">Simulated data</span>
-        <span className="text-[13px] text-slate">Nothing is signed or sent.</span>
+        <main className="min-w-0 flex-1 bg-wash px-4 py-8 md:px-10 md:py-10">{children}</main>
       </div>
     </div>
   );

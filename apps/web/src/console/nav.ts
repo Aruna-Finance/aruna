@@ -1,5 +1,5 @@
 // Roles, sidebar sections and screen metadata, from the prototype's NAV table and docs/UI-PLAN.md.
-// Signer names are the prototype's mock values and are only shown beside the "Simulated data" marker.
+// Signer names are the prototype's mock values.
 
 export type RoleId = "owner" | "operator" | "underwriter" | "attestor" | "counterparty" | "developer";
 export type ScreenId =

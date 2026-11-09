@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Targets } from "@/console/screens/Targets";
 import { ScreenPlaceholder } from "@/console/ScreenPlaceholder";
 import { SCREENS, SCREEN_IDS, type ScreenId } from "@/console/nav";
 
@@ -17,5 +18,6 @@ export async function generateMetadata({ params }: { params: Promise<{ section: 
 export default async function Page({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
   if (!(section in SCREENS)) notFound();
+  if (section === "targets") return <Targets />;
   return <ScreenPlaceholder id={section as ScreenId} />;
 }
