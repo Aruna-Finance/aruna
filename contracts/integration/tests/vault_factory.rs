@@ -48,13 +48,18 @@ async fn factory_vault_has_no_key_and_agents_are_contained() -> anyhow::Result<(
     let vault_code = wasm("aruna_vault");
     let vault_hash = CryptoHash::hash_bytes(&vault_code);
     let publisher = root.create_subaccount("publisher").initial_balance(NearToken::from_near(100)).transact().await?.into_result()?;
+    let publisher_id: AccountId = publisher.id().as_str().parse()?;
+    let balance = |v: Value| v["amount"].as_str().unwrap().parse::<u128>().unwrap();
+    let before = balance(lab.view_account(&publisher_id).await?);
     let s = lab
-        .send(&key_of(&publisher), &publisher.id().as_str().parse()?, vec![Action::DeployGlobalContract(DeployGlobalContractAction {
+        .send(&key_of(&publisher), &publisher_id, vec![Action::DeployGlobalContract(DeployGlobalContractAction {
             code: vault_code.into(),
             deploy_mode: GlobalContractDeployMode::CodeHash,
         })])
         .await?;
     assert!(s.ok(), "global deploy: {}", s.line());
+    let cost = before - balance(lab.view_account(&publisher_id).await?);
+    println!("global deploy of {} bytes by hash cost {} yoctoNEAR (sandbox)", wasm("aruna_vault").len(), cost);
 
     // Registry and factory.
     let owner = root.create_subaccount("owner").initial_balance(NearToken::from_near(20)).transact().await?.into_result()?;

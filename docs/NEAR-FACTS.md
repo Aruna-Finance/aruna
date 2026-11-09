@@ -320,3 +320,9 @@ unchanged: the vault must use the low-level functions, and it must not expose a 
 against the allowance before it checks that the key may transfer at all. Both are rejected at
 validation; only the error differs. Assert on rejection, not on one error string, when the amount
 may exceed the allowance.
+
+**Publishing a global contract costs about 0.0001 NEAR per byte.** Measured 10 November 2026 on
+the sandbox: `DeployGlobalContract` (by hash) of the 191,619-byte vault took 19.163 NEAR from the
+publisher, about ten times the storage-staking rate for the same bytes, and it is spent, not
+staked. Each vault version therefore costs roughly 19 NEAR to publish at this size, once; every
+vault that uses it pays only for its own small state. Re-measure on testnet before quoting it.
