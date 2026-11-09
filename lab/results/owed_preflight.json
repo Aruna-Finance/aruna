@@ -1,0 +1,16 @@
+[
+  {
+    "id": "P1",
+    "value": {
+      "latest_protocol_version": 88,
+      "protocol_version": 88,
+      "version": {
+        "build": "2.14.0",
+        "commit": "bc4e9e8cfb03d9e82f027883055624e18576993e",
+        "rustc_version": "1.95.0",
+        "version": "2.14.0"
+      }
+    },
+    "what": "node version / protocol_version"
+  }
+]

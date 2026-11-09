@@ -27,10 +27,18 @@ Blockers already found, so they are not rediscovered:
 - `near-api` 0.8.7 can only **read** gas keys. We no longer depend on gas keys.
 - `near-cli-rs` needs ≥ 0.31.0-rc.2 for gas-key commands.
 
-### Lab tests owed, in priority order
+### Lab tests T5–T9 — recorded 9 November 2026
 
 The lab exercised `GasKeyFunctionCall` on sub-accounts. The product uses classic function-call
-keys on a contract account, so these are owed before the affected claims stand.
+keys on a contract account, so these were owed before the affected claims stood. All five ran in
+`lab/owed/` and are recorded in `NEAR-FACTS.md` §10:
+
+```bash
+(cd lab/owed/contracts/<c> && cargo near build non-reproducible-wasm --no-abi)   # fconly, keymgr, keymgr_promise
+cargo run --release --manifest-path lab/owed/Cargo.toml -- [t5|t6|t7|t8|t9|all]
+```
+
+The original definitions:
 `lab/results/t5_current_contract_code.json` already uses the name t5: give the new harness
 commands and result files different names so existing results stay untouched.
 
@@ -201,4 +209,4 @@ be reproduced.
 - [ ] The demo runs on testnet from a freshly cloned repo, not from the author's machine
 - [ ] Testnet's protocol version checked, and gas costs re-measured there
 - [ ] `classifier-core` still has zero dependencies
-- [ ] `lab/` results match `NEAR-FACTS.md`, and T5–T9 are recorded
+- [x] `lab/` results match `NEAR-FACTS.md`, and T5–T9 are recorded

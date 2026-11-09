@@ -1,0 +1,134 @@
+[
+  {
+    "error": null,
+    "id": "T5.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "2opxQLjVU5FjMHeHcwGHZkqgfQkmgBsbzaUGvV4hqNWf",
+    "what": "publisher: DeployGlobalContract(keymgr, CodeHash)"
+  },
+  {
+    "error": null,
+    "id": "T5.0b",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "JCPWXca7Qhvb93n9nk6zHagvndcZ2WbQmvTayCX8epHi",
+    "what": "publisher: DeployGlobalContract(fconly, CodeHash) — the hash an attacker would re-point to"
+  },
+  {
+    "error": null,
+    "id": "T5.0c",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "HyGBA19kE1X7cXktLjNuFkekYwTbWPHxpK7cupsPpDSN",
+    "what": "publisher: DeployGlobalContract(fconly, AccountId)"
+  },
+  {
+    "error": null,
+    "id": "T5.1",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "EbCbXe2qdynWy9oidpXdPSD5DTwKVrXTqiPZwUvQUuYU",
+    "what": "t5 (full key): [UseGlobalContract(CodeHash keymgr), AddKey(fc: spend on t5)]"
+  },
+  {
+    "error": null,
+    "id": "T5.2",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "A6o3t2sqwnMc8W5apdsDJWSwHQxDrZUzAKYKFgTccV2j",
+    "what": "t5: DeleteKey(own full-access key) — account is now fc-keys only"
+  },
+  {
+    "id": "T5.3",
+    "value": {
+      "keys": {
+        "full_access": 0,
+        "function_call": 1,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 37000000,
+              "permission": {
+                "FunctionCall": {
+                  "allowance": null,
+                  "method_names": [
+                    "spend"
+                  ],
+                  "receiver_id": "t5.sandbox"
+                }
+              }
+            },
+            "public_key": "ed25519:7h1JLNcb16CZgvozVm1Xzqs6BzTN2t44Y9ksH35pHBQm"
+          }
+        ]
+      },
+      "view_account": {
+        "amount": "9999880159454585200000000",
+        "block_hash": "gjAuXEomgHzE3YbXTPEdpMQAhcpbjNPip2KKLAG9Lth",
+        "block_height": 47,
+        "code_hash": "11111111111111111111111111111111",
+        "global_contract_hash": "4FXmDsP55BdLWZD7ZDFB8gMmV7RPXjkpUfdPh8iH6Hmt",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 242
+      }
+    },
+    "what": "t5 state before attempts"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "RequiresFullAccess"
+        }
+      }
+    },
+    "id": "T5.4",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "B3ZvKoxJyuVybEfunaws8skMqn9hNaYTyeGRBzeb6jhR",
+    "what": "fc key: UseGlobalContract(CodeHash fconly) on t5"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "RequiresFullAccess"
+        }
+      }
+    },
+    "id": "T5.5",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "9MEYEco6E4V8mrWW8s49vkMDFzjMtD3pHrwi6phdkcpD",
+    "what": "fc key: UseGlobalContract(AccountId publisher) on t5"
+  },
+  {
+    "error": null,
+    "id": "T5.6",
+    "kind": "Ok",
+    "logs": [
+      "spend height=49"
+    ],
+    "tx_hash": "2DVnrsXwgwrMKCjWxRh2sfJ6fU9ynhdBY8v9UgqfU7Ah",
+    "what": "control: fc key calls spend on t5"
+  },
+  {
+    "id": "T5.7",
+    "value": {
+      "expected_global_contract_hash": "4FXmDsP55BdLWZD7ZDFB8gMmV7RPXjkpUfdPh8iH6Hmt",
+      "view_account": {
+        "amount": "9999748167530425200000000",
+        "block_hash": "AnwgMNxuv3u52Zw7Bty4xuU5Ah6XzoWWfZxcy6QR9yMr",
+        "block_height": 53,
+        "code_hash": "11111111111111111111111111111111",
+        "global_contract_hash": "4FXmDsP55BdLWZD7ZDFB8gMmV7RPXjkpUfdPh8iH6Hmt",
+        "locked": "0",
+        "storage_paid_at": 0,
+        "storage_usage": 242
+      }
+    },
+    "what": "t5 state after attempts (global_contract_hash must still be keymgr)"
+  }
+]

@@ -1,0 +1,17 @@
+# Owed lab tests T5–T9 (docs/TESTING.md). A standalone workspace on purpose:
+# the original lab workspace (lab/Cargo.toml) stays byte-identical.
+[workspace]
+resolver = "3"
+members = ["contracts/fconly", "contracts/keymgr", "contracts/keymgr_promise", "harness"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true

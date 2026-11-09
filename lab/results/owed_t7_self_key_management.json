@@ -1,0 +1,257 @@
+[
+  {
+    "error": null,
+    "id": "T7.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "62A4SZ6nRhxH72sBede5FA9GVRu5j15AS89e9PUpdcw9",
+    "what": "t7 (keymgr): DeleteKey(own full-access key)"
+  },
+  {
+    "id": "T7.1",
+    "value": {
+      "full_access": 0,
+      "function_call": 0,
+      "keys": []
+    },
+    "what": "t7 keys with no full-access key"
+  },
+  {
+    "error": null,
+    "id": "T7a.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "Bpdrf5TRKbANpNo4pU3CEgW96JzvhrzmfnScnU8WxMQF",
+    "what": "t7.add_fc_key(agent, spend) — contract adds a fc key to itself by low-level promise"
+  },
+  {
+    "id": "T7a.1",
+    "value": {
+      "full_access": 0,
+      "function_call": 1,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 805000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [
+                  "spend"
+                ],
+                "receiver_id": "t7.sandbox"
+              }
+            }
+          },
+          "public_key": "ed25519:BYYbn1dqd6ZyQRHLTi4dZiwgtNWjxTEZZB2Qq99AXX4x"
+        }
+      ]
+    },
+    "what": "t7 keys after add"
+  },
+  {
+    "error": null,
+    "id": "T7a.2",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "F4mrNhuiyrLXrwCJvTzePozEWuvQzQKUaiKWkty44SbD",
+    "what": "t7.delete_key(agent) — contract deletes its own fc key"
+  },
+  {
+    "id": "T7a.3",
+    "value": {
+      "full_access": 0,
+      "function_call": 0,
+      "keys": []
+    },
+    "what": "t7 keys after delete"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": {
+            "AccessKeyNotFound": {
+              "account_id": "t7.sandbox",
+              "public_key": "ed25519:BYYbn1dqd6ZyQRHLTi4dZiwgtNWjxTEZZB2Qq99AXX4x"
+            }
+          }
+        }
+      }
+    },
+    "id": "T7a.4",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "FfTAKk8Yv6EgVqwZCzDuo9F87GHtZaezmkGMjrBFE14e",
+    "what": "deleted agent key calls spend (signed with its last nonce)"
+  },
+  {
+    "error": null,
+    "id": "T7b.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "4ctekZ6LxSPMXVC6TvNbxQksmRjex2Ti9skLd1XuY8bY",
+    "what": "t7b (fconly): DeleteKey(own full-access key)"
+  },
+  {
+    "id": "T7b.1",
+    "value": {
+      "all_imports": [
+        "value_return",
+        "read_register",
+        "current_account_id",
+        "register_len",
+        "promise_batch_create",
+        "promise_batch_action_add_key_with_function_call",
+        "input",
+        "panic_utf8"
+      ],
+      "code_hash": "3P9mEtfBuzbafR3x9HWY2ksfnAUcACcnjWNnrHSBPGha",
+      "contract": "fconly",
+      "import_count": 8,
+      "promise_batch_action_count": 1,
+      "promise_batch_action_imports": [
+        "promise_batch_action_add_key_with_function_call"
+      ],
+      "scanned_imports_present": [],
+      "wasm_bytes": 85330
+    },
+    "what": "fconly imports: the only key-adding host function it can call"
+  },
+  {
+    "error": null,
+    "id": "T7b.2",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "JBkyAgpHYkyAUTzLdYhtNtLg8hxRWti3ZSJC93s3hqsZ",
+    "what": "t7b.add_fc_key(k, method \"\") — widest key fconly can create"
+  },
+  {
+    "id": "T7b.3",
+    "value": {
+      "full_access": 0,
+      "function_call": 1,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 837000000,
+            "permission": {
+              "FunctionCall": {
+                "allowance": null,
+                "method_names": [],
+                "receiver_id": "t7b.sandbox"
+              }
+            }
+          },
+          "public_key": "ed25519:C1TpdRb9zLcspf87fzBKbNTFS87FKj9kRSRChPXoANjC"
+        }
+      ]
+    },
+    "what": "t7b keys: still no full-access key"
+  },
+  {
+    "id": "T7c.keymgr",
+    "value": {
+      "all_imports": [
+        "value_return",
+        "read_register",
+        "signer_account_id",
+        "block_index",
+        "current_account_id",
+        "register_len",
+        "promise_batch_create",
+        "promise_batch_action_delete_key",
+        "promise_batch_action_delete_account",
+        "log_utf8",
+        "promise_batch_action_add_key_with_function_call",
+        "input",
+        "panic_utf8"
+      ],
+      "code_hash": "4FXmDsP55BdLWZD7ZDFB8gMmV7RPXjkpUfdPh8iH6Hmt",
+      "contract": "keymgr",
+      "import_count": 13,
+      "promise_batch_action_count": 3,
+      "promise_batch_action_imports": [
+        "promise_batch_action_delete_key",
+        "promise_batch_action_delete_account",
+        "promise_batch_action_add_key_with_function_call"
+      ],
+      "scanned_imports_present": [
+        "promise_batch_action_delete_account"
+      ],
+      "wasm_bytes": 95554
+    },
+    "what": "low-level build (cargo near build)"
+  },
+  {
+    "id": "T7c.keymgr_promise",
+    "value": {
+      "all_imports": [
+        "value_return",
+        "read_register",
+        "block_index",
+        "current_account_id",
+        "promise_and",
+        "register_len",
+        "promise_return",
+        "promise_batch_then",
+        "promise_batch_create",
+        "promise_batch_action_stake",
+        "promise_batch_action_transfer",
+        "promise_batch_action_delete_key",
+        "promise_batch_action_function_call",
+        "promise_batch_action_create_account",
+        "promise_batch_action_delete_account",
+        "promise_batch_action_deploy_contract",
+        "log_utf8",
+        "promise_batch_action_transfer_to_gas_key",
+        "promise_batch_action_use_global_contract",
+        "promise_batch_action_function_call_weight",
+        "promise_batch_action_universal_state_init",
+        "promise_batch_action_deploy_global_contract",
+        "promise_batch_action_add_key_with_full_access",
+        "promise_batch_action_add_gas_key_with_full_access",
+        "promise_batch_action_add_gas_key_with_function_call",
+        "promise_batch_action_use_global_contract_by_account_id",
+        "promise_batch_action_add_key_with_function_call",
+        "promise_batch_action_deploy_global_contract_by_account_id",
+        "input",
+        "panic_utf8"
+      ],
+      "code_hash": "HCS1UQD7W8XuBYd4iFRmgdUmRNwy6GkRg7VjbgZzAU4t",
+      "contract": "keymgr_promise",
+      "import_count": 30,
+      "promise_batch_action_count": 18,
+      "promise_batch_action_imports": [
+        "promise_batch_action_stake",
+        "promise_batch_action_transfer",
+        "promise_batch_action_delete_key",
+        "promise_batch_action_function_call",
+        "promise_batch_action_create_account",
+        "promise_batch_action_delete_account",
+        "promise_batch_action_deploy_contract",
+        "promise_batch_action_transfer_to_gas_key",
+        "promise_batch_action_use_global_contract",
+        "promise_batch_action_function_call_weight",
+        "promise_batch_action_universal_state_init",
+        "promise_batch_action_deploy_global_contract",
+        "promise_batch_action_add_key_with_full_access",
+        "promise_batch_action_add_gas_key_with_full_access",
+        "promise_batch_action_add_gas_key_with_function_call",
+        "promise_batch_action_use_global_contract_by_account_id",
+        "promise_batch_action_add_key_with_function_call",
+        "promise_batch_action_deploy_global_contract_by_account_id"
+      ],
+      "scanned_imports_present": [
+        "promise_batch_action_deploy_contract",
+        "promise_batch_action_use_global_contract",
+        "promise_batch_action_use_global_contract_by_account_id",
+        "promise_batch_action_add_key_with_full_access",
+        "promise_batch_action_add_gas_key_with_full_access",
+        "promise_batch_action_delete_account"
+      ],
+      "wasm_bytes": 101958
+    },
+    "what": "Promise build (cargo near build)"
+  }
+]

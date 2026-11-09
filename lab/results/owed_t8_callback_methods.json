@@ -1,0 +1,30 @@
+[
+  {
+    "error": null,
+    "id": "T8.0",
+    "kind": "Ok",
+    "logs": [
+      "spend height=812"
+    ],
+    "tx_hash": "2oTihcAfPtnubEnRxHsb7xdfpeD7jVyCDdRjhxfcGJ9c",
+    "what": "control: agent key calls spend"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": {
+            "MethodNameMismatch": {
+              "method_name": "cb_settle"
+            }
+          }
+        }
+      }
+    },
+    "id": "T8.1",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "Fppf3VJptePX2EFGLCyJQkA7GeNxX4EicnN9XWxTcQtC",
+    "what": "agent key (method_names [spend]) calls cb_settle"
+  }
+]

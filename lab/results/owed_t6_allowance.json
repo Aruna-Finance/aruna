@@ -1,0 +1,1070 @@
+[
+  {
+    "error": null,
+    "id": "T6.0",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "BbF8imnfyJpTsaVg8kBanGhXyUMBT9DZgZ8Jxzq2dpdJ",
+    "what": "t6: AddKey(fc: spend, allowance 0.05 NEAR)"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": {
+            "NotEnoughAllowance": {
+              "account_id": "t6.sandbox",
+              "allowance": "30856496797033600000000",
+              "cost": "30918882666691800000000",
+              "public_key": "ed25519:9Rdx7wwUwLJhuuAMmprhmfTqPtxtJYDyQmQSn89NUWoY"
+            }
+          }
+        }
+      }
+    },
+    "id": "T6.exhausted",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "CLtoFrJeqNkkvQxDXZcvNSgmQqwHqyX6J8Ch5YTk2MQk",
+    "what": "call #145 with the allowance nearly spent"
+  },
+  {
+    "id": "T6.1",
+    "value": {
+      "allowance_yocto": "50000000000000000000000",
+      "calls": [
+        {
+          "account_balance_drawn": "131991924160000000000",
+          "allowance_after": "49868008075840000000000",
+          "allowance_before": "50000000000000000000000",
+          "allowance_drawn": "131991924160000000000",
+          "call": 0
+        },
+        {
+          "account_balance_drawn": "131991924160000000000",
+          "allowance_after": "49736016151680000000000",
+          "allowance_before": "49868008075840000000000",
+          "allowance_drawn": "131991924160000000000",
+          "call": 1
+        },
+        {
+          "account_balance_drawn": "131991924160000000000",
+          "allowance_after": "49604024227520000000000",
+          "allowance_before": "49736016151680000000000",
+          "allowance_drawn": "131991924160000000000",
+          "call": 2
+        },
+        {
+          "account_balance_drawn": "131991924160000000000",
+          "allowance_after": "49472032303360000000000",
+          "allowance_before": "49604024227520000000000",
+          "allowance_drawn": "131991924160000000000",
+          "call": 3
+        },
+        {
+          "account_balance_drawn": "131991924160000000000",
+          "allowance_after": "49340040379200000000000",
+          "allowance_before": "49472032303360000000000",
+          "allowance_drawn": "131991924160000000000",
+          "call": 4
+        },
+        {
+          "account_balance_drawn": "131991924160000000000",
+          "allowance_after": "49208048455040000000000",
+          "allowance_before": "49340040379200000000000",
+          "allowance_drawn": "131991924160000000000",
+          "call": 5
+        },
+        {
+          "account_balance_drawn": "131991924160000000000",
+          "allowance_after": "49076056530880000000000",
+          "allowance_before": "49208048455040000000000",
+          "allowance_drawn": "131991924160000000000",
+          "call": 6
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48944030735707200000000",
+          "allowance_before": "49076056530880000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 7
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48812004940534400000000",
+          "allowance_before": "48944030735707200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 8
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48679979145361600000000",
+          "allowance_before": "48812004940534400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 9
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48547953350188800000000",
+          "allowance_before": "48679979145361600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 10
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48415927555016000000000",
+          "allowance_before": "48547953350188800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 11
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48283901759843200000000",
+          "allowance_before": "48415927555016000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 12
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48151875964670400000000",
+          "allowance_before": "48283901759843200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 13
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "48019850169497600000000",
+          "allowance_before": "48151875964670400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 14
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "47887824374324800000000",
+          "allowance_before": "48019850169497600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 15
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "47755798579152000000000",
+          "allowance_before": "47887824374324800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 16
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "47623772783979200000000",
+          "allowance_before": "47755798579152000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 17
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "47491746988806400000000",
+          "allowance_before": "47623772783979200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 18
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "47359721193633600000000",
+          "allowance_before": "47491746988806400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 19
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "47227695398460800000000",
+          "allowance_before": "47359721193633600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 20
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "47095669603288000000000",
+          "allowance_before": "47227695398460800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 21
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46963643808115200000000",
+          "allowance_before": "47095669603288000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 22
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46831618012942400000000",
+          "allowance_before": "46963643808115200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 23
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46699592217769600000000",
+          "allowance_before": "46831618012942400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 24
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46567566422596800000000",
+          "allowance_before": "46699592217769600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 25
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46435540627424000000000",
+          "allowance_before": "46567566422596800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 26
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46303514832251200000000",
+          "allowance_before": "46435540627424000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 27
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46171489037078400000000",
+          "allowance_before": "46303514832251200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 28
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "46039463241905600000000",
+          "allowance_before": "46171489037078400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 29
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "45907437446732800000000",
+          "allowance_before": "46039463241905600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 30
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "45775411651560000000000",
+          "allowance_before": "45907437446732800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 31
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "45643385856387200000000",
+          "allowance_before": "45775411651560000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 32
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "45511360061214400000000",
+          "allowance_before": "45643385856387200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 33
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "45379334266041600000000",
+          "allowance_before": "45511360061214400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 34
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "45247308470868800000000",
+          "allowance_before": "45379334266041600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 35
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "45115282675696000000000",
+          "allowance_before": "45247308470868800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 36
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44983256880523200000000",
+          "allowance_before": "45115282675696000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 37
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44851231085350400000000",
+          "allowance_before": "44983256880523200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 38
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44719205290177600000000",
+          "allowance_before": "44851231085350400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 39
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44587179495004800000000",
+          "allowance_before": "44719205290177600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 40
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44455153699832000000000",
+          "allowance_before": "44587179495004800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 41
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44323127904659200000000",
+          "allowance_before": "44455153699832000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 42
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44191102109486400000000",
+          "allowance_before": "44323127904659200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 43
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "44059076314313600000000",
+          "allowance_before": "44191102109486400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 44
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43927050519140800000000",
+          "allowance_before": "44059076314313600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 45
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43795024723968000000000",
+          "allowance_before": "43927050519140800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 46
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43662998928795200000000",
+          "allowance_before": "43795024723968000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 47
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43530973133622400000000",
+          "allowance_before": "43662998928795200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 48
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43398947338449600000000",
+          "allowance_before": "43530973133622400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 49
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43266921543276800000000",
+          "allowance_before": "43398947338449600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 50
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43134895748104000000000",
+          "allowance_before": "43266921543276800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 51
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "43002869952931200000000",
+          "allowance_before": "43134895748104000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 52
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "42870844157758400000000",
+          "allowance_before": "43002869952931200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 53
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "42738818362585600000000",
+          "allowance_before": "42870844157758400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 54
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "42606792567412800000000",
+          "allowance_before": "42738818362585600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 55
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "42474766772240000000000",
+          "allowance_before": "42606792567412800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 56
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "42342740977067200000000",
+          "allowance_before": "42474766772240000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 57
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "42210715181894400000000",
+          "allowance_before": "42342740977067200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 58
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "42078689386721600000000",
+          "allowance_before": "42210715181894400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 59
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41946663591548800000000",
+          "allowance_before": "42078689386721600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 60
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41814637796376000000000",
+          "allowance_before": "41946663591548800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 61
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41682612001203200000000",
+          "allowance_before": "41814637796376000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 62
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41550586206030400000000",
+          "allowance_before": "41682612001203200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 63
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41418560410857600000000",
+          "allowance_before": "41550586206030400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 64
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41286534615684800000000",
+          "allowance_before": "41418560410857600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 65
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41154508820512000000000",
+          "allowance_before": "41286534615684800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 66
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "41022483025339200000000",
+          "allowance_before": "41154508820512000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 67
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "40890457230166400000000",
+          "allowance_before": "41022483025339200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 68
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "40758431434993600000000",
+          "allowance_before": "40890457230166400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 69
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "40626405639820800000000",
+          "allowance_before": "40758431434993600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 70
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "40494379844648000000000",
+          "allowance_before": "40626405639820800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 71
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "40362354049475200000000",
+          "allowance_before": "40494379844648000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 72
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "40230328254302400000000",
+          "allowance_before": "40362354049475200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 73
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "40098302459129600000000",
+          "allowance_before": "40230328254302400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 74
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39966276663956800000000",
+          "allowance_before": "40098302459129600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 75
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39834250868784000000000",
+          "allowance_before": "39966276663956800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 76
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39702225073611200000000",
+          "allowance_before": "39834250868784000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 77
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39570199278438400000000",
+          "allowance_before": "39702225073611200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 78
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39438173483265600000000",
+          "allowance_before": "39570199278438400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 79
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39306147688092800000000",
+          "allowance_before": "39438173483265600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 80
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39174121892920000000000",
+          "allowance_before": "39306147688092800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 81
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "39042096097747200000000",
+          "allowance_before": "39174121892920000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 82
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "38910070302574400000000",
+          "allowance_before": "39042096097747200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 83
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "38778044507401600000000",
+          "allowance_before": "38910070302574400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 84
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "38646018712228800000000",
+          "allowance_before": "38778044507401600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 85
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "38513992917056000000000",
+          "allowance_before": "38646018712228800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 86
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "38381967121883200000000",
+          "allowance_before": "38513992917056000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 87
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "38249941326710400000000",
+          "allowance_before": "38381967121883200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 88
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "38117915531537600000000",
+          "allowance_before": "38249941326710400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 89
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37985889736364800000000",
+          "allowance_before": "38117915531537600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 90
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37853863941192000000000",
+          "allowance_before": "37985889736364800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 91
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37721838146019200000000",
+          "allowance_before": "37853863941192000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 92
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37589812350846400000000",
+          "allowance_before": "37721838146019200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 93
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37457786555673600000000",
+          "allowance_before": "37589812350846400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 94
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37325760760500800000000",
+          "allowance_before": "37457786555673600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 95
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37193734965328000000000",
+          "allowance_before": "37325760760500800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 96
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "37061709170155200000000",
+          "allowance_before": "37193734965328000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 97
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36929683374982400000000",
+          "allowance_before": "37061709170155200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 98
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36797657579809600000000",
+          "allowance_before": "36929683374982400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 99
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36665631784636800000000",
+          "allowance_before": "36797657579809600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 100
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36533605989464000000000",
+          "allowance_before": "36665631784636800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 101
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36401580194291200000000",
+          "allowance_before": "36533605989464000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 102
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36269554399118400000000",
+          "allowance_before": "36401580194291200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 103
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36137528603945600000000",
+          "allowance_before": "36269554399118400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 104
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "36005502808772800000000",
+          "allowance_before": "36137528603945600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 105
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "35873477013600000000000",
+          "allowance_before": "36005502808772800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 106
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "35741451218427200000000",
+          "allowance_before": "35873477013600000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 107
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "35609425423254400000000",
+          "allowance_before": "35741451218427200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 108
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "35477399628081600000000",
+          "allowance_before": "35609425423254400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 109
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "35345373832908800000000",
+          "allowance_before": "35477399628081600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 110
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "35213348037736000000000",
+          "allowance_before": "35345373832908800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 111
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "35081322242563200000000",
+          "allowance_before": "35213348037736000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 112
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34949296447390400000000",
+          "allowance_before": "35081322242563200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 113
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34817270652217600000000",
+          "allowance_before": "34949296447390400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 114
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34685244857044800000000",
+          "allowance_before": "34817270652217600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 115
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34553219061872000000000",
+          "allowance_before": "34685244857044800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 116
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34421193266699200000000",
+          "allowance_before": "34553219061872000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 117
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34289167471526400000000",
+          "allowance_before": "34421193266699200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 118
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34157141676353600000000",
+          "allowance_before": "34289167471526400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 119
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "34025115881180800000000",
+          "allowance_before": "34157141676353600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 120
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "33893090086008000000000",
+          "allowance_before": "34025115881180800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 121
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "33761064290835200000000",
+          "allowance_before": "33893090086008000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 122
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "33629038495662400000000",
+          "allowance_before": "33761064290835200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 123
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "33497012700489600000000",
+          "allowance_before": "33629038495662400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 124
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "33364986905316800000000",
+          "allowance_before": "33497012700489600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 125
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "33232961110144000000000",
+          "allowance_before": "33364986905316800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 126
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "33100935314971200000000",
+          "allowance_before": "33232961110144000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 127
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32968909519798400000000",
+          "allowance_before": "33100935314971200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 128
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32836883724625600000000",
+          "allowance_before": "32968909519798400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 129
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32704857929452800000000",
+          "allowance_before": "32836883724625600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 130
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32572832134280000000000",
+          "allowance_before": "32704857929452800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 131
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32440806339107200000000",
+          "allowance_before": "32572832134280000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 132
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32308780543934400000000",
+          "allowance_before": "32440806339107200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 133
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32176754748761600000000",
+          "allowance_before": "32308780543934400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 134
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "32044728953588800000000",
+          "allowance_before": "32176754748761600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 135
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "31912703158416000000000",
+          "allowance_before": "32044728953588800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 136
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "31780677363243200000000",
+          "allowance_before": "31912703158416000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 137
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "31648651568070400000000",
+          "allowance_before": "31780677363243200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 138
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "31516625772897600000000",
+          "allowance_before": "31648651568070400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 139
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "31384599977724800000000",
+          "allowance_before": "31516625772897600000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 140
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "31252574182552000000000",
+          "allowance_before": "31384599977724800000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 141
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "31120548387379200000000",
+          "allowance_before": "31252574182552000000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 142
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "30988522592206400000000",
+          "allowance_before": "31120548387379200000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 143
+        },
+        {
+          "account_balance_drawn": "132025795172800000000",
+          "allowance_after": "30856496797033600000000",
+          "allowance_before": "30988522592206400000000",
+          "allowance_drawn": "132025795172800000000",
+          "call": 144
+        }
+      ],
+      "error_at_exhaustion": {
+        "TxExecutionError": {
+          "InvalidTxError": {
+            "InvalidAccessKeyError": {
+              "NotEnoughAllowance": {
+                "account_id": "t6.sandbox",
+                "allowance": "30856496797033600000000",
+                "cost": "30918882666691800000000",
+                "public_key": "ed25519:9Rdx7wwUwLJhuuAMmprhmfTqPtxtJYDyQmQSn89NUWoY"
+              }
+            }
+          }
+        }
+      },
+      "successful_calls": 145
+    },
+    "what": "per-call allowance and account balance drawn (30 Tgas prepaid each)"
+  }
+]

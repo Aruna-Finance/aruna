@@ -74,9 +74,11 @@ them and still be unable to change its own code or keys. That is what would make
 vault classifiable as `immutable_verified` while carrying one key per agent.
 See §4 and `CLASSIFIER.md` step 2.
 
-**Not yet directly tested:** a function-call key attempting `UseGlobalContract` (T5), a
-classic key with an `allowance` on a contract account (T6), a contract with no full-access
-key managing its own function-call keys (T7), and an agent key attempting callbacks (T8).
+**Tested since, with classic function-call keys on a contract account (T5–T8, §10):** a
+function-call key attempting `UseGlobalContract` is rejected with `RequiresFullAccess`; a classic
+key with an `allowance` draws gas from the account balance and stops at `NotEnoughAllowance`; a
+contract with no full-access key adds and deletes its own function-call keys; an agent key calling
+a `cb_` method is rejected with `MethodNameMismatch`.
 
 ### Sub-accounts
 
@@ -161,10 +163,12 @@ Aruna's own vault.
 
 Once conditions 2 and 3 hold it is sticky: without a key or the import, no key can be added.
 
-**Open:** a contract able to delete its own account frees the name, and a parent can
-recreate a sub-account with other code. `promise_batch_action_delete_account` is
-therefore scanned, and lab test T9 must confirm the behaviour before the word *proof*
-is used without qualification.
+**Confirmed by T9 (§10):** a contract able to delete its own account frees the name, and the
+parent then recreated the sub-account with a full-access key and other code. Scanning
+`promise_batch_action_delete_account` closes that route: without the import and without a
+full-access key, the account cannot be deleted, so the name cannot be freed. Keep the wording
+"no detected upgrade path under these checks": four host functions in `CLASSIFIER.md` are still
+under review, so the word *proof* stays qualified.
 
 ---
 
@@ -268,3 +272,43 @@ relative to older documentation.
 
 If something is not in this file and cannot be verified: **stop and say so.** Do not
 fill the gap with a plausible guess.
+
+---
+
+## 10. Owed tests T5–T9 — classic keys on a contract account
+
+Run 9 November 2026 on `near-sandbox` 0.4.0, nearcore 2.14.0, protocol 88, by
+`lab/owed/` (a standalone workspace; the original lab is untouched). Raw output:
+`lab/results/owed_*.json`. Contracts built with `cargo near build non-reproducible-wasm --no-abi`,
+near-sdk 5.30.1, which runs `wasm-opt -O`.
+
+| Test | Setup | Result | Exact error |
+|---|---|---|---|
+| T5 | Account bound by hash, full-access key deleted, one function-call key left | `UseGlobalContract(CodeHash)` and `UseGlobalContract(AccountId)` from the function-call key rejected; `global_contract_hash` unchanged | `InvalidAccessKeyError: RequiresFullAccess` |
+| T6 | Classic function-call key, allowance 0.05 NEAR, 30 Tgas per call to `spend` | 145 calls succeeded. Each drew about 0.000132 NEAR from the allowance and the same amount from the account balance. The 146th was rejected with 0.0309 NEAR of allowance left | `NotEnoughAllowance { allowance: "30856496797033600000000", cost: "30918882666691800000000" }` |
+| T7a | Contract with no full-access key (`keymgr`, low-level functions) | Added a function-call key to itself by promise, then deleted it; `view_access_key_list` showed 0 → 1 → 0 keys, never a full-access key | — |
+| T7a | The deleted key signs a call | Rejected by the network, never executed | `InvalidAccessKeyError: AccessKeyNotFound` |
+| T7b | Contract whose only key host function is `promise_batch_action_add_key_with_function_call` (`fconly`) | The widest key it can create is a function-call key with an empty method list on its own account. It has no way to request a full-access key | — |
+| T8 | Agent key with `method_names: ["spend"]` calls `cb_settle` | Rejected; the control call to `spend` succeeded | `InvalidAccessKeyError: MethodNameMismatch { method_name: "cb_settle" }` |
+| T9 | Child sub-account, no full-access key, code importing `promise_batch_action_delete_account` | `delete_self` deleted the account; the parent then recreated `child.parent.sandbox` with a full-access key and different code (`fconly`) | — |
+| T9 control | A non-parent creates a sub-account of `parent.sandbox` | Rejected on chain | `CreateAccountNotAllowed { predecessor_id: "stranger.sandbox" }` |
+
+**The allowance must cover prepaid gas, not burnt gas.** A call is admitted only if the remaining
+allowance covers the full prepaid gas (`cost` above, 30 Tgas), even though only the burnt part is
+deducted afterwards. An agent key needs an allowance well above one call's prepaid gas, and its
+last ~0.031 NEAR (at 30 Tgas) is never usable. Sandbox gas price: re-measure on testnet before
+publishing a per-call figure.
+
+**T7c — compiled imports with `cargo near build`.** Same surface (add key, delete key, delete
+account), two builds:
+
+| Build | `promise_batch_action_*` imports | Scanned imports present |
+|---|---|---|
+| `keymgr`, low-level `env::promise_batch_*` | 3: `add_key_with_function_call`, `delete_key`, `delete_account` | `delete_account` only, because this lab contract exposes `delete_self` |
+| `keymgr_promise`, near-sdk `Promise` | 18, including all six scanned functions | all six |
+| `fconly`, low-level, add key only | 1: `add_key_with_function_call` | none |
+
+The 7 November measurement in §4 counted 17 for `Promise` (one-method contract, no `wasm-opt`);
+this build counts 18. The two measurements differ in contract surface and build pipeline, and the
+7 November import list was not kept, so the extra name is not attributed here. The conclusion is
+unchanged: the vault must use the low-level functions, and it must not expose a self-delete.

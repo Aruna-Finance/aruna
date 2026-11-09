@@ -1,0 +1,16 @@
+[package]
+name = "keymgr"
+edition.workspace = true
+version.workspace = true
+publish = false
+repository = "https://github.com/Aruna-Finance/aruna"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+near-sdk = "5.30"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(near)']
