@@ -1,0 +1,280 @@
+# Locked decisions
+
+If a design choice feels worth debating, it is probably settled here. Do not reopen one
+without new evidence. Several reverse earlier decisions after testing or review proved
+them wrong; that history is kept deliberately, because the reasons still apply.
+
+---
+
+## Product shape
+
+### D-01 — The classifier is the differentiator and is built first
+Five comparable hackathon projects already shipped vault-plus-scoped-key spending
+guards, some with more tests than we will write. Building that as the product means
+being one of five. Build order is classifier-first. See `COMPETITIVE.md`. The first customer
+buys the vault and public page (D-36); the classifier is why those are worth buying.
+*Supersedes an earlier plan that built isolation and the gate first.*
+
+### D-02 — Agents are function-call keys on the vault, not sub-accounts
+Cheaper (no account creation or storage stake), stronger revocation (`delete_key` is
+refused by the network, not by contract logic), and one `view_access_key_list(vault)`
+call shows the whole fleet. It also removes gas keys entirely — classic `allowance`
+paid from the vault's balance, no NEP-611, no TransactionV1, no patchy library support.
+Identity is `signer_account_pk()`, with a human-readable label in state.
+*Adopted from a comparable project. Supersedes sub-accounts plus gas keys.*
+
+### D-03 — `method_names` is load-bearing security
+An agent's call satisfies `predecessor_account_id() == current_account_id()`, the usual
+guard for private callbacks. Only the key's method list stops an agent reaching one.
+Callbacks are prefixed `cb_`; tests enforce that no `cb_` name appears in any agent key
+and that every callback rejects an agent key.
+
+### D-04 — The risk tier is encoded in the key's method list
+Agents permitted only `immutable_verified` targets get a different method set. Part of
+the policy is enforced by the protocol, not only the contract.
+
+### D-05 — Three contracts, not one. *Supersedes the single-contract decision.*
+A per-owner vault cannot hold a shared underwriter pool, cross-owner concentration
+limits, or a freeze beyond its own agents. Split into `vault` (per owner, hot path),
+`registry` and `pool` (shared, cold paths), which may start in one account as separate
+modules. The original reason for one contract —
+atomic per-transaction accounting — still holds, and the whole `spend` path stays
+inside the vault.
+
+### D-06 — The vault holds no full-access key
+A vault whose owner holds one classifies as `local_upgradeable` under our own
+classifier, collapsing the headline claim. Owner authority lives in state; agent keys
+are managed by the contract itself, through low-level promise functions (D-41). *Corrects a direct contradiction in an
+earlier architecture.*
+
+### D-07 — The vault is a named-action gateway, never a generic executor
+A free-form `execute(target, method, args)` turns it into a proxy that can call
+anything. *Cost accepted:* one hand-written adapter per protocol, so fewer protocols
+supported than competitors.
+
+---
+
+## Classification
+
+### D-08 — Immutability requires no **full-access** keys, not no keys
+Function-call keys cannot perform account actions, so they cannot re-point or replace
+code. *Corrects an earlier spec requiring an empty key list, which would have
+disqualified our own vault.* Lab test T5 owed.
+
+### D-09 — Immutability needs three checks
+By hash, no full-access keys, clean import section. "No full-access key" alone is not
+enough; a locked contract can still upgrade itself.
+*Reverses an early `upgrade_factor` using key presence as a proxy, which would have
+priced the highest-risk category at nearly zero.*
+
+### D-10 — The scan includes delete-account and full-access gas keys
+A contract that can delete its own account frees the name, and a parent can recreate a
+sub-account with different code. Until lab test T9 confirms the behaviour, describe
+`immutable_verified` as "no detected upgrade path under these checks", not as an
+unqualified proof. `promise_batch_action_add_gas_key_with_full_access` hands control to a key
+like the ordinary form does, so it is scanned too.
+
+### D-11 — The classifier core has zero dependencies
+Account id plus an injected `RpcReader`. That is what lets one engine serve the browser
+page, the CLI, the MCP server and the attestor. A dependency breaks four consumers.
+
+### D-12 — Only authorized classifiers may write a class
+Specified and enforced in the registry. An open write path makes every downstream
+decision meaningless.
+
+### D-13 — Drift monitoring uses four channels
+`view_account.code_hash` is blind to `global_by_account` changes, proven in the lab.
+Add `view_code` polling, `DeployContract` and `UseGlobalContract` on the target, and
+`DeployGlobalContract` on the owner account.
+
+### D-14 — `unknown` is never insurable
+Pricing what you cannot determine is the fastest way to lose underwriters and buyers.
+
+---
+
+## Execution semantics
+
+### D-15 — Policy refusals return; authorization failures panic
+A panic reverts state, so a refusal that panics cannot increment a counter, write a log
+or emit an event — making auto-disable impossible. *Corrects an earlier flow that
+specified both a panic and a counter increment.*
+
+### D-16 — Reservation accounting is mandatory
+Asynchronous receipts mean `spent_today` has not increased when the next check runs.
+The check is `spent + reserved + requested ≤ cap`, and its test must be **parallel**.
+
+### D-17 — Target class is re-validated at execution against the last recorded value
+Not at policy-set time, and not live — no contract can read another's state. State it
+with that precision.
+*Adapted from a competitor's re-checking of queued approvals; applied at the gate.*
+
+### D-18 — Class freshness is pull-with-staleness-bound, plus push for freezes
+Pushing every update to every vault is O(n) and breaks at scale. Freezes push because
+they are urgent and rare; routine updates are pulled when the cache exceeds
+`MAX_CLASS_AGE`, with the SDK absorbing the refresh. *Supersedes push-only.*
+
+### D-19 — Auto-disable is risk-weighted, and counts only agent-caused refusals
+Refusals against `global_by_account` or `unknown` count more than against
+`immutable_verified`. An injected agent produces a burst, so the refusal log becomes an
+active defence. Only works because refusals return rather than panic. Frozen, stale,
+reclassified and unfunded refusals do not count, or one freeze would disable honest agents
+in every vault.
+
+### D-20 — Funds are custodied by the vault; agents never hold tokens
+Not a choice. Restricted keys cannot attach a deposit and NEP-141 requires 1 yoctoNEAR.
+`withdraw_to_owner` is owner-only and sends only to the registered owner.
+
+---
+
+## Coverage
+
+### D-21 — Coverage is parametric, not indemnity
+A contract cannot prove actual loss. Payout is recorded exposure × ratio, capped. No
+judgement about whether an upgrade was malicious.
+*Cost accepted:* benign upgrades trigger payouts too. Whether that is survivable is
+open question 1.
+
+### D-22 — Two trust assumptions, both stated openly
+**The attestor**: five routes to detection without an outside observer were tested and
+all closed. **The arbiter**: a contract cannot verify counter-evidence, so disputed
+reports are resolved by a designated account — at MVP, the protocol owner.
+*Withdrawn along the way:* the "self-proving, oracle-free claim", and target
+self-reporting via `current_contract_code()` — malicious code can lie about itself.
+
+### D-23 — The contract enforces a lookback bound, not temporal truth
+`changed_at_block` must fall within `[report_block - MAX_LOOKBACK, report_block]`. That
+bounds backdating; it does not eliminate it. Do not name a test "proves backdating is
+impossible".
+
+### D-24 — Concentration limits are per code hash, not just per address
+Drift claims are correlated; many contracts share one implementation. Limits also per
+global contract owner and per upgrade authority.
+
+### D-25 — Aruna's own risk is excluded from coverage
+The vault is a central point of failure. Mitigation is a TVL cap, immutability, and an audit
+— not cover from its own pool.
+
+---
+
+## Engineering
+
+### D-26 — The SDK sits under MCP, not beside it
+An agent's deciding half speaks tool calls; its executing half is ordinary code. MCP
+serves the first, the SDK the second — and the MCP server is written against the SDK.
+The SDK is the published, versioned compatibility contract.
+*Supersedes an earlier "MCP, not SDK" framing, which was a false choice.*
+
+### D-27 — Contract ABIs generate TypeScript types as a build step
+Without it the SDK and contracts drift silently and the first symptom is a failed
+testnet transaction. With it, a changed signature breaks the build.
+
+### D-28 — Immutable vaults mean migration tooling is a product requirement
+A bug in a deployed vault can never be patched. New versions are new code hashes;
+existing vaults run old code forever. Migration is an owner action needing a CLI
+command and a console flow, and the registry tracks which vault runs which hash so a
+security finding can be mapped to affected owners.
+
+### D-29 — The attestor writes an on-chain heartbeat
+A dead attestor emits nothing and the system looks healthy while monitoring has
+stopped. Each target has an assigned attestor; the pool refuses new coverage on a target
+whose assigned attestor's heartbeat is stale.
+
+### D-30 — Attestor identity is separate from its signing key
+A leaked key must be replaceable without invalidating past reports.
+
+### D-31 — An indexer backs all history views
+History cannot be rebuilt from RPC on every page load.
+
+### D-32 — The apps are owned by a separate team
+`FRONTEND.md` gives context, the questions each surface answers, and a short list of
+non-negotiables. Layout and components are theirs. `prototype/` is a reference for flows, not
+a screen spec; the docs win any conflict.
+
+### D-33 — Testnet only for transactions, until the release gates pass
+The classifier reads mainnet state read-only for the distribution measurement. Until
+gate A, a mainnet account exists only to receive prize money.
+
+### D-34 — Monorepo, with `lab/` inside it
+The sandbox lab is our strongest evidence and must be re-runnable from the same repo.
+Its results are not modified.
+
+### D-35 — No meta-transactions
+`DelegateV2` was removed at protocol 88.
+
+---
+
+## Product
+
+### D-36 — The first paying customer is an agent-as-a-service company
+A company running agents for clients has to answer "what is the guarantee?", and one URL
+showing what the agent cannot do is that answer. *Accepted tension:* it buys the vault, the
+area with the most competition. So the vault stays thin, and the classifier remains why it is
+worth buying. The keyless tools stay free for everyone and bring credibility.
+
+### D-37 — One vault per client; the client owns, the company operates
+Funds stay with the client and the operator cannot take them, which is what makes the public
+page a real guarantee. The operator may add agents within the client's ceiling, pause, revoke
+and tighten; it may not loosen, resume, withdraw or change the owner. Detail: `CONTRACTS.md`.
+*Cost accepted:* clients need a NEAR account, which is an onboarding cost to design for.
+
+### D-38 — The vault is immutable, with migration
+Chosen over a timelocked upgrade. A product selling certainty about whether code can change
+should pass its own test. *Cost accepted:* bugs are remedied by migrating, so tooling, an
+always-available owner withdrawal, version tracking and a TVL cap are all required. Closes
+the former open question on this.
+
+### D-39 — Four classes, plus a recorded basis
+A near-sdk contract using `Promise` imports upgrade functions with no upgrade route, so
+`local_upgradeable` alone would be too broad to be useful. Evidence records
+`mutabilityBasis`. Taxonomy unchanged; no flow analysis. Detail: `CLASSIFIER.md`.
+*Rejected:* a fifth class, which would ripple through every table; flow analysis, which risks
+false negatives in a product selling certainty.
+
+### D-40 — Coverage stays on testnet until drift frequency is measured
+It runs in full there, with numbers labelled as assumptions. Mainnet needs release gate B.
+The policy-to-price chain remains visible throughout.
+
+### D-41 — Vault code uses low-level promise functions
+Measured with near-sdk 5.30.1: `Promise` links 17 action imports, including deploy,
+delete-account and add-full-access-key; the low-level form links only what it calls. See
+`NEAR-FACTS.md` §4. *Cost accepted:* more verbose contract code.
+
+### D-42 — Revenue is a subscription per vault
+Paid by the AaaS company for drift monitoring, alerts and a branded public page. It runs
+without coverage and covers monitoring cost from day one. It is billed off chain, so no fee
+sits in an immutable contract. The classifier stays free. Coverage margin is additional
+revenue after gate B. The price is open question 4.
+
+### D-43 — Aruna runs the attestor and arbiter at first, openly
+Realistic while no real money depends on coverage. The daemon is open source, and heartbeats
+and rulings are public. An independent attestor is a condition of gate B.
+
+### D-44 — Mainnet gates are explicit
+A vault with real funds needs gate A: T5–T9, an independent audit, migration tooling, a TVL
+cap and capped AaaS pilots. Coverage needs gate B on top. See `BUILD-PLAN.md`.
+
+### D-45 — The measurement uses the NEAR BigQuery public dataset
+Plain RPC cannot produce "top N by calls". The source is official and the query is published,
+so others can repeat it. It needs the owner's Google Cloud credentials.
+
+---
+
+## Open questions — do not invent answers
+
+Flag and ask. Writing a plausible number here is the failure this list exists to
+prevent.
+
+1. **How often do actively-used NEAR contracts change code?** Determines whether the
+   coverage layer is economically viable, since the parametric trigger pays on every
+   verified change, not only malicious ones. Measurable from history, with the caveat
+   that counting `DeployContract` alone misses global-by-account changes.
+2. **`k` for capital adequacy, and the concentration limit per code hash.** Derive from
+   simulation, then lock as constants with no admin key — the absence of an admin key
+   is part of the product's promise.
+3. **`MAX_CLASS_AGE` and the attestor's polling interval**, and how both enter the
+   coverage period definition. Detection lag adds to the TOCTOU window.
+4. **The subscription price per vault.** Validate with AaaS prospects. It must exceed
+   measured monitoring cost per vault, which grows with target count.
+5. **The TOCTOU window under multi-shard.** Three blocks is a single-shard lower bound.
+6. **Client onboarding without a NEAR account.** D-37 needs each client to hold one. How
+   much an AaaS company can do for a client without becoming its custodian is unresolved.

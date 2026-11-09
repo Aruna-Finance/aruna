@@ -1,0 +1,100 @@
+[
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "DepositWithFunctionCall"
+        }
+      }
+    },
+    "id": "T4.1",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "Cbzq7oVNQyXBjSH7kssDqSyc7ijCXakPhmSKLfp1WaoZ",
+    "what": "regular FunctionCall key -> gate.execute with deposit 1 yocto"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "DepositWithFunctionCall"
+        }
+      }
+    },
+    "id": "T4.2",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "DkqpGifePXPV6o2uLPepA1JPZumxUFudgQVfkRjuTxxx",
+    "what": "GasKeyFunctionCall key -> gate.execute with deposit 1 yocto"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "DepositWithFunctionCall"
+        }
+      }
+    },
+    "id": "T4.3",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "HQW8GvLq9oTWERizyj3bXn8wKLQcncFWE1URc878AK4C",
+    "what": "regular FC key scoped to usdc.ft_transfer, deposit 1 yocto (NEP-141 requirement)"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "FunctionCallError": {
+            "ExecutionError": "Smart contract panicked: Requires attached deposit of exactly 1 yoctoNEAR"
+          }
+        }
+      }
+    },
+    "id": "T4.4",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "AeBzCsboSvPAMKi9UWGswDqzo9LxSTyjN77d7WuBu2iJ",
+    "what": "regular FC key scoped to usdc.ft_transfer, deposit 0"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "DepositWithFunctionCall"
+        }
+      }
+    },
+    "id": "T4.5",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "CGQGVHSU5JyiPaRRjB3QDggSvdbVZhbdSUc4ByC27Z5J",
+    "what": "gas FC key scoped to usdc.ft_transfer, deposit 1 yocto"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "FunctionCallError": {
+            "ExecutionError": "Smart contract panicked: Requires attached deposit of exactly 1 yoctoNEAR"
+          }
+        }
+      }
+    },
+    "id": "T4.6",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "GFCtC9BFEBb5Pwe7CP4Q3bTgQATw5u29VExoJER8fz8H",
+    "what": "gas FC key scoped to usdc.ft_transfer, deposit 0"
+  },
+  {
+    "id": "T4.balances",
+    "value": [
+      "\"1000000\"",
+      "\"1000000\""
+    ],
+    "what": "usdc balances after (agent-fc, agent-usdc)"
+  }
+]

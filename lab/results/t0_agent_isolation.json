@@ -1,0 +1,174 @@
+[
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "RequiresFullAccess"
+        }
+      }
+    },
+    "id": "T0.1",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "84a4hEZ9MX1kUWtn4oZZrF1Fjc2x1moLdYNhppJ88kEj",
+    "what": "agent gas key: Transfer 1 yocto -> parent"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "RequiresFullAccess"
+        }
+      }
+    },
+    "id": "T0.2",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "GH6AZarTrZXRSzV6ynFo6z2TQeGwU8qC9sRjQkFoAGjC",
+    "what": "agent gas key: AddKey(FullAccess) on itself"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "RequiresFullAccess"
+        }
+      }
+    },
+    "id": "T0.3",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "F6uSSKGzQHP5Ay3Tyz22GukizbL3cf3ZcSTtiWQDHjXQ",
+    "what": "agent gas key: DeployContract on itself"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": {
+            "ReceiverMismatch": {
+              "ak_receiver": "gate.sandbox",
+              "tx_receiver": "usdc.sandbox"
+            }
+          }
+        }
+      }
+    },
+    "id": "T0.4",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "Gm5hoBQ9mRwPbL52aMFKGiSXbJbSvEEqh6iLmqPadD7o",
+    "what": "agent gas key: FunctionCall usdc.ft_balance_of (receiver != gate)"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": {
+            "MethodNameMismatch": {
+              "method_name": "other"
+            }
+          }
+        }
+      }
+    },
+    "id": "T0.5",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "HPQQUGPi5XQZ918Ytv92XuF5MycnZiCGXMJiFYSbbTiH",
+    "what": "agent gas key: FunctionCall gate.other (method not in method_names)"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "ActorNoPermission": {
+            "account_id": "agent-1.parent.sandbox",
+            "actor_id": "parent.sandbox"
+          }
+        }
+      }
+    },
+    "id": "T0.6",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "QPxPXwEQ6o5kFyNz7QwijSi4m9ZUTo3CNgMWHi5PdG4",
+    "what": "parent (full key) signs AddKey(FullAccess) with receiver=agent-1"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "ActorNoPermission": {
+            "account_id": "agent-1.parent.sandbox",
+            "actor_id": "parent.sandbox"
+          }
+        }
+      }
+    },
+    "id": "T0.6b",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "3JKTo4YYYyzv1kjEky3pMTTTuF7PE123opijmpcHc8kP",
+    "what": "parent (full key) signs DeployContract with receiver=agent-1"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "ActorNoPermission": {
+            "account_id": "agent-1.parent.sandbox",
+            "actor_id": "parent.sandbox"
+          }
+        }
+      }
+    },
+    "id": "T0.6c",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "CHkGMpRDjG13efHtBYKje2FnsSN7trscSDyuQVaY7aH3",
+    "what": "parent (full key) signs DeleteAccount with receiver=agent-1"
+  },
+  {
+    "error": null,
+    "id": "T0.ok",
+    "kind": "Ok",
+    "logs": [
+      "gate.execute height=177 target=target.sandbox",
+      "target.version height=178 account=target.sandbox returns=v1",
+      "gate.on_version height=179 observed=v1"
+    ],
+    "tx_hash": "BGvmxJy8q96SA9b2S3uyQkcDQjPdkyMfNKKsmLid2Q5P",
+    "what": "control: agent gas key -> gate.execute (allowed)"
+  },
+  {
+    "id": "T0.keys",
+    "value": {
+      "block_hash": "F98EV1f9MLgjaExypnACSu4jHYGe8K9rjsRHBzS5eqJx",
+      "block_height": 182,
+      "keys": [
+        {
+          "access_key": {
+            "nonce": 0,
+            "permission": {
+              "GasKeyFunctionCall": {
+                "allowance": null,
+                "balance": "2495227999714385900000000",
+                "method_names": [
+                  "execute"
+                ],
+                "num_nonces": 4,
+                "receiver_id": "gate.sandbox"
+              }
+            }
+          },
+          "public_key": "ed25519:BwY8WGLBiSzY3UJk5GVbk2ADcoqshTWLpLPhojdi8y74"
+        }
+      ]
+    },
+    "what": "agent-1 final access key list"
+  }
+]

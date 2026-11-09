@@ -1,0 +1,239 @@
+[
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "ActionsValidation": {
+            "AddGasKeyWithNonZeroBalance": {
+              "balance": "1000000000000000000000000"
+            }
+          }
+        }
+      }
+    },
+    "id": "T1a",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "5uxH96ENJ7Ak89vLyDWgtZ4N9Q42tVM6foAZKJUZt6p4",
+    "what": "parent: [CreateAccount, AddKey(GasKeyFunctionCall balance=1N nonces=4 -> gate.execute), Transfer 0.1N]"
+  },
+  {
+    "error": null,
+    "id": "T1a-alt",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "34rcPEQjc5VxVfREY5cam7ho8dXKfGCKz9eLUocCWjP6",
+    "what": "parent: [CreateAccount, Transfer 0.1N, AddKey(gas key balance=0), TransferToGasKey 1N] in one batch"
+  },
+  {
+    "id": "T1a-alt.balance",
+    "value": {
+      "agent_keys": {
+        "block_hash": "85gdJdve9CPY1Sf3ymboFoABeaAPyY23EcwCvTZu6Hbd",
+        "block_height": 43,
+        "keys": [
+          {
+            "access_key": {
+              "nonce": 0,
+              "permission": {
+                "GasKeyFunctionCall": {
+                  "allowance": null,
+                  "balance": "1000000000000000000000000",
+                  "method_names": [
+                    "execute"
+                  ],
+                  "num_nonces": 4,
+                  "receiver_id": "gate.sandbox"
+                }
+              }
+            },
+            "public_key": "ed25519:7Q5HESuAArEXekn1rvHwVio8qW4rRM1mL8qiqyc9WoG7"
+          }
+        ]
+      },
+      "gas_key_balance_yocto": "1000000000000000000000000",
+      "gas_key_nonces": {
+        "block_hash": "85gdJdve9CPY1Sf3ymboFoABeaAPyY23EcwCvTZu6Hbd",
+        "block_height": 43,
+        "nonces": [
+          39000000,
+          39000000,
+          39000000,
+          39000000
+        ]
+      },
+      "parent_spent_yocto": "1107179751638958200000000"
+    },
+    "what": "agent-1 after creation"
+  },
+  {
+    "error": null,
+    "id": "T1a-contract",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "F77rJyqrr97Nu8d5BcCUrpfZtVkyGTezim5gTxYvRYjP",
+    "what": "funder.create_agent: promise batch [CreateAccount, Transfer, AddGasKey(FC), TransferToGasKey] (predecessor=funder)"
+  },
+  {
+    "id": "T1a-contract.balance",
+    "value": {
+      "block_hash": "Bir6CiPQzUpagznnqRhHaNRhvE58krMPbRbp3Fkw6vX2",
+      "block_height": 50,
+      "nonce": 0,
+      "permission": {
+        "GasKeyFunctionCall": {
+          "allowance": null,
+          "balance": "1000000000000000000000000",
+          "method_names": [
+            "execute"
+          ],
+          "num_nonces": 4,
+          "receiver_id": "gate.sandbox"
+        }
+      }
+    },
+    "what": "agent-3 gas key"
+  },
+  {
+    "error": null,
+    "id": "T1b",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "CJPDJyUTSWj3ZnzF4asoKfpHDZL2rgHPwjXMYedeRYHy",
+    "what": "parent signs TransferToGasKey(agent-1 gas key, 0.5N), receiver=agent-1"
+  },
+  {
+    "id": "T1b.delta",
+    "value": {
+      "after": "1500000000000000000000000",
+      "before": "1000000000000000000000000"
+    },
+    "what": "agent-1 gas key balance before/after"
+  },
+  {
+    "error": null,
+    "id": "T1b-3rdparty-tx",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "vKv25WWfkRcYE9aR8Q2JCqvZiBmMtp2zLCoxU3Ngndy",
+    "what": "usdc.sandbox (unrelated full-key account) signs TransferToGasKey to agent-1"
+  },
+  {
+    "error": null,
+    "id": "T1c",
+    "kind": "Ok",
+    "logs": [],
+    "tx_hash": "7hpW4witPk6THwmu99TNM23btKshej2zSsMLWU71BLbU",
+    "what": "funder.fund -> Promise(agent-1).transfer_to_gas_key(pk, 0.5N)"
+  },
+  {
+    "id": "T1c.delta",
+    "value": {
+      "after": "2500000000000000000000000",
+      "before": "2000000000000000000000000"
+    },
+    "what": "agent-1 gas key balance before/after"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "ActionsValidation": {
+            "RemovedProtocolFeature": {
+              "protocol_feature": "DelegateV2",
+              "version": 88
+            }
+          }
+        }
+      }
+    },
+    "id": "T1d",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "Ci1kfDkEXu8EkRy52MK3wD38qAN2hMZrgn2dAGUkLJ2X",
+    "what": "DelegateV2{sender=agent-1, signed by gas key idx1, [TransferToGasKey]} relayed by parent"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "ActionsValidation": {
+            "RemovedProtocolFeature": {
+              "protocol_feature": "DelegateV2",
+              "version": 88
+            }
+          }
+        }
+      }
+    },
+    "id": "T1d-control",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "Dvnf3RRqTX8U7E7bspumuCmwxCuoa2sJbEvErNtM5UDy",
+    "what": "DelegateV2{sender=agent-1, receiver=gate, [FunctionCall execute]} relayed by parent (control: allowed action)"
+  },
+  {
+    "id": "T1.depletion",
+    "value": {
+      "agent_account_balance_after": "100000000000000000000000",
+      "agent_account_balance_before": "100000000000000000000000",
+      "calls_per_1_NEAR": 2300.0,
+      "gas_key_after": "2495652457364082500000000",
+      "gas_key_before": "2500000000000000000000000",
+      "net_cost_per_call_near": 0.00043475426359175,
+      "net_cost_per_call_yocto": "434754263591750000000",
+      "sum_tokens_burnt_all_receipts_yocto": "4347542635917500000000"
+    },
+    "what": "10x gate.execute (prepaid 30 Tgas each) via gas key"
+  },
+  {
+    "error": {
+      "ActionError": {
+        "index": 0,
+        "kind": {
+          "ActorNoPermission": {
+            "account_id": "agent-1.parent.sandbox",
+            "actor_id": "parent.sandbox"
+          }
+        }
+      }
+    },
+    "id": "T1.withdraw-parent",
+    "kind": "OnChainFailure",
+    "logs": [],
+    "tx_hash": "xCXtqCrjYf2T5KU7gnDmryXnKPA774W9X2xU4kKVTfG",
+    "what": "parent signs WithdrawFromGasKey(agent-1 gas key, 0.1N)"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "InvalidAccessKeyError": "RequiresFullAccess"
+        }
+      }
+    },
+    "id": "T1.withdraw-self",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "8dbFbkWFNuMnMWLTeUW8tumgrSq8XbEe2eeu8DSPSnYQ",
+    "what": "agent-1 gas key signs WithdrawFromGasKey on itself"
+  },
+  {
+    "error": {
+      "TxExecutionError": {
+        "InvalidTxError": {
+          "NotEnoughGasKeyBalance": {
+            "balance": "1",
+            "cost": "30919103596387000000000",
+            "signer_id": "agent-poor.parent.sandbox"
+          }
+        }
+      }
+    },
+    "id": "T1.exhausted",
+    "kind": "Rejected",
+    "logs": [],
+    "tx_hash": "F96GXc9o1Y83A85nfD5QM5xxnxqBbD9ENzXo151XNAVp",
+    "what": "gas key with 1 yocto balance calls gate.execute (account itself holds 0.1N)"
+  }
+]

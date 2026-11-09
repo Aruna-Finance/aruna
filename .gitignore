@@ -36,3 +36,8 @@ neardev/
 .next/
 out/
 next-env.d.ts
+
+# keys — NEAR credentials live in ~/.near-credentials, never in the repo
+.near-credentials/
+*credentials*.json
+*.key

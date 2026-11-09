@@ -1,0 +1,406 @@
+[
+  {
+    "id": "T2[same-block direct DeployContract]",
+    "value": {
+      "attestor_check_height": 223,
+      "attestor_saw_code_hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+      "code_hash_now": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA",
+      "deploy_timeline": [
+        {
+          "height": 225,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 225,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 226,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "deploy_tx": "447ZHW5WFLHQykY4dbZHMcwwS4Nued1r5C8sTF8XvDW3",
+      "gate_callback": "height=228 observed=v2",
+      "gate_timeline": [
+        {
+          "height": 225,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 226,
+          "logs": [
+            "gate.execute height=226 target=target.sandbox"
+          ],
+          "status": "SuccessReceiptId"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 227,
+          "logs": [
+            "target.version height=227 account=target.sandbox returns=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 228,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 228,
+          "logs": [
+            "gate.on_version height=228 observed=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 229,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 227,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "gate_tx": "95K8PJyRVtpKLT3nEqp9V7D7XSAejB32DPJRzYuzKPUX"
+    },
+    "what": "attestor checked code hash, then race"
+  },
+  {
+    "id": "T2[deploy 1 block after gate tx]",
+    "value": {
+      "attestor_check_height": 238,
+      "attestor_saw_code_hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+      "code_hash_now": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA",
+      "deploy_timeline": [
+        {
+          "height": 241,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 241,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 242,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "deploy_tx": "A2FRpDx44UJZzw1KusXU2rp1vdHnajhFnDAaGQxLZ6b9",
+      "gate_callback": "height=243 observed=v2",
+      "gate_timeline": [
+        {
+          "height": 240,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 241,
+          "logs": [
+            "gate.execute height=241 target=target.sandbox"
+          ],
+          "status": "SuccessReceiptId"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 242,
+          "logs": [
+            "target.version height=242 account=target.sandbox returns=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 243,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 243,
+          "logs": [
+            "gate.on_version height=243 observed=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 244,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 242,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "gate_tx": "GTuwvdjTEzgV4RfQTBbkXBk343DFQHTcCv6EMJH2YgUi"
+    },
+    "what": "attestor checked code hash, then race"
+  },
+  {
+    "id": "T2[deploy 2 blocks after gate tx]",
+    "value": {
+      "attestor_check_height": 253,
+      "attestor_saw_code_hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+      "code_hash_now": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA",
+      "deploy_timeline": [
+        {
+          "height": 257,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 257,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 258,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "deploy_tx": "717gHGgf4ddqFuHt85xRFJsa2ULzGyGhqvrPMsj2RJ57",
+      "gate_callback": "height=258 observed=v2",
+      "gate_timeline": [
+        {
+          "height": 255,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 256,
+          "logs": [
+            "gate.execute height=256 target=target.sandbox"
+          ],
+          "status": "SuccessReceiptId"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 257,
+          "logs": [
+            "target.version height=257 account=target.sandbox returns=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 258,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 258,
+          "logs": [
+            "gate.on_version height=258 observed=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 259,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 257,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "gate_tx": "4MabWoC7RhV3zWQ2tME8Dvje2XNceSW7K4EWEJ8xxFaZ"
+    },
+    "what": "attestor checked code hash, then race"
+  },
+  {
+    "id": "T2[deploy 3 blocks after gate tx]",
+    "value": {
+      "attestor_check_height": 268,
+      "attestor_saw_code_hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+      "code_hash_now": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA",
+      "deploy_timeline": [
+        {
+          "height": 273,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 273,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 274,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "deploy_tx": "BG21tpKGkERp14RKJyTrZPETq3WrzmQyfzsRXLBzvVnE",
+      "gate_callback": "height=273 observed=v1",
+      "gate_timeline": [
+        {
+          "height": 270,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 271,
+          "logs": [
+            "gate.execute height=271 target=target.sandbox"
+          ],
+          "status": "SuccessReceiptId"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 272,
+          "logs": [
+            "target.version height=272 account=target.sandbox returns=v1"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 273,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 273,
+          "logs": [
+            "gate.on_version height=273 observed=v1"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 274,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 272,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "gate_tx": "BcB2KbKuFRvSK8WuLn8Xh157xqxUTWgMGLmEUPjVjcdY"
+    },
+    "what": "attestor checked code hash, then race"
+  },
+  {
+    "id": "T2[same-block self_upgrade (promise hop)]",
+    "value": {
+      "attestor_check_height": 283,
+      "attestor_saw_code_hash": "73ETFf6nqDpejuSyjiZSUZufJKEHZ4eauEao9ZAxceQN",
+      "code_hash_now": "J2gKRYmd7zZrwY73a4Jyk57AxqoVU7XzaErHz2UJXMtA",
+      "deploy_timeline": [
+        {
+          "height": 285,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 285,
+          "logs": [
+            "target.self_upgrade height=285"
+          ],
+          "status": "SuccessReceiptId"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 286,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 287,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 286,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "deploy_tx": "CU5JvhgS52KLJJHS79cLBTb1nHHN7M3xabtYy3VfwFAU",
+      "gate_callback": "height=288 observed=v2",
+      "gate_timeline": [
+        {
+          "height": 285,
+          "step": "tx included (converted to receipt)"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 286,
+          "logs": [
+            "gate.execute height=286 target=target.sandbox"
+          ],
+          "status": "SuccessReceiptId"
+        },
+        {
+          "executor": "target.sandbox",
+          "height": 287,
+          "logs": [
+            "target.version height=287 account=target.sandbox returns=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 288,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "gate.sandbox",
+          "height": 288,
+          "logs": [
+            "gate.on_version height=288 observed=v2"
+          ],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 289,
+          "logs": [],
+          "status": "SuccessValue"
+        },
+        {
+          "executor": "parent.sandbox",
+          "height": 287,
+          "logs": [],
+          "status": "SuccessValue"
+        }
+      ],
+      "gate_tx": "CvdxCEfgZDdvkFrnjvwnkrHYdKjC4JVeeykuDT8LNUx7"
+    },
+    "what": "attestor checked code hash, then race"
+  }
+]
