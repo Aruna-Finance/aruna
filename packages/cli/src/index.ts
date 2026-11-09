@@ -12,7 +12,7 @@ const USAGE = `aruna — can this NEAR contract still change?
 Usage:
   aruna classify <account-id> [--network mainnet|testnet]
       Print the class, basis and full evidence as JSON.
-  aruna measure --in <accounts.csv> --out <dir> [--network mainnet] [--concurrency 8] [--retries 2]
+  aruna measure --in <accounts.csv> --out <dir> [--network mainnet] [--concurrency 8] [--retries 2] [--backoff-ms 1000]
       Classify every account in the CSV (column account_id or receipt_receiver_account_id).
       Writes results.jsonl, aggregate.json and meta.json. Failed reads are listed apart, never as unknown.
   aruna imports <file.wasm>
@@ -56,6 +56,7 @@ async function main(argv: string[]): Promise<number> {
         network: { type: "string" },
         concurrency: { type: "string", default: "8" },
         retries: { type: "string", default: "2" },
+        "backoff-ms": { type: "string", default: "1000" },
       },
     });
     if (!values.in || !values.out) throw new Error("measure needs --in <accounts.csv> and --out <dir>");
@@ -66,6 +67,7 @@ async function main(argv: string[]): Promise<number> {
     const results = await runMeasure(rows, r, {
       concurrency: Number(values.concurrency),
       retries: Number(values.retries),
+      backoffMs: Number(values["backoff-ms"]),
       onProgress: (done, total) => {
         if (done % 50 === 0 || done === total) process.stderr.write(`classified ${done}/${total}\n`);
       },

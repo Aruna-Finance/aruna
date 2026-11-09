@@ -114,6 +114,14 @@ describe("createFetchReader", () => {
     expect(seen).toHaveLength(1);
   });
 
+  it("TOO_MANY_ACCESS_KEYS is not retried elsewhere: every node has the same limit", async () => {
+    const { fetch, seen } = fakeFetch(() => handlerError("TOO_MANY_ACCESS_KEYS"));
+    const err = await createFetchReader({ endpoints: [A, B], fetch }).viewAccessKeyList("big.near").catch((e) => e);
+    expect(err).toBeInstanceOf(RpcRequestError);
+    expect(err.message).toMatch(/TOO_MANY_ACCESS_KEYS/);
+    expect(seen).toHaveLength(1);
+  });
+
   it("rejects an invalid account id before any request", async () => {
     const { fetch, seen } = fakeFetch(() => ok({}));
     await expect(createFetchReader({ endpoints: [A], fetch }).viewAccount("Bad..Id")).rejects.toBeInstanceOf(RpcRequestError);

@@ -63,6 +63,10 @@ export function createFetchReader(options: FetchReaderOptions = {}): FetchReader
           const h = body.error.cause?.info?.block_height;
           return { handled: cause as Handled["handled"], blockHeight: typeof h === "number" ? h : 0 };
         }
+        if (cause === "TOO_MANY_ACCESS_KEYS") {
+          // A node limit, the same on every endpoint: the key list cannot be read over RPC.
+          throw new RpcRequestError("the account has more access keys than view_access_key_list returns (TOO_MANY_ACCESS_KEYS)");
+        }
         if (body.error.name === "REQUEST_VALIDATION_ERROR") {
           throw new RpcRequestError(`node rejected the request: ${String(body.error.data ?? body.error.message ?? cause)}`);
         }
