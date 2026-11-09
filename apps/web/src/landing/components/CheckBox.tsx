@@ -13,15 +13,16 @@ const field = "border border-line-2 bg-white px-3 py-3.5";
 export function CheckBox() {
   const [account, setAccount] = useState("");
   const [network, setNetwork] = useState<Network>("testnet");
-  const [res, setRes] = useState<LookupResult | null>(null);
+  // The network the shown result was read from; the selector may have changed since.
+  const [res, setRes] = useState<{ r: LookupResult; network: Network } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function run(id: string) {
+  async function run(id: string, net: Network = network) {
     if (!id.trim()) return;
     setBusy(true);
     try {
-      const r = await lookup(id, network);
-      setRes(r);
+      const r = await lookup(id, net);
+      setRes({ r, network: net });
       if (r.ok) toast.success(`Classified ${r.classification.evidence.accountId}`, { description: r.classification.class });
       else toast.error("Could not classify", { description: r.reason });
     } catch (e) {
@@ -67,7 +68,7 @@ export function CheckBox() {
         </div>
       </form>
       <div className="mt-4">
-        <p className="mb-2 text-[13px] text-muted">Examples</p>
+        <p className="mb-2 text-[13px] text-muted">Examples (testnet, one per class)</p>
         <div className="flex flex-wrap gap-2">
           {EXAMPLE_ACCOUNTS.map((a) => (
             <button
@@ -75,8 +76,10 @@ export function CheckBox() {
               type="button"
               className="label cursor-pointer border border-line-2 px-3 py-2.5 text-sm normal-case transition-colors hover:border-ink"
               onClick={() => {
+                // The examples are testnet accounts: read them there whatever the selector shows.
                 setAccount(a);
-                void run(a);
+                setNetwork("testnet");
+                void run(a, "testnet");
               }}
             >
               {a}
@@ -85,16 +88,16 @@ export function CheckBox() {
         </div>
       </div>
       <div aria-live="polite">
-        {res?.ok === false && (
-          <p className="mt-3 max-w-[62ch] bg-dawn-wash px-3 py-2 text-sm">{res.reason}</p>
+        {res?.r.ok === false && (
+          <p className="mt-3 max-w-[62ch] bg-dawn-wash px-3 py-2 text-sm">{res.r.reason}</p>
         )}
-        {res?.ok && (
+        {res?.r.ok && (
           <>
-            {res.source === "stub" && (
-              <p className="mono mt-3 text-xs font-medium text-dawn-ink">Stub data. Not a live chain read.</p>
-            )}
-            <ClassResult c={res.classification} />
-            <Verify accountId={res.classification.evidence.accountId} network={network} />
+            <p className="mono mt-3 text-xs text-muted">
+              Live read from public {res.network} RPC at block {res.r.classification.evidence.checkedAtBlock}.
+            </p>
+            <ClassResult c={res.r.classification} />
+            <Verify accountId={res.r.classification.evidence.accountId} network={res.network} />
           </>
         )}
       </div>

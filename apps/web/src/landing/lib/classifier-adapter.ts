@@ -1,65 +1,34 @@
-// STUB ADAPTER. Not a classifier. It returns canned results for four example accounts so the UI
-// can be built before @aruna/classifier-core exists. It implements NO classification check
-// (CLAUDE.md rule 10). Replace the body of `lookup` with:
-//   classify(accountId, createFetchRpcReader(network))   // from @aruna/classifier-core + @aruna/rpc
-import type { LookupResult, Network, Classification } from "./classifier-types";
+// Live classification in the browser: @aruna/classifier-core over public RPC via @aruna/rpc.
+// No backend, no wallet. This file wires the engine to the UI and implements no check itself.
+import { classify } from "@aruna/classifier-core";
+import { createFetchReader, isValidAccountId, RpcRequestError, RpcTransportError } from "@aruna/rpc";
+import type { LookupResult, Network } from "./classifier-types";
 
-export const ZERO_HASH = "1111…1111"; // display form, NEAR-FACTS §6
+export { ZERO_HASH } from "@aruna/classifier-core";
 
-function stub(
-  accountId: string,
-  cls: Classification["class"],
-  e: Partial<Classification["evidence"]>,
-): Classification {
-  return {
-    class: cls,
-    evidence: {
-      accountId,
-      checkedAtBlock: 0,
-      codeRef: null,
-      fullAccessKeyCount: 0,
-      functionCallKeyCount: 0,
-      resolvedCodeHash: null,
-      upgradeImports: [],
-      mutabilityBasis: "undetermined",
-      wasmParsed: false,
-      ...e,
-    },
-  };
-}
+/** Live testnet accounts, one per class (fixtures/README.md). */
+export const EXAMPLE_ACCOUNTS = [
+  "fx-imm.arunafi.testnet",
+  "fx-upg.arunafi.testnet",
+  "fx-guser.arunafi.testnet",
+  "fx-nocode.arunafi.testnet",
+];
 
-const EXAMPLES: Record<string, Classification> = {
-  "immutable.example.testnet": stub("immutable.example.testnet", "immutable_verified", {
-    codeRef: { kind: "global_hash", globalHash: "STUB-hash-a" },
-    functionCallKeyCount: 2,
-    resolvedCodeHash: "STUB-hash-a",
-    mutabilityBasis: "no_detected_path",
-    wasmParsed: true,
-  }),
-  "upgradeable.example.testnet": stub("upgradeable.example.testnet", "local_upgradeable", {
-    codeRef: { kind: "local", codeHash: "STUB-hash-b" },
-    fullAccessKeyCount: 1,
-    resolvedCodeHash: "STUB-hash-b",
-    mutabilityBasis: "full_access_key",
-    wasmParsed: true,
-  }),
-  "router.example.testnet": stub("router.example.testnet", "global_by_account", {
-    codeRef: { kind: "global_account", ownerAccount: "owner.example.testnet" },
-    resolvedCodeHash: "STUB-hash-c",
-    mutabilityBasis: "global_owner",
-    wasmParsed: true,
-  }),
-  "nocode.example.testnet": stub("nocode.example.testnet", "unknown", {}),
+const readers = new Map<Network, ReturnType<typeof createFetchReader>>();
+const readerFor = (network: Network) => {
+  let r = readers.get(network);
+  if (!r) readers.set(network, (r = createFetchReader({ network })));
+  return r;
 };
 
-export const EXAMPLE_ACCOUNTS = Object.keys(EXAMPLES);
-
-export async function lookup(accountId: string, _network: Network): Promise<LookupResult> {
-  const hit = EXAMPLES[accountId.trim()];
-  if (hit) return { ok: true, classification: hit, source: "stub" };
-  return {
-    ok: false,
-    reason:
-      "Live lookup is not wired yet: @aruna/classifier-core has not landed. Try an example account.",
-  };
+export async function lookup(accountId: string, network: Network): Promise<LookupResult> {
+  const id = accountId.trim();
+  if (!isValidAccountId(id)) return { ok: false, reason: `"${id}" is not a valid NEAR account id.` };
+  try {
+    return { ok: true, classification: await classify(id, readerFor(network)), source: "live" };
+  } catch (e) {
+    if (e instanceof RpcTransportError) return { ok: false, reason: `Public RPC did not answer for ${network}. Nothing was classified; try again.` };
+    if (e instanceof RpcRequestError) return { ok: false, reason: e.message };
+    throw e;
+  }
 }

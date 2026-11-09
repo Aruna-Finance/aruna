@@ -10,6 +10,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@aruna/classifier-core':
+        specifier: workspace:*
+        version: link:../../packages/classifier-core
+      '@aruna/rpc':
+        specifier: workspace:*
+        version: link:../../packages/rpc
       '@fontsource/ibm-plex-mono':
         specifier: 5.3.0
         version: 5.3.0
