@@ -1,16 +1,22 @@
 # UI work log and phase plan
 
 Scope: the frontend only (`apps/check`, `apps/console`, the public agent page, the underwriter view).
-Source of truth for requirements is `FRONTEND.md`; this file tracks **what was done, in which phase,
-on which branch**. If they conflict, `FRONTEND.md` wins.
+Requirements live in `FRONTEND.md`; this file tracks **what was done, in which phase, on which branch**.
+If they conflict, `FRONTEND.md` wins.
+
+Reference design: the Claude web prototype (artifact `Civ8euCr5XqoSCVZfDL2xh`). It is a flow and visual reference,
+not code to port. See "Prototype map" for how each of its screens lands in a phase.
 
 ## Rules for every phase
 
 - One branch per phase, named `ui/f<N>-<slug>`. Branch off the previous phase when it is green, not off `main`.
-- Never reimplement a classification check. Consume `@aruna/classifier-core` (CLAUDE.md rule 10).
+- Never reimplement a classification, policy or pricing check. Consume `@aruna/classifier-core` and `@aruna/sdk`
+  (CLAUDE.md rule 10). The prototype's in-browser "core" is a mock of contract behaviour; none of it is copied.
 - `apps/check` stays static, keyless and backend-free (non-negotiable 1).
-- Every phase ends with: `pnpm typecheck`, `pnpm test`, `pnpm build` green, and its checklist ticked here.
-- Nothing is committed without the owner's say-so.
+- Screens that run before the SDK/indexer exist read from a **data port** with a mock adapter, and show a visible
+  "Simulated data" marker. Nothing simulated may be described in the README as a live result.
+- Every phase ends with `pnpm typecheck`, `pnpm test`, `pnpm build` green and its checklist ticked here.
+- Commit format: Conventional Commits, no attribution lines. Nothing is committed unless the owner asks.
 
 Non-negotiables from `FRONTEND.md`, checked at every phase review:
 1 static check app · 2 policy-to-price visible · 3 public page needs no login · 4 refusals are normal
@@ -22,113 +28,196 @@ outcomes · 5 class always has evidence one click away · 6 `unknown` shown as u
 | Phase | Branch | Goal | Depends on | Release |
 |---|---|---|---|---|
 | F0 | `ui/f0-scaffold` | Static-export app, types, stub adapter, verify panel | nothing | v0 |
-| F1 | `ui/f1-check-live` | Live lookup from the browser via real engine | `classifier-core`, `rpc` (Stage 1) | v0 |
-| F2 | `ui/f2-check-page` | Full front-door page, copy, a11y, deploy, README steps | F1 | v0 |
-| F3 | `ui/f3-agent-page` | Public agent page, no login | vault, `sdk` (Stage 3–4) | v0 if time |
-| F4 | `ui/f4-console` | Owner/operator console, policy-to-price, refusals, migration | `sdk`, `indexer` (Stage 5–6) | after v0 |
-| F5 | `ui/f5-coverage` | Coverage purchase, underwriter view, claims, heartbeat | `pool`, `attestor` (Stage 7) | after v0 |
-| F6 | `ui/f6-hardening` | E2E, performance, accessibility audit, submission polish | F2 at minimum | v0 |
+| F1 | `ui/f1-landing` | The whole landing page: navbar, live classifier hero, vault diagram, problem, layers, risk classes, pricing dial, roles, SDK, closing footer | `classifier-core`, `rpc` for live classes | v0 |
+| F2 | `ui/f2-spec-proof` | Spec and Lab results pages, so nav and footer links go live; deploy; README steps | F1 | v0 |
+| F3 | `ui/f3-app-shell` | `apps/console` shell: roles, navigation, design system, data port, tx dialog | F2 | v0 if time |
+| F4 | `ui/f4-public-pages` | No-login screens: look up an agent, public agent page, targets, claims | F3, then `sdk` | v0 if time |
+| F5 | `ui/f5-owner-console` | Owner and operator: overview, agents, wizard, coverage, migration | F3, `sdk`, `indexer` | after v0 |
+| F6 | `ui/f6-underwriter-attestor` | Pool concentration, claims, simulation, attestor console | F3, `pool`, `attestor` | after v0 |
+| F7 | `ui/f7-developer-demo` | MCP/SDK reference, simulate and injected-agent playground, guided demo | F4, F5 | after v0 |
+| F8 | `ui/f8-hardening` | E2E, accessibility, performance, remove all stubs, submission polish | whatever shipped | v0 |
 
-Deadline for v0: **14 November 2026, 23:59 UTC**. F0–F2 are the committed UI scope. F6 runs against whatever
-has shipped by then.
+Deadline for v0: **14 November 2026, 23:59 UTC**. F0–F2 are the committed UI scope. F3–F4 only if time and only with
+the "Simulated data" marker. F8 runs against whatever has shipped.
 
 ---
 
-## F0 — Scaffold · branch `ui/f0-scaffold` · status: DONE (uncommitted)
+## Prototype map
 
-Done:
-- [x] Next.js 16.4.5 static export (`output: "export"`), React 19.3.1, TypeScript 5.9.3, Vitest 5.1.0, versions pinned
-- [x] `src/lib/classifier-types.ts` mirrors `CLASSIFIER.md` (to be deleted when `classifier-core` exists)
-- [x] `src/lib/classifier-adapter.ts` is a **stub**: four `*.example.testnet` fixtures, implements no check
-- [x] Result view: class, `mutabilityBasis` text, evidence open by default, `unknown` styled as unknown
+The prototype is one page with two modes. A **site** (landing) and an **app** with six role views, a section
+sidebar, a bottom "simulated testnet" dock and a simulated wallet dialog. Routes are hash based.
+
+### Site (landing): one page, top to bottom
+
+| Order | Section (route) | Content | Phase | Notes |
+|---|---|---|---|---|
+| 0 | Navbar | Floating pill: brand, Classifier, Risk classes, Vault, Coverage, Spec, primary button | F1 | "Spec" is a soon-link until F2 |
+| 1 | `#check` | H1 "Can this NEAR contract still change under your agent?", input, examples, result with the two fields and how it was reached | F1 | The front door. Live RPC for reads |
+| 2 | `#hero` | Diagram: owner policy, agent key, vault, targets, refused target, pool. Heading "A vault acts on the class, then prices what's left." | F1 | Pause control and `prefers-reduced-motion` |
+| 3 | `#problem` | Access keys stop at who may be called; three problems; access control vs economic policy table; refusal log | F1 | Refusal log labelled as an illustration |
+| 4 | `#layers` | Measurement, Protection, Coverage | F1 | Protection list is the six refusals from `NEAR-FACTS.md` |
+| 5 | `#classes` | Four risk classes with certainty and price; "A change most monitors miss" | F1 | Must show basis; `unknown` never styled as safe |
+| 6 | `#pricing` | "A tighter policy costs less to cover": sliders, class pills, exposure, premium, premium by class | F1 | Illustrative model, every figure marked assumption |
+| 7 | `#roles` | Client, Operator, Anyone checking, Underwriter | F1 | Links to app screens are soon-links until F3 to F6 |
+| 8 | `#sdk` | Keyless and vault code samples | F1 | Samples must match `SDK.md` and `MCP.md` |
+| 9 | `#trust` (footer) | Closing statement with the two trust assumptions, primary button, legal row | F1 | Legal links are soon-links until F2 and F7 |
+| - | `#spec` | Limits, closed detection routes, assumption register, three contracts, coverage state machine | F2 | Static page |
+| - | `#proof` | Lab results with exact errors | F2 | Copy from `NEAR-FACTS.md`, never retype from memory |
+
+### App, by role → F3 to F7
+
+| Role | Home | Screens | Phase |
+|---|---|---|---|
+| Counterparty (no login) | `#lookup` | Look up an agent; public agent page `#p-<agent>`; targets `#targets`, target detail `#t-<target>`; reports and claims `#claims`, `#report-<id>` | F4 |
+| Client (owner) | `#dashboard` | Overview; agents `#agents`; agent detail `#a-<agent>` with tabs and policy test; create-agent wizard `#agent-new` (5 steps: identity, policy, targets, funding, review); coverage `#coverage`, buy `#coverage-buy`; claims; migration `#migrate` | F5 |
+| Operator | `#dashboard` | Same as owner minus migration. Buying coverage shows "the client buys coverage" instead of an action | F5 |
+| Underwriter | `#pool` | Pool concentration by code hash; claims; simulation `#simulation` | F6 |
+| Attestor | `#attestor` | Monitored targets, heartbeat, report drift, restart | F6 |
+| Developer | `#developers` | MCP tool list with reason-code table; playground: `aruna_simulate` and injected agent | F7 |
+| Everyone | `#story` | Guided demo in ten steps, shared state with all screens | F7 |
+
+### Shared app pieces → F3
+
+Role switcher, section sidebar, top bar with network badge and signer, toast, transaction dialog (signer, receiver,
+actions, note, confirm/cancel), tables with row links, tabs, crumbs, copy-to-clipboard, keyboard Escape to close.
+
+---
+
+## Deviations from the prototype (decided up front)
+
+| Prototype does | We do | Why |
+|---|---|---|
+| Bottom dock with "+1 hour / +1 day / +3 days" time controls | Not shipped. Only in an explicit demo mode, if at all | Time travel is a simulation device and would misrepresent a live chain |
+| In-browser core models policy checks, premium, pool and claims | Replaced by `@aruna/sdk` and `@aruna/indexer`; the mock adapter only returns canned data | Enforcement is the contract's job; two implementations discredit the product (rule 10) |
+| Classifier "presets" because the browser cannot reach RPC | Live RPC via `@aruna/rpc` (CORS verified with `curl` on both FastNEAR endpoints) | `apps/check` must be live to count as a measurement |
+| Simulated wallet dialog | Real wallet connect in F5; dialog component kept | Non-negotiable: contract decides, UI reflects |
+| Premium `0 USDC` when every class is allowed | Show "Not priced" or the contract's figure, labelled assumption | A tighter policy must visibly lower the premium; parameters are not ours to invent |
+| Premium rate 2.7% of limit per 30 days, `k`, payout 80% | Display only what the pool contract exposes; mark as assumption until release gate B | `DECISIONS.md` open question 2 |
+| Simulation view runs a model in the browser | Reads results of `@aruna/sim` once it exists; until then labelled "prototype of the model" | Prototype itself says it is not a result from `sim/` |
+| Seven-plus role views | Keep owner, operator, underwriter, counterparty, developer. **Attestor console: confirm with the engine team before building** | `FRONTEND.md` lists four surfaces; attestor tooling may belong to the attestor package |
+| "3 blocks from redeploy to new code" in the hero | Add "single-shard lower bound" | `NEAR-FACTS.md` §5 |
+| Navbar and closing button "Open the demo" | Same label as the prototype, scrolling to the classifier until the guided demo exists (F7) | Decided by the user; the button always has a working target |
+| Each landing section is at least one viewport tall | Padding-based sections | Forced full-height sections hide the content below on short screens |
+| Links to screens not built yet | Soon-links: visible, not clickable, with a note | No dead links, and the plan stays visible |
+| Landing fragments built from simulated numbers (exposure bars, budget bars) | Dropped or replaced by sourced text | No invented figures on the first page |
+| Animated vault diagram drawn by script | Static SVG with one calm flow animation, pausable | Same message, far less code and motion |
+| "Simulate the owner redeploying" button | Kept for stub examples only, using the lab's real before/after hashes (`73ETF…` to `J2gKR…`), labelled illustration | It is the finding, but a live account cannot be redeployed from a tab |
+
+---
+
+## F0 - Scaffold · `ui/f0-scaffold` · DONE
+
+- [x] Next.js 16.4.5 static export, React 19.3.1, TypeScript 5.9.3, Vitest 5.1.0, versions pinned
+- [x] Styling: Tailwind CSS 4.3.5 (`@tailwindcss/postcss`), prototype tokens in `@theme`, no hand-written component CSS
+- [x] `src/lib/classifier-types.ts` mirrors `CLASSIFIER.md` (delete when `classifier-core` exists)
+- [x] `src/lib/classifier-adapter.ts` stub: four `*.example.testnet` fixtures, implements no check
+- [x] Result view: class, basis text, evidence open by default, `unknown` styled as unknown
 - [x] `global_by_account` side-by-side: `view_account.code_hash` (wrong) vs `view_code.hash` (true)
-- [x] "Verify this yourself" panel: three `curl` commands with bodies copied from docs.near.org
+- [x] "Verify this yourself": three `curl` commands, bodies copied from docs.near.org
 - [x] 3 unit tests for the command builder, including shell-quote safety
-- [x] CORS tested with `curl` + fake `Origin`: preflight and POST OK on `free.rpc.fastnear.com` and `test.rpc.fastnear.com`
+- [x] CORS tested with `curl` and a fake `Origin`: OK on `free.rpc.fastnear.com` and `test.rpc.fastnear.com`
 - [x] `.gitignore` covers `.next/`, `out/`, `next-env.d.ts`
+- [x] Committed locally as `e610416`, `cc5a6a7`, `f926d04`. Push blocked: 403 on `Aruna-Finance/aruna` for account `ollhamm`
 
-Known limits carried forward:
-- Placeholder hashes `STUB-hash-*` are not real hashes.
-- Zero hash `1111…1111` is a display constant (NEAR-FACTS §6), because the evidence type has no field for `view_account.code_hash`. Ask the engine team to expose it.
-- CORS result is from `curl`, not a real browser. Re-confirm in F1.
-- Rate limits of the FastNEAR endpoints are unpublished.
+Carried forward: placeholder hashes `STUB-hash-*`; zero hash `1111…1111` is a display constant because the evidence
+type lacks `view_account.code_hash`; CORS result is from `curl`, not a browser; FastNEAR rate limits unpublished.
+Environment: `corepack enable` fails without admin here; pnpm 9.15.4 installed with `npm install -g`.
 
-Environment notes: `corepack enable` fails without admin on this machine; `npm install -g pnpm@9.15.4` was used instead.
+## F1 - Landing page · `ui/f1-landing`
 
----
+The complete landing page of the prototype, in its order (see "Site" above), as one static page. The classifier
+is its first section, not a page of its own.
 
-## F1 — Live lookup · branch `ui/f1-check-live`
+Unblocked now:
+- [x] RPC client with fallback and error kinds (FastNEAR primary, dRPC fallback), paginated access keys (`last_key` as `after_key`, verified on mainnet `near`), account id check, lookup failures as results, live test suite (`ARUNA_LIVE=1`)
+- [x] Custom select (Radix), global toast (`sonner`) with a global error catcher, regular-weight icons (Phosphor), disclosure with a regular caret
+- [ ] Navbar, footer and page frame following the prototype
+- [ ] `#check` section with the prototype's result layout: class, basis sentence, the two fields, "how it was reached"
+- [ ] Examples that show every basis, including `upgrade_imports` and `unknown` (stub data, labelled)
+- [ ] `#hero` vault diagram with pause control and reduced motion
+- [ ] `#problem`, `#layers`, `#classes`, `#pricing`, `#roles`, `#sdk`, closing footer
+- [ ] Pricing model isolated in one mock module, parameters listed under the dial, every figure marked assumption, `unknown` shown as "Not priced"
+- [ ] Soon-links (visible, not clickable) for destinations that do not exist yet
+- [ ] Copy audit: no em dash, no "trustless", comparisons scoped to "the five projects surveyed", "3 blocks" stated as a single-shard lower bound
+- [ ] Responsive to 360px, keyboard pass, contrast check
 
-Blocked until `@aruna/classifier-core` and `@aruna/rpc` exist. Until then only the non-blocked items can start.
-
-- [ ] Replace `lookup()` body with `classify(accountId, fetchRpcReader(network))`; delete `classifier-types.ts` and the stub
-- [ ] Browser-origin CORS check for all three request types, including `view_code` response size
-- [ ] Fallback RPC endpoint list with retry; test the fallbacks' CORS before listing them
-- [ ] `view_access_key_list` pagination (`limit`, `after_key`): accounts with more than 100 keys fail without it on nearcore 2.14.0
-- [ ] Failure states as normal results: account not found, RPC down, rate-limited, unparseable WASM → `unknown`
-- [ ] Input validation of account ids; mainnet is read-only, label it
-- [ ] Show `checkedAtBlock` and the network with every result
-- [ ] Test: a no-contract account is **not** shown as a global-contract account (both report a zero `code_hash`)
+Blocked on the engine:
+- [ ] Replace `lookup()` with `classify(accountId, fetchRpcReader(network))`; delete `classifier-types.ts` and the stub
+- [ ] Browser-origin CORS check in a real browser (curl-only so far)
+- [ ] Test: no-contract account is not shown as a global-contract account (both report a zero `code_hash`)
 - [ ] Test: `local_upgradeable` always renders its basis; `upgrade_imports` never reads "can be upgraded"
-- [ ] Confirm the engine team exposes the monitored `view_account.code_hash` in evidence
+- [ ] Ask the engine team to expose the monitored `view_account.code_hash` in `ClassEvidence`
 
-Acceptance: pasting a real testnet and a real mainnet account from a static build served by a plain static
-server returns a live class with evidence; the `curl` commands in the verify panel return the same data.
+Acceptance: a static build served by a plain static server shows the whole landing page; a real testnet and a real
+mainnet account classify live once the engine lands; every link either works or is visibly marked as coming.
 
-## F2 — Front-door page · branch `ui/f2-check-page`
+## F2 - Spec and Lab results pages · `ui/f2-spec-proof`
 
-Content from the Claude web prototype, ported to `FRONTEND.md` rules. The prototype is a reference for flow only.
-
-- [ ] Hero uses the positioning sentence from `COMPETITIVE.md`; no "budget, not your keys", no "spending firewall"
-- [ ] Sections: problem (access control vs economic policy), four risk classes, the invisible-change case, two trust assumptions
-- [ ] Copy audit: *verifiable* and *reproducible*, never *trustless*; comparative claims scoped to "the five projects surveyed"
-- [ ] The "3 blocks" claim states it is a single-shard lower bound
-- [ ] Responsive layout down to 360px; keyboard and screen-reader pass; contrast check
-- [ ] Mock refusal log marked as an illustration, not live data
-- [ ] Stage 2 measurement table slot (class distribution, with source, query and date) once the CLI produces it
-- [ ] Deploy to a plain static host; record the URL and the build command
+- [ ] `#spec` page: closed detection routes, limits, assumption register, three contracts, coverage state machine
+- [ ] `#proof` page: lab results copied from `NEAR-FACTS.md` with exact error strings; state they ran under the older gas-key model
+- [ ] Navbar and footer links to these pages go live; the assumption chip on the pricing dial links to the register
+- [ ] Stage 2 measurement table slot once the CLI produces it (source, query, date)
+- [ ] Deploy to a plain static host; record URL and build command
 - [ ] README steps for this app: numbered "do X, see Y", each with an expected result
 
-Acceptance: a stranger follows the README steps and sees the expected result; Lighthouse accessibility reviewed.
+Acceptance: a stranger follows the README steps and sees the stated results.
 
-## F3 — Public agent page · branch `ui/f3-agent-page`
+## F3 - Console shell · `ui/f3-app-shell`
 
-Needs a deployed vault and `@aruna/sdk`. One `view_access_key_list` call backs most of the page.
+New app `apps/console`, separate from `apps/check` (decided).
 
-- [ ] Answers, in order: what the agent **cannot** do and who enforces it; who owns the funds and what the operator cannot do; limits and usage today; exposure by class; how to verify
-- [ ] No login, no wallet; may carry the operator's brand
-- [ ] Agent keys listed with label and exact permissions from the access key list
-- [ ] Refusals shown as outcomes with reason codes (`ARUNA_*`), not errors
+- [ ] Next.js static or SSR decision for console recorded in `DECISIONS`-style note (wallet needs client only)
+- [ ] Design tokens shared with `apps/check` (extract only if both need them; no premature package)
+- [ ] Role switcher, sidebar, top bar, toast, tx dialog, table, tabs, crumb, copy button, empty states
+- [ ] **Data port**: one interface per data need (`AgentsReader`, `TargetsReader`, `ExposureReader`, `ClaimsReader`, …) with a mock adapter; replaced by `sdk`/`indexer`
+- [ ] Persistent "Simulated data" marker while the mock adapter is active
+- [ ] Role-aware actions: operator sees what it cannot do, with the reason
+- [ ] Route handling for `a-<agent>`, `p-<agent>`, `t-<target>`, `report-<id>`; not-found page
+
+## F4 - Public pages (no login) · `ui/f4-public-pages`
+
+Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
+
+- [ ] Look up an agent by vault, label or public key
+- [ ] Public agent page: what the agent **cannot** do and who enforces it; owner and operator limits; limits and usage today; exposure by class; verify commands. One `view_access_key_list` call backs most of it
+- [ ] Refusals shown as outcomes with `ARUNA_*` reason codes
+- [ ] Targets table: class, certainty, premium effect, last recorded, freshness; target detail with the four drift channels and stored evidence
+- [ ] Reports and claims list and report detail, readable by everyone
 - [ ] Recorded exposure described as what was sent, not position value
-- [ ] Verify commands for every claim on the page
+- [ ] Copy-link for the page
 
-## F4 — Console · branch `ui/f4-console`
+## F5 - Owner and operator console · `ui/f5-owner-console`
 
-Owner and operator see different actions; the operator sees plainly what it cannot do.
+- [ ] Overview: vault, active agents, recorded exposure, premium for current policies, contracts touched, cost of protection
+- [ ] Agents list and agent detail with tabs, policy test trail, freeze/resume/revoke, refusal score
+- [ ] Create-agent wizard (identity, policy, targets, funding, review) with live price on each step; key shown once, not stored
+- [ ] **Policy-to-price panel**: tightening a limit or the riskiest allowed class moves the premium in the same view (non-negotiable 2)
+- [ ] Coverage list and buy flow: both trust assumptions shown at purchase (non-negotiable 7); stale attestor heartbeat blocks the buy and says why (non-negotiable 8); owner-only
+- [ ] Migration flow: pause, create new vault, move funds and re-register agents, revoke old keys and withdraw. Coverage does not transfer
+- [ ] Owner can remove the operator; operator cannot loosen limits, resume an auto-disabled agent or withdraw
+- [ ] Wallet connect; every state-changing action goes through the tx dialog
 
-- [ ] Wallet connect (owner/operator), role-aware actions
-- [ ] Exposure now, agents, targets with class badges and recent class changes
-- [ ] **Policy-to-price panel**: changing daily cap or the riskiest allowed class moves the premium in the same view (non-negotiable 2). Premium parameters come from the contract team; label as assumption
-- [ ] Refusal log from `@aruna/indexer`, not RPC per page load
-- [ ] Migration flow to a new vault version (Stage 6)
-- [ ] Owner can remove the operator
+## F6 - Underwriter and attestor · `ui/f6-underwriter-attestor`
 
-## F5 — Coverage and underwriter · branch `ui/f5-coverage`
+- [ ] Pool view: concentration by code hash given top weight, capital deployed and locked, claims pending/disputed/paid
+- [ ] Claims view with challenge window and dispute state; conflicting-report flow if it is a UI surface
+- [ ] Simulation view reading `@aruna/sim` output; assumptions listed, the scenario that breaks the pool shown as it is
+- [ ] Attestor console: **only after confirming ownership with the engine team**; heartbeat, monitored targets, report drift
+- [ ] Payout shown as formula output with the arithmetic visible
 
-- [ ] Coverage purchase states both trust assumptions (attestor, arbiter) at the point of purchase
-- [ ] Stale attestor heartbeat visible wherever coverage is sold or shown
-- [ ] Coverage labelled testnet with assumed numbers until release gate B
-- [ ] Underwriter view: capital deployed/locked, **concentration on a single code implementation** given top weight, claims pending/disputed/paid, attestor liveness
-- [ ] Payout shown as formula output with the arithmetic visible, not as measured loss
+## F7 - Developer and demo · `ui/f7-developer-demo`
 
-## F6 — Hardening and submission · branch `ui/f6-hardening`
+- [ ] MCP/SDK reference: keyless tools, vault tools, reason-code table matching the contract set, what is deliberately left out
+- [ ] Playground: `aruna_simulate` against an agent, and the injected-agent run with refusals and auto-disable
+- [ ] Guided demo (ten steps) wired to real testnet runs where possible; any simulated step is labelled
+
+## F8 - Hardening · `ui/f8-hardening`
 
 - [ ] End-to-end run from a fresh clone: install, build, serve `out/`, classify an account
-- [ ] Component tests for every non-negotiable above
-- [ ] Bundle size and load time on the static build
-- [ ] Remove all stub data and `STUB-*` strings (grep must return nothing)
-- [ ] Demo screenshots/video for the submission post
-- [ ] Checklist from `BUILD-PLAN.md` "Submission checklist for v0" reviewed for UI items
+- [ ] Component tests for each non-negotiable
+- [ ] Bundle size and load time on the static build; accessibility audit
+- [ ] `grep -r "STUB-" apps` returns nothing; no simulated screen without its marker
+- [ ] Demo screenshots/video; `BUILD-PLAN.md` submission checklist reviewed for UI items
 
 ---
 
@@ -137,8 +226,10 @@ Owner and operator see different actions; the operator sees plainly what it cann
 | Item | Owner | Blocks |
 |---|---|---|
 | `classifier-core` and `rpc` packages | engine team | F1 |
-| Expose monitored `view_account.code_hash` in `ClassEvidence` | engine team | F1 side-by-side with real data |
-| Premium parameters for the policy-to-price panel | contract/pool team | F4 |
+| Expose monitored `view_account.code_hash` in `ClassEvidence` | engine team | F1 |
+| Is the attestor console a frontend surface? | engine team | F6 |
+| Premium and pool parameters for pricing screens | contract/pool team | F2 widget, F5 |
+| Write access to `Aruna-Finance/aruna` for `ollhamm` | org owner | pushing any branch |
 | Static host for the deploy | project owner | F2 |
 | Fallback RPC endpoints and their CORS | frontend | F1 |
 
@@ -148,4 +239,7 @@ Owner and operator see different actions; the operator sees plainly what it cann
 |---|---|---|
 | 2026-11-08 | F0 | Scaffold, stub adapter, result view |
 | 2026-11-08 | F0 | Verify panel; CORS tested with curl on both FastNEAR endpoints |
-| 2026-11-09 | F0 | This plan written; branch `ui/f0-scaffold` created |
+| 2026-11-09 | F0 | First plan written; branch `ui/f0-scaffold` created and committed locally |
+| 2026-11-09 | all | Plan rewritten after reading every prototype screen: phases F1–F8 aligned to its menus, deviations listed |
+| 2026-11-09 | F1 | RPC client with fallback and error kinds, paginated access keys, account id check, lookup failures as results, live test suite (`ARUNA_LIVE=1`). Class itself still waits for the engine |
+| 2026-11-09 | all | Phases corrected: the classifier is the first section of the landing page, not a page of its own. F1 is now the whole landing; spec and proof moved to F2. Branch renamed `ui/f1-landing` |
