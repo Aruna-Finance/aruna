@@ -177,11 +177,11 @@ of this work most likely to outlive the product.
 ## Submission checklist for v0
 
 - [ ] Public repo, MIT LICENSE, no keys in git history
-- [ ] README with numbered "do X, see Y" steps, each with an expected result
-- [ ] First screen carries the positioning sentence from `COMPETITIVE.md`
+- [x] README with numbered "do X, see Y" steps, each with an expected result
+- [x] First screen carries the positioning sentence from `COMPETITIVE.md`
 - [ ] Demo post on X tagging @NEARProtocol and #NEARHackathon, with video or screenshots
 - [ ] A mainnet NEAR account for the payout
-- [ ] Project description, 20–2,000 characters
+- [x] Project description, 20–2,000 characters (`docs/SUBMISSION.md`)
 - [ ] Every fitting track selected — `security`, `agents`, `defi`, `open`
 - [ ] Submitted before 14 November 23:59 UTC
 
