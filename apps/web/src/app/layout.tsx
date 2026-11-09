@@ -6,8 +6,8 @@ import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./globals.css";
-import { SmoothScroll } from "@/components/SmoothScroll";
-import { Toaster } from "@/components/Toaster";
+import { SmoothScroll } from "@/shared/SmoothScroll";
+import { Toaster } from "@/shared/Toaster";
 
 export const metadata: Metadata = {
   title: "Aruna Check",

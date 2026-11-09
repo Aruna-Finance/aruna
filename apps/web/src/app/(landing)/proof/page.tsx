@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Callout, DocShell, DocTable, Section } from "@/components/Doc";
-import { Disclosure } from "@/components/Disclosure";
+import { Callout, DocShell, DocTable, Section } from "@/landing/components/Doc";
+import { Disclosure } from "@/shared/Disclosure";
 import {
   ACCESS_KEY_ROWS,
   CURRENT_CODE_ROWS,
@@ -12,7 +12,7 @@ import {
   LAB,
   NEP141_PANIC,
   TOCTOU_ROWS,
-} from "@/lib/facts";
+} from "@/landing/lib/facts";
 
 export const metadata: Metadata = {
   title: "Lab results | Aruna",

@@ -1,0 +1,86 @@
+"use client";
+import { useEffect, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ROLES, SCREEN_IDS, roleById, roleFor, type ScreenId } from "./nav";
+import { useRole } from "./RoleContext";
+
+const screenOf = (path: string): ScreenId | null => {
+  const seg = path.split("/").filter(Boolean)[1]; // /console/<screen>/
+  return (SCREEN_IDS as string[]).includes(seg) ? (seg as ScreenId) : null;
+};
+
+/** Top bar, role switcher, sidebar, and the persistent "Simulated data" marker. */
+export function Shell({ children }: { children: ReactNode }) {
+  const path = usePathname();
+  const screen = screenOf(path);
+  const { role, setRole } = useRole();
+
+  // A deep link to a screen the current role does not have switches to the role that does.
+  useEffect(() => {
+    if (screen) {
+      const next = roleFor(screen, role);
+      if (next !== role) setRole(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
+
+  const current = roleById(role);
+
+  return (
+    <div className="flex min-h-svh flex-col pb-10">
+      <header className="sticky top-0 z-40 border-b border-line bg-paper">
+        <div className="flex items-center gap-4 px-4 py-2 md:px-6">
+          <Link href="/" aria-label="Aruna site" className="shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/logo.png" alt="" width={40} height={40} className="size-10" />
+          </Link>
+          <nav aria-label="Role" className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+            {ROLES.map((r) => (
+              <Link
+                key={r.id}
+                href={`/console/${r.home}/`}
+                onClick={() => setRole(r.id)}
+                aria-current={r.id === role ? "true" : undefined}
+                className="label shrink-0 border border-transparent px-3 py-2 text-[13px] transition-colors hover:border-line-2 aria-[current=true]:border-ink aria-[current=true]:bg-ink aria-[current=true]:text-paper"
+              >
+                {r.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="hidden items-center gap-3 sm:flex">
+            <span className="label border border-line-2 px-2 py-0.5 text-xs">testnet</span>
+            <span className="mono text-[13px] text-muted">{current.signer}</span>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex flex-1 flex-col lg:flex-row">
+        <nav
+          aria-label="Sections"
+          className="flex gap-1 overflow-x-auto border-b border-line p-3 lg:w-56 lg:shrink-0 lg:flex-col lg:border-r lg:border-b-0 lg:p-4"
+        >
+          {current.items.map((i) => (
+            <Link
+              key={i.id}
+              href={`/console/${i.id}/`}
+              aria-current={screen === i.id ? "page" : undefined}
+              className="shrink-0 px-3 py-2 text-[15px] transition-colors hover:bg-wash aria-[current=page]:bg-fog aria-[current=page]:font-medium"
+            >
+              {i.label}
+            </Link>
+          ))}
+        </nav>
+        <main className="min-w-0 flex-1 px-4 py-8 md:px-10 md:py-10">{children}</main>
+      </div>
+
+      <div
+        role="status"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-4 border-t border-line-2 bg-fog px-4 py-2 md:px-6"
+      >
+        <span className="label border border-dawn bg-dawn-wash px-2 py-0.5 text-xs text-dawn-ink">Simulated data</span>
+        <span className="text-[13px] text-slate">Nothing is signed or sent.</span>
+      </div>
+    </div>
+  );
+}

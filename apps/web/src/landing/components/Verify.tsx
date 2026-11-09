@@ -1,6 +1,6 @@
-import { Disclosure } from "./Disclosure";
-import type { Network } from "@/lib/classifier-types";
-import { VERIFY_REQUEST_TYPES, curlFor, isSafeAccountId } from "@/lib/verify-commands";
+import { Disclosure } from "@/shared/Disclosure";
+import type { Network } from "@/landing/lib/classifier-types";
+import { VERIFY_REQUEST_TYPES, curlFor, isSafeAccountId } from "@/landing/lib/verify-commands";
 
 const WHAT: Record<(typeof VERIFY_REQUEST_TYPES)[number], string> = {
   view_account: "How the code is referenced (global_contract_hash / global_contract_account_id / code_hash). Check these fields in that order.",
