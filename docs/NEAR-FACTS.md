@@ -325,4 +325,5 @@ may exceed the allowance.
 the sandbox: `DeployGlobalContract` (by hash) of the 191,619-byte vault took 19.163 NEAR from the
 publisher, about ten times the storage-staking rate for the same bytes, and it is spent, not
 staked. Each vault version therefore costs roughly 19 NEAR to publish at this size, once; every
-vault that uses it pays only for its own small state. Re-measure on testnet before quoting it.
+vault that uses it pays only for its own small state. Testnet, 10 November 2026: the same 191,619
+bytes cost a fee of 19.1634 NEAR, matching the sandbox.

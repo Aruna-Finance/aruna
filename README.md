@@ -17,8 +17,9 @@ should see.
 
 ## Steps
 
-Requirements: Node 20+, pnpm 9 (`corepack enable`). Steps 7–8 also need Rust ≥ 1.95,
-`cargo-near` and, for step 8, `near-cli-rs` ≥ 0.31 with a funded testnet account.
+Requirements: Node 20+, pnpm 9 (`corepack enable`). Steps 8 and 10 also need Rust ≥ 1.95 and
+`cargo-near`. Deploying your own copies (steps 4 and 9) needs `near-cli-rs` ≥ 0.31 and a funded
+testnet account; reading ours needs nothing.
 
 ### 1. Install, build and test
 
@@ -120,6 +121,34 @@ Runs T5–T9 on a local sandbox (nearcore 2.14, protocol 88). Expected: a functi
 a self-deleting child lets its parent recreate the name with other code. Results:
 `docs/NEAR-FACTS.md` §10.
 
+### 9. Aruna's own vault classifies as immutable
+
+```bash
+node packages/cli/dist/index.js classify demo.factory.arunafi.testnet --network testnet
+```
+
+Expected: `"class": "immutable_verified"`, `"fullAccessKeyCount": 0`, `"functionCallKeyCount": 1`
+(the agent's key), `"upgradeImports": []`. The vault was created by `factory.arunafi.testnet` from
+one global contract by hash, with no key; the operator then added an agent key. Details and
+evidence: [`docs/SELF-CLASSIFICATION.md`](docs/SELF-CLASSIFICATION.md). To deploy your own copy:
+`ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-setup.sh` (about 26 NEAR, most of it the
+one-time global contract publish).
+
+### 10. What an agent key cannot do
+
+```bash
+cd contracts
+for c in registry vault factory; do (cd $c && cargo near build non-reproducible-wasm --no-abi); done
+cargo test -p aruna-integration -- --nocapture
+```
+
+Runs on a local sandbox, no account needed. A factory creates a vault with zero access keys, the
+operator adds an agent, and the agent's key tries forbidden actions. Expected, each rejected by the
+network before reaching a block: transfer (`RequiresFullAccess`, or `NotEnoughAllowance` above its
+allowance), add a full-access key and deploy code (`RequiresFullAccess`), call another contract
+(`ReceiverMismatch`), call `withdraw_to_owner` (`MethodNameMismatch`), attach a deposit
+(`DepositWithFunctionCall`); after revocation the key no longer exists.
+
 ---
 
 ## The measurement
@@ -182,12 +211,13 @@ Aruna is verifiable and reproducible. It is not trustless.
 
 | In v0 | Not yet |
 |---|---|
-| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | vault, registry, factory, adapters (testnet, in progress) |
+| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | the vault's spend path: adapters, reservations, exposure (in progress) |
 | live classifier page (`apps/web`) | exposure, indexer, console on real data |
 | keyless MCP tools and `@aruna/sdk` `Classifier` | coverage pool, attestor, claims, simulation |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
 | testnet fixtures and the drift demo | |
 | lab evidence T0–T9 | |
+| vault, registry and factory on testnet; vault self-classified `immutable_verified` | |
 
 Build order and release gates: [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
 
