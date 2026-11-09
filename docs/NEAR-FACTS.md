@@ -312,3 +312,11 @@ The 7 November measurement in §4 counted 17 for `Promise` (one-method contract,
 this build counts 18. The two measurements differ in contract surface and build pipeline, and the
 7 November import list was not kept, so the extra name is not attributed here. The conclusion is
 unchanged: the vault must use the low-level functions, and it must not expose a self-delete.
+
+**Allowance is checked before permission.** Measured 10 November 2026 on the sandbox
+(`contracts/integration`), with a vault agent key whose allowance is 0.25 NEAR: a `Transfer` of
+1 yoctoNEAR is rejected with `RequiresFullAccess`, but a `Transfer` of 1 NEAR is rejected with
+`NotEnoughAllowance { cost: "1000245500818750000000000" }` — the node counts the transfer amount
+against the allowance before it checks that the key may transfer at all. Both are rejected at
+validation; only the error differs. Assert on rejection, not on one error string, when the amount
+may exceed the allowance.
