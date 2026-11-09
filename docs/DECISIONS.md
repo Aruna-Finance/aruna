@@ -259,6 +259,42 @@ so others can repeat it. It needs the owner's Google Cloud credentials.
 
 ---
 
+## Build decisions, v0 (10 November 2026)
+
+### D-46 — `MAX_CLASS_AGE` is 3,600 blocks
+About one hour. A vault refuses a spend against a target whose cached class is older, and the
+same bound caps how late a missed freeze can arrive. Constant `MAX_CLASS_AGE_BLOCKS` in
+`contracts/common`. Revisit with the attestor's polling interval (open question 3).
+
+### D-47 — Auto-disable trips at weighted 24 within 1,200 blocks
+Weights 1/2/4/8 by target class (`CONTRACTS.md`). Three agent-caused refusals against `unknown`
+targets pause an agent; 24 against `immutable_verified` ones. Only agent-caused reasons count
+(D-19). Constants in `contracts/common`.
+
+### D-48 — Admin errors panic; only `spend` returns refusals
+Adding an agent over the ceiling, an operator loosening a policy or resuming an agent are
+authorization failures of the caller, so they panic with `ARUNA_*` and persist nothing (D-15).
+The returning `SpendOutcome::Blocked` is reserved for the spend path, where the counter and event
+must survive.
+
+### D-49 — The v0 adapter is a NEAR swap against our own testnet target
+One named action, `swap`, calling `swap(min_amount_out)` with the amount attached; the target
+(`fixtures/contracts/swap`) pays its output back to its caller, so the adapter has no receiver
+argument at all. Slippage is checked against a 1:1 rate because the fixture swaps NEAR for NEAR;
+a real protocol's adapter must bring its own price reference. *Chosen over a third-party DEX:*
+its address and behaviour are ours to verify and to make fail on demand (CLAUDE.md rule 1).
+
+### D-50 — Contract tests use near-workspaces plus the lab's signer
+`near-workspaces` 0.24 (near-sandbox 0.4, nearcore 2.14) runs the integration tests. Where it has
+no API — publishing a global contract, and signing with an agent's function-call key so that a
+rejection reads as an RPC error — the tests use the lab's hand-signing client.
+
+### D-51 — Agent allowance is sized for calls in flight
+A call is admitted only if the key's remaining allowance covers its prepaid gas at a pessimistic
+price (`NEAR-FACTS.md` §10), held until the call finishes. An agent's allowance therefore bounds
+how many of its calls can be in flight at once, not only its total gas. Agents call `spend` with
+60 Tgas; size `agent_allowance` for the parallelism an agent needs.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

@@ -9,11 +9,15 @@
 //! none of the host functions the classifier scans.
 
 mod agents;
+mod class_cache;
 mod roles;
+mod spend;
+
+pub use spend::SpendOutcome;
 
 use aruna_common::RiskClass;
 use near_sdk::json_types::U128;
-use near_sdk::store::IterableMap;
+use near_sdk::store::{IterableMap, LookupMap};
 use near_sdk::{near, AccountId, BorshStorageKey, PanicOnDefault, PublicKey};
 
 /// The only methods an agent key may call. Never a `cb_` method: a key on the vault passes the
@@ -60,12 +64,51 @@ pub struct Agent {
     pub status: AgentStatus,
     pub policy: Policy,
     pub created_at: u64,
+    /// Set when the vault paused the agent itself; only the owner can resume it.
+    pub auto_disabled: bool,
+    pub budget: Budget,
+    /// (block, weight) of agent-caused refusals inside the rolling window.
+    pub refusals: Vec<(u64, u32)>,
+}
+
+/// Per-agent daily accounting. `reserved` is in flight: sent but not yet settled.
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct Budget {
+    pub spent_today: U128,
+    pub reserved: U128,
+    pub day_index: u64,
+}
+
+/// The vault's last recorded view of a target's class. Never a live read: no contract can read
+/// another account's state (docs/NEAR-FACTS.md §1).
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CachedClass {
+    pub class: RiskClass,
+    pub frozen: bool,
+    /// When the registry recorded it, shown to users.
+    pub classified_at_block: u64,
+    /// When this vault fetched it; MAX_CLASS_AGE_BLOCKS applies to this.
+    pub fetched_at_block: u64,
+}
+
+/// What passed through the vault to a target: what was SENT, not the position's value.
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Exposure {
+    pub amount: U128,
+    pub class_at_record: RiskClass,
+    pub first_seen: u64,
+    pub last_updated: u64,
 }
 
 #[near]
 #[derive(BorshStorageKey)]
 enum Key {
     Agents,
+    Classes,
+    Exposure,
 }
 
 #[near(contract_state)]
@@ -76,6 +119,10 @@ pub struct Vault {
     registry: AccountId,
     ceiling: Ceiling,
     agents: IterableMap<PublicKey, Agent>,
+    classes: LookupMap<AccountId, CachedClass>,
+    exposure: LookupMap<AccountId, Exposure>,
+    /// Sum of every agent's reservation, kept out of the balance available to new spends.
+    reserved_total: u128,
 }
 
 #[near(serializers = [json])]
@@ -92,7 +139,16 @@ impl Vault {
     /// Called once by the factory in the same batch that creates the account.
     #[init]
     pub fn new(owner: AccountId, operator: Option<AccountId>, registry: AccountId, ceiling: Ceiling) -> Self {
-        Self { owner, operator, registry, ceiling, agents: IterableMap::new(Key::Agents) }
+        Self {
+            owner,
+            operator,
+            registry,
+            ceiling,
+            agents: IterableMap::new(Key::Agents),
+            classes: LookupMap::new(Key::Classes),
+            exposure: LookupMap::new(Key::Exposure),
+            reserved_total: 0,
+        }
     }
 
     pub fn get_config(&self) -> VaultConfig {
@@ -111,6 +167,14 @@ impl Vault {
 
     pub fn get_agents(&self) -> Vec<(PublicKey, Agent)> {
         self.agents.iter().map(|(k, a)| (k.clone(), a.clone())).collect()
+    }
+
+    pub fn get_class(&self, target: AccountId) -> Option<CachedClass> {
+        self.classes.get(&target).cloned()
+    }
+
+    pub fn get_exposure(&self, target: AccountId) -> Option<Exposure> {
+        self.exposure.get(&target).cloned()
     }
 }
 

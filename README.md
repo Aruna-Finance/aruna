@@ -134,20 +134,36 @@ evidence: [`docs/SELF-CLASSIFICATION.md`](docs/SELF-CLASSIFICATION.md). To deplo
 `ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-setup.sh` (about 26 NEAR, most of it the
 one-time global contract publish).
 
-### 10. What an agent key cannot do
+### 10. What an agent can and cannot do
 
 ```bash
+(cd fixtures/contracts/swap && cargo near build non-reproducible-wasm --no-abi --out-dir ../../wasm/swap)
 cd contracts
 for c in registry vault factory; do (cd $c && cargo near build non-reproducible-wasm --no-abi); done
-cargo test -p aruna-integration -- --nocapture
+cargo test -p aruna-integration -- --nocapture --test-threads 2
 ```
 
-Runs on a local sandbox, no account needed. A factory creates a vault with zero access keys, the
-operator adds an agent, and the agent's key tries forbidden actions. Expected, each rejected by the
-network before reaching a block: transfer (`RequiresFullAccess`, or `NotEnoughAllowance` above its
-allowance), add a full-access key and deploy code (`RequiresFullAccess`), call another contract
-(`ReceiverMismatch`), call `withdraw_to_owner` (`MethodNameMismatch`), attach a deposit
-(`DepositWithFunctionCall`); after revocation the key no longer exists.
+Runs on a local sandbox, no account needed; 5 tests pass. A factory creates a vault with zero access
+keys and the operator adds agents. Expected output:
+
+- **Isolation.** The agent's key tries forbidden actions, each rejected by the network before
+  reaching a block: transfer (`RequiresFullAccess`, or `NotEnoughAllowance` above its allowance),
+  add a full-access key and deploy code (`RequiresFullAccess`), call another contract
+  (`ReceiverMismatch`), call `withdraw_to_owner` (`MethodNameMismatch`), attach a deposit
+  (`DepositWithFunctionCall`), call `cb_settle` or `cb_refresh_class` (`MethodNameMismatch`).
+  After revocation the key no longer exists.
+- **Honest agent.** A swap of 0.5 NEAR settles; the proceeds return to the vault and exposure
+  records what was sent. A target that fails releases the reservation and records nothing.
+- **Re-check at execution.** With no cached class: `ARUNA_CLASS_STALE`. After the registry
+  reclassifies the target as `global_by_account`: `ARUNA_RISK_CLASS_NOT_ALLOWED`. Past 3,600
+  blocks: stale again until `refresh_class`.
+- **Parallel requests.** `10 parallel x 0.4 NEAR, cap 2 NEAR -> 5 settled, 5 refused at the cap`.
+- **Injected agent.** Three attempts to pay an outside contract return `ARUNA_TARGET_NOT_ALLOWED`;
+  the third pauses the agent (`agent_auto_disabled`). The operator cannot resume it; the owner can.
+
+Refusals are returned values with an `execution_rejected` event, never panics. The testnet vault in
+step 9 is the earlier version without the spend path; publishing a new vault version is a new
+global contract (about 24 NEAR at this size).
 
 ---
 
@@ -211,13 +227,14 @@ Aruna is verifiable and reproducible. It is not trustless.
 
 | In v0 | Not yet |
 |---|---|
-| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | the vault's spend path: adapters, reservations, exposure (in progress) |
+| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | the spend path on testnet (sandbox-proven; needs a new vault version published) |
 | live classifier page (`apps/web`) | exposure, indexer, console on real data |
 | keyless MCP tools and `@aruna/sdk` `Classifier` | coverage pool, attestor, claims, simulation |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
 | testnet fixtures and the drift demo | |
 | lab evidence T0–T9 | |
 | vault, registry and factory on testnet; vault self-classified `immutable_verified` | |
+| spend path, reservations, auto-disable and one swap adapter, proven on a sandbox | |
 
 Build order and release gates: [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
 

@@ -1,7 +1,7 @@
 # Fixture contracts for the testnet accounts in fixtures/README.md.
 [workspace]
 resolver = "3"
-members = ["versioned"]
+members = ["versioned", "swap"]
 
 [workspace.package]
 edition = "2024"

@@ -34,7 +34,7 @@ impl Vault {
         require!(others + policy.daily_cap.0 <= c.daily_total.0, panics::OVER_CEILING);
     }
 
-    fn agent_mut(&mut self, key: &PublicKey) -> &mut Agent {
+    pub(crate) fn agent_mut(&mut self, key: &PublicKey) -> &mut Agent {
         self.agents.get_mut(key).unwrap_or_else(|| env::panic_str(panics::UNKNOWN_AGENT))
     }
 
@@ -43,6 +43,10 @@ impl Vault {
         require!(agent.status != AgentStatus::Revoked, panics::REVOKED);
         let before = agent.status;
         agent.status = status;
+        if status == AgentStatus::Active {
+            agent.auto_disabled = false;
+            agent.refusals.clear();
+        }
         emit("agent_status_changed", json!({ "public_key": key, "before": before, "after": status }));
     }
 }
@@ -66,7 +70,15 @@ impl Vault {
             "agent_registered",
             json!({ "public_key": public_key, "label": label, "policy": policy, "by": env::predecessor_account_id(), "methods": methods }),
         );
-        let agent = Agent { label, status: AgentStatus::Active, policy, created_at: env::block_height() };
+        let agent = Agent {
+            label,
+            status: AgentStatus::Active,
+            policy,
+            created_at: env::block_height(),
+            auto_disabled: false,
+            budget: Default::default(),
+            refusals: vec![],
+        };
         self.agents.insert(public_key, agent);
     }
 

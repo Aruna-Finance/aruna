@@ -327,3 +327,12 @@ publisher, about ten times the storage-staking rate for the same bytes, and it i
 staked. Each vault version therefore costs roughly 19 NEAR to publish at this size, once; every
 vault that uses it pays only for its own small state. Testnet, 10 November 2026: the same 191,619
 bytes cost a fee of 19.1634 NEAR, matching the sandbox.
+
+**Prepaid gas is reserved from the allowance at a pessimistic price.** Measured 10 November 2026
+on the sandbox (`contracts/integration`, `spend.rs`): a 100 Tgas call needed 0.1009 NEAR of
+allowance to be admitted (`NotEnoughAllowance { cost: "100919182729034600000000" }`), and a
+30 Tgas call 0.0309 NEAR (T6), about 0.001 NEAR per Tgas — while the gas actually burnt by a
+`spend` was far lower. Ten calls of 100 Tgas submitted at once from a key with 0.5 NEAR of
+allowance: four were admitted, six rejected at submission. With 60 Tgas and 2 NEAR, all ten were
+admitted. The reservation is per call in flight, so allowance bounds an agent's parallelism.
+Re-measure the price on testnet before quoting a figure.

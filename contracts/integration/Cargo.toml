@@ -7,6 +7,7 @@ publish = false
 
 # Sandbox tests for the vault, registry and factory. Build the contracts first:
 #   for c in registry vault factory; do (cd $c && cargo near build non-reproducible-wasm --no-abi); done
+#   (cd ../fixtures/contracts/swap && cargo near build non-reproducible-wasm --no-abi --out-dir ../../wasm/swap)
 #   cargo test -p aruna-integration -- --nocapture
 
 [dependencies]
@@ -19,3 +20,4 @@ serde_json = "1"
 base64 = "0.22"
 borsh = "1"
 anyhow = "1"
+futures = "0.3"
