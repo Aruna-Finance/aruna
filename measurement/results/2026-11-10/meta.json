@@ -1,0 +1,13 @@
+{
+  "input": "measurement/raw/top-accounts-2026-10-09_2026-11-08.csv",
+  "network": "mainnet",
+  "endpoints": [
+    "https://rpc.mainnet.fastnear.com",
+    "https://free.rpc.fastnear.com",
+    "https://rpc.mainnet.near.org",
+    "https://near.drpc.org",
+    "https://rpc.intea.rs"
+  ],
+  "startedAt": "2026-11-09T17:11:59.006Z",
+  "finishedAt": "2026-11-09T17:19:07.798Z"
+}

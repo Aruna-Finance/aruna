@@ -1,0 +1,39 @@
+{
+  "total": 1000,
+  "classified": 997,
+  "failed": [
+    "embr.playember_reserve.near",
+    "near",
+    "contract.dollaaa.near"
+  ],
+  "byClass": {
+    "immutable_verified": 54,
+    "local_upgradeable": 819,
+    "global_by_account": 3,
+    "unknown": 121
+  },
+  "byBasis": {
+    "no_detected_path": 54,
+    "full_access_key": 197,
+    "upgrade_imports": 617,
+    "own_code": 5,
+    "global_owner": 3,
+    "undetermined": 121
+  },
+  "headline1": {
+    "globalByAccount": 3,
+    "of": 997,
+    "share": 0.003
+  },
+  "headline2": {
+    "canChange": 205,
+    "immutableVerified": 54,
+    "upgradeImportsReportedSeparately": 617,
+    "unknown": 121,
+    "of": 997
+  },
+  "blockRange": {
+    "min": 223796370,
+    "max": 223797070
+  }
+}

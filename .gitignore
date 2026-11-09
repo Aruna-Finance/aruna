@@ -42,3 +42,6 @@ next-env.d.ts
 .near-credentials/
 *credentials*.json
 *.key
+
+# local re-runs of the measurement
+measurement/results/rerun/
