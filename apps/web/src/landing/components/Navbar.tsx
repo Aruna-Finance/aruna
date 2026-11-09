@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "./Button";
+import { Button } from "@/shared/Button";
 
 const LINKS = [
   { id: "check", label: "Classifier" },
@@ -32,11 +32,11 @@ export function Navbar({ home = false }: { home?: boolean }) {
             </Link>
           </li>
         </ul>
-        <a href={at("check")} tabIndex={-1}>
+        <Link href="/console/" tabIndex={-1}>
           <Button type="button" className="px-4 py-2.5 text-sm">
             Open the demo
           </Button>
-        </a>
+        </Link>
       </div>
     </nav>
   );

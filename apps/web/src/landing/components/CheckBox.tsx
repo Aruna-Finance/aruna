@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
-import { lookup, EXAMPLE_ACCOUNTS } from "@/lib/classifier-adapter";
-import type { LookupResult, Network } from "@/lib/classifier-types";
-import { Button } from "./Button";
-import { Select } from "./Select";
-import { toast } from "./Toaster";
+import { lookup, EXAMPLE_ACCOUNTS } from "@/landing/lib/classifier-adapter";
+import type { LookupResult, Network } from "@/landing/lib/classifier-types";
+import { Button } from "@/shared/Button";
+import { Select } from "@/shared/Select";
+import { toast } from "@/shared/Toaster";
 import { ClassResult } from "./Evidence";
 import { Verify } from "./Verify";
 

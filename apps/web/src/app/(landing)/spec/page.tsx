@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Callout, DocShell, DocTable, Section } from "@/components/Doc";
+import { Callout, DocShell, DocTable, Section } from "@/landing/components/Doc";
 import {
   ASSUMPTIONS,
   BRANCHES,
@@ -9,7 +9,7 @@ import {
   LIMITS,
   NOT_COVERED,
   REFUSALS,
-} from "@/lib/facts";
+} from "@/landing/lib/facts";
 
 export const metadata: Metadata = {
   title: "Spec | Aruna",

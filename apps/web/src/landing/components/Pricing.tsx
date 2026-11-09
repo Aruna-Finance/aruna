@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { premium, type PricedClass } from "@/lib/premium-model";
+import { premium, type PricedClass } from "@/landing/lib/premium-model";
 
 const REACH: { value: PricedClass; label: string }[] = [
   { value: "immutable_verified", label: "immutable only" },

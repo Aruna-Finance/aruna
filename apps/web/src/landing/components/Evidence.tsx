@@ -1,6 +1,6 @@
-import type { Classification, ClassEvidence } from "@/lib/classifier-types";
-import { Disclosure } from "./Disclosure";
-import { ZERO_HASH } from "@/lib/classifier-adapter";
+import type { Classification, ClassEvidence } from "@/landing/lib/classifier-types";
+import { Disclosure } from "@/shared/Disclosure";
+import { ZERO_HASH } from "@/landing/lib/classifier-adapter";
 
 const BASIS_TEXT: Record<ClassEvidence["mutabilityBasis"], string> = {
   no_detected_path: "By hash, no full-access key, none of the scanned imports.",

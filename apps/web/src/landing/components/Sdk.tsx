@@ -1,4 +1,4 @@
-import { Button } from "./Button";
+import { Button } from "@/shared/Button";
 
 const GREY = "text-[#9a9a9a]";
 

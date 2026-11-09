@@ -1,4 +1,4 @@
-/** Static export: apps/check must run from a plain static host (FRONTEND.md, non-negotiable 1). */
+/** Static export: apps/web must run from a plain static host (FRONTEND.md, non-negotiable 1). */
 const nextConfig = {
   output: "export",
   images: { unoptimized: true },

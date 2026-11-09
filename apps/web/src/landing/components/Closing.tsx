@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "./Button";
+import { Button } from "@/shared/Button";
 
 const LINKS = [
   { href: "/spec/", label: "Spec" },
@@ -20,9 +20,9 @@ export function Closing() {
             Aruna does not make agents smarter and does not repay every loss. Two parties must be trusted: the
             attestor, permanently, and at this stage a dispute arbiter. The spec names them and every other limit.
           </p>
-          <a href="#check" tabIndex={-1} className="mt-10 inline-block">
+          <Link href="/console/" tabIndex={-1} className="mt-10 inline-block">
             <Button type="button">Open the demo</Button>
-          </a>
+          </Link>
         </div>
 
         <div className="mt-16 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-white/20 pt-8">

@@ -1,13 +1,13 @@
-import { Navbar } from "@/components/Navbar";
-import { Classes } from "@/components/Classes";
-import { Pricing } from "@/components/Pricing";
-import { Roles } from "@/components/Roles";
-import { Sdk } from "@/components/Sdk";
-import { Closing } from "@/components/Closing";
-import { Layers } from "@/components/Layers";
-import { Problem } from "@/components/Problem";
-import { VaultStage } from "@/components/VaultStage";
-import { CheckBox } from "@/components/CheckBox";
+import { Navbar } from "@/landing/components/Navbar";
+import { Classes } from "@/landing/components/Classes";
+import { Pricing } from "@/landing/components/Pricing";
+import { Roles } from "@/landing/components/Roles";
+import { Sdk } from "@/landing/components/Sdk";
+import { Closing } from "@/landing/components/Closing";
+import { Layers } from "@/landing/components/Layers";
+import { Problem } from "@/landing/components/Problem";
+import { VaultStage } from "@/landing/components/VaultStage";
+import { CheckBox } from "@/landing/components/CheckBox";
 
 export default function Page() {
   return (
