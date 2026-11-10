@@ -68,3 +68,21 @@ ARUNA_TESTNET_ACCOUNT=you.testnet bash fixtures/deploy.sh
 Each new account's key is saved by near-cli-rs to `~/.near-credentials/testnet/`, outside the repo.
 Rebuild the contract with `(cd fixtures/contracts/versioned && cargo near build non-reproducible-wasm --no-abi)`;
 a different toolchain may produce different bytes, and so a different hash.
+
+## Coverage loop fixtures
+
+Used by the coverage loop (`docs/plans/2026-11-10-2106-feat-coverage-loop-testnet-plan.md`).
+
+| Path | What |
+|---|---|
+| `contracts/usdc`, `wasm/usdc/usdc.wasm` | a TEST NEP-141 token, six decimals, owner-only `mint`. Not USDC, no value. Code hash `EospAyZd3zY6tN96b9oofjmEioFeQGa5BW9rV1VJ1FAa` |
+| `contracts/drift-target`, `wasm/drift-target/v1/drift_target.wasm` | the covered target: `swap` for NEAR, `ft_on_transfer` for the token, 0.5% fee, output only to the caller. Code hash `8Nz8F6hgehrNaahgjCj8peBZGjBDPiGAWb1rnkyY3sHL` |
+| `wasm/drift-target/v2/drift_target.wasm` | the same with `--features v2`; only `version()` differs. Code hash `CyPkJDS3XB6bLaataMJGYCvqSZaZ8Y8Zapr2KvCpENpx` |
+| `golden/drift-report.json` | the signed drift report shared by `contracts/common` and `packages/attestor`; its seed is a public test key |
+
+Rebuild and check a hash:
+
+```bash
+cd fixtures/contracts/drift-target && cargo near build non-reproducible-wasm --no-abi --features v2 --out-dir ../../wasm/drift-target/v2
+node fixtures/tools.mjs hash fixtures/wasm/drift-target/v2/drift_target.wasm
+```
