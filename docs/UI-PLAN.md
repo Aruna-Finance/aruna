@@ -238,9 +238,9 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 ## F8 - Hardening · `ui/f8-hardening`
 
 - [ ] End-to-end run from a fresh clone: install, build, serve `out/`, classify an account
-- [ ] Component tests for each non-negotiable
+- [x] Component tests for each non-negotiable (`console/nonNegotiables.test.tsx`: 1, 5, 6, 8, 9 and the trustless scan; 2, 3, 4 and 7 are covered by screens and data tests)
 - [ ] Bundle size and load time on the static build; accessibility audit
-- [ ] `grep -r "STUB-" apps` returns nothing; no simulated screen without its marker
+- [x] `grep -r "STUB-" apps` returns nothing; no simulated screen without its marker
 - [ ] Demo screenshots/video; `BUILD-PLAN.md` submission checklist reviewed for UI items
 
 ---
@@ -299,3 +299,4 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 | 2026-11-10 | F4 | Look up and public agent page, read LIVE from testnet through `@aruna/sdk` `readVault` (new workspace dependency of `apps/web`; build `@aruna/sdk` before the web build). Routes `/console/lookup/?vault=` and `/console/lookup/agent/?vault=&key=`; default vault `demo2.factory.arunafi.testnet`, checked read-only (owner, operator, 2 agents, 0 full-access keys). Failed reads show as an ordinary outcome. Amounts are yoctoNEAR shown as NEAR with integers only (`yoctoToNear`, tested). Deviations: lookup takes a vault account only (no label or key search); the page omits recent refusals, coverage and exposure-by-class, because `readVault` does not return them; token unit is NEAR, not the prototype's USDC
 | 2026-11-10 | F7 | MCP and SDK reference at `/console/developers/`: keyless tools (with `aruna_read_vault`), vault tools, refusal reasons with the auto-disable column, what is deliberately left out, and the two examples. Static, copied from `docs/MCP.md`. `developers.test.ts` asserts the reasons table equals `@aruna/sdk` `REASONS` and `AUTO_DISABLE_REASONS`. Playground and guided demo are not built; they need `aruna_simulate` against a real agent
 | 2026-11-10 | F5 | Token marks: the USDC and NEAR logos from `public/images/` replace the ticker text in form inputs only (`NumberField` suffix, via `ui/Token.tsx`). Amounts shown elsewhere stay as text on request. `NumberField.suffix` now takes a node. The `alt` text keeps the ticker
+| 2026-11-10 | F8 | Branch `ui/f8-hardening`. Static export served and every route checked: 18 routes 200, unknown route 404, no JS chunk over 300 KB, `out/` 3.7 MB. Non-negotiable gaps closed: `ClassTag` takes a `target` and links to its evidence (5), carries the class basis as hover text (9); `HeartbeatAlert` added to the agent Coverage tab (8). New `nonNegotiables.test.tsx`; `vitest.config.mjs` adds the `@/` alias; `@types/react-dom` added. Inputs show a focus ring. 63 tests pass. Not done: a real-browser accessibility audit and a wallet test

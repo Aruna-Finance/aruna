@@ -205,7 +205,7 @@ export function CoverageBuy() {
                 options={targets.map((t) => ({ value: t, label: t }))}
                 className="mt-1.5 w-full"
               />
-              <p className="mt-1.5 text-sm">{cls ? <ClassTag c={cls} /> : <span className="text-muted">Loading</span>}</p>
+              <p className="mt-1.5 text-sm">{cls ? <ClassTag c={cls} target={target} /> : <span className="text-muted">Loading</span>}</p>
             </div>
             <NumberField label="Coverage limit" suffix={<TokenIcon t="USDC" />} min={1} value={limit} onChange={setLimit} />
             <NumberField label="Duration" suffix="days" min={1} value={period} onChange={setPeriod} />

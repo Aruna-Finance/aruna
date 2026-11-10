@@ -17,6 +17,7 @@ import { BudgetBar, BudgetLegend } from "../ui/BudgetBar";
 import { ClassTag } from "../ui/ClassTag";
 import { CopyBlock } from "../ui/CopyBlock";
 import { CoverageTable } from "../ui/CoverageTable";
+import { HeartbeatAlert } from "../ui/CoverageNotes";
 import { NumberField } from "../ui/Field";
 import { Panel } from "../ui/Panel";
 import { ClassPicker, draftFrom, LimitFields, TargetPicker, toPolicy, type PolicyDraft } from "../ui/PolicyFields";
@@ -146,7 +147,7 @@ function OverviewTab({ a }: { a: AgentRecord }) {
                 {rows.map(([t, amount]) => (
                   <tr key={t}>
                     <td className={`${td} mono`}>{t}</td>
-                    <td className={td}>{classes[t] ? <ClassTag c={classes[t]} /> : <span className="text-muted">Loading</span>}</td>
+                    <td className={td}>{classes[t] ? <ClassTag c={classes[t]} target={t} /> : <span className="text-muted">Loading</span>}</td>
                     <td className={`${td} mono whitespace-nowrap text-right`}>{n0(amount)} USDC</td>
                   </tr>
                 ))}
@@ -387,7 +388,7 @@ function FundingTab({ a }: { a: AgentRecord }) {
 
 function CoverageTab({ a }: { a: AgentRecord }) {
   const { isOperator } = useActions();
-  const { policies } = useCoverage();
+  const { policies, attestors } = useCoverage();
   const mine = policies.filter((p) => p.agent === a.id);
   return (
     <Panel
@@ -402,6 +403,7 @@ function CoverageTab({ a }: { a: AgentRecord }) {
         )
       }
     >
+      <HeartbeatAlert attestors={attestors} />
       {mine.length ? <CoverageTable policies={mine} /> : <p className="text-sm text-muted">No coverage on this agent. It still runs under its limits.</p>}
     </Panel>
   );

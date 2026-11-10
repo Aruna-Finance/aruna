@@ -192,7 +192,7 @@ export function Overview() {
                     {targetRows.map((r) => (
                       <tr key={r.id}>
                         <td className={`${td} mono`}>{r.id}</td>
-                        <td className={td}>{r.cls ? <ClassTag c={r.cls} /> : <span className="text-muted">Loading</span>}</td>
+                        <td className={td}>{r.cls ? <ClassTag c={r.cls} target={r.id} /> : <span className="text-muted">Loading</span>}</td>
                         <td className={`${td} mono whitespace-nowrap text-right`}>{n0(r.exposure)} USDC</td>
                         <td className={`${td} mono text-right`}>{r.allowed}</td>
                         <td className={`${td} text-sm`}>{r.cls === "unknown" ? <span className="text-dawn-ink">No</span> : "Yes"}</td>
