@@ -12,18 +12,23 @@ export interface AgentView {
   status: "Active" | "Paused" | "Revoked";
   autoDisabled: boolean;
   policy: {
-    /** One entry per token the agent may spend. A vault before v3 has exactly one, "near". */
-    limits: { token: TokenName; maxPerTx: string; dailyCap: string }[];
+    /** NEAR limits, in yoctoNEAR ("0" when the agent has no NEAR limits). */
+    maxPerTx: string;
+    dailyCap: string;
     maxSlippageBps: number;
     allowedTargets: string[];
     maxRiskClass: string;
+    /** One entry per token the agent may spend. A vault before v3 has exactly one, "near". */
+    limits?: { token: TokenName; maxPerTx: string; dailyCap: string }[];
   };
   /** Bumped on every policy change; null before vault v3. */
-  policyVersion: number | null;
+  policyVersion?: number | null;
   /** Last block the policy was loosened at, 0 if never; null before vault v3. */
-  lastLoosenedAt: number | null;
+  lastLoosenedAt?: number | null;
+  /** Today's NEAR usage. Null on vault versions without the spend path. */
+  usage: { spentToday: string; reserved: string } | null;
   /** Today's usage per token. Null on vault versions without the spend path. */
-  usage: { token: TokenName; spentToday: string; reserved: string }[] | null;
+  usageByToken?: { token: TokenName; spentToday: string; reserved: string }[] | null;
   /** The key as the network sees it. Null when the key no longer exists (revoked). */
   key: { receiver: string; methods: string[]; allowance: string | null } | null;
   /** What the network refuses this agent, whatever it is told to do. */
@@ -32,7 +37,8 @@ export interface AgentView {
 
 export interface ExposureView {
   target: string;
-  token: TokenName;
+  /** Present on entries of `exposureByToken`; `exposure` entries are always NEAR. */
+  token?: TokenName;
   /** Total sent to the target and settled, in the token's smallest unit. */
   amount: string;
   /** The target's class when the exposure was last recorded. */
@@ -44,11 +50,22 @@ export interface VaultView {
   owner: string;
   operator: string | null;
   /** "per-token" for vault v3 (NEAR and fungible tokens), "near-only" before it. */
-  shape: "per-token" | "near-only";
-  /** The owner's limits on every agent. Null on vault versions that do not return it. */
-  ceiling: { tokens: { token: TokenName; maxPerTx: string; dailyTotal: string }[]; maxRiskClass: string; allowedTargets: string[]; agentAllowance: string } | null;
-  /** Settled exposure per target in the ceiling. Null on vault versions without the spend path. */
+  shape?: "per-token" | "near-only";
+  /** The owner's limits on every agent; maxPerTx and dailyTotal are NEAR ("0" if NEAR is not listed).
+   * Null on vault versions that do not return it. */
+  ceiling: {
+    maxPerTx: string;
+    dailyTotal: string;
+    maxRiskClass: string;
+    allowedTargets: string[];
+    agentAllowance: string;
+    tokens?: { token: TokenName; maxPerTx: string; dailyTotal: string }[];
+  } | null;
+  /** Settled NEAR exposure per target in the ceiling, in yoctoNEAR. Null on vault versions without
+   * the spend path. */
   exposure: ExposureView[] | null;
+  /** Settled exposure per target and token (vault v3 lists fungible tokens too). */
+  exposureByToken?: ExposureView[] | null;
   fullAccessKeys: number;
   agents: AgentView[];
   /** Keys on the account that the vault does not know as agents. Should always be empty. */
@@ -71,7 +88,12 @@ type RawToken = "near" | { ft: string };
 const tokenName = (t: RawToken): TokenName => (t === "near" ? "near" : t.ft);
 
 type RawBudget = { token?: RawToken; spent_today: string; reserved: string; day_index: number };
-function usageOf(a: { budget?: RawBudget; budgets?: RawBudget[] }, today: number): AgentView["usage"] {
+function nearLimits(limits: { token: TokenName; maxPerTx: string; dailyCap: string }[]) {
+  const n = limits.find((l) => l.token === "near");
+  return { maxPerTx: n?.maxPerTx ?? "0", dailyCap: n?.dailyCap ?? "0" };
+}
+
+function usageOf(a: { budget?: RawBudget; budgets?: RawBudget[] }, today: number): AgentView["usageByToken"] {
   const list = a.budgets ?? (a.budget ? [{ ...a.budget, token: "near" as RawToken }] : null);
   if (!list) return null;
   return list.map((b) => ({ token: tokenName(b.token ?? "near"), spentToday: b.day_index === today ? b.spent_today : "0", reserved: b.reserved }));
@@ -121,8 +143,16 @@ export async function readVault(vault: string, opts: { network?: Network; fetch?
   ]);
   const c = config.ceiling;
   const perToken = Boolean(c && Array.isArray(c.tokens));
+  const ceilingTokens: { token: TokenName; maxPerTx: string; dailyTotal: string }[] | null = c
+    ? perToken
+      ? c.tokens.map((t: { token: RawToken; max_per_tx: string; daily_total: string }) => ({ token: tokenName(t.token), maxPerTx: t.max_per_tx, dailyTotal: t.daily_total }))
+      : [{ token: "near", maxPerTx: c.max_per_tx, dailyTotal: c.daily_total }]
+    : null;
+  const nearCeiling = ceilingTokens?.find((t) => t.token === "near");
   const ceiling: VaultView["ceiling"] = c
     ? {
+        maxPerTx: nearCeiling?.maxPerTx ?? "0",
+        dailyTotal: nearCeiling?.dailyTotal ?? "0",
         tokens: perToken
           ? c.tokens.map((t: { token: RawToken; max_per_tx: string; daily_total: string }) => ({ token: tokenName(t.token), maxPerTx: t.max_per_tx, dailyTotal: t.daily_total }))
           : [{ token: "near", maxPerTx: c.max_per_tx, dailyTotal: c.daily_total }],
@@ -131,12 +161,12 @@ export async function readVault(vault: string, opts: { network?: Network; fetch?
         agentAllowance: c.agent_allowance,
       }
     : null;
-  let exposure: ExposureView[] | null = null;
+  let exposureByToken: ExposureView[] | null = null;
   if (ceiling) {
     try {
       const pairs = ceiling.allowedTargets.flatMap((target) => (perToken ? c.tokens.map((t: { token: RawToken }) => [target, t.token] as const) : [[target, "near" as RawToken] as const]));
       const rows = await Promise.all(pairs.map(async ([target, token]) => [target, token, await view("get_exposure", perToken ? { target, token } : { target })] as const));
-      exposure = rows.filter(([, , e]) => e).map(([target, token, e]) => ({ target, token: tokenName(token), amount: e.amount, classAtRecord: e.class_at_record }));
+      exposureByToken = rows.filter(([, , e]) => e).map(([target, token, e]) => ({ target, token: tokenName(token), amount: e.amount, classAtRecord: e.class_at_record }));
     } catch (e) {
       if (!(e instanceof VaultViewError && /MethodNotFound/.test(e.message))) throw e;
     }
@@ -149,15 +179,18 @@ export async function readVault(vault: string, opts: { network?: Network; fetch?
     const perm = keys.get(publicKey) as { FunctionCall?: { receiver_id: string; method_names: string[]; allowance: string | null } } | undefined;
     const fc = perm?.FunctionCall;
     const methods = fc?.method_names ?? [];
+    const limits: { token: TokenName; maxPerTx: string; dailyCap: string }[] = Array.isArray(a.policy.limits)
+      ? a.policy.limits.map((l: { token: RawToken; max_per_tx: string; daily_cap: string }) => ({ token: tokenName(l.token), maxPerTx: l.max_per_tx, dailyCap: l.daily_cap }))
+      : [{ token: "near", maxPerTx: a.policy.max_per_tx, dailyCap: a.policy.daily_cap }];
+    const usageByToken = usageOf(a, today);
     return {
       publicKey,
       label: a.label,
       status: a.status,
       autoDisabled: Boolean(a.auto_disabled),
       policy: {
-        limits: Array.isArray(a.policy.limits)
-          ? a.policy.limits.map((l: { token: RawToken; max_per_tx: string; daily_cap: string }) => ({ token: tokenName(l.token), maxPerTx: l.max_per_tx, dailyCap: l.daily_cap }))
-          : [{ token: "near", maxPerTx: a.policy.max_per_tx, dailyCap: a.policy.daily_cap }],
+        ...nearLimits(limits),
+        limits,
         maxSlippageBps: a.policy.max_slippage_bps,
         allowedTargets: a.policy.allowed_targets,
         maxRiskClass: a.policy.max_risk_class,
@@ -166,7 +199,8 @@ export async function readVault(vault: string, opts: { network?: Network; fetch?
       lastLoosenedAt: typeof a.last_loosened_at === "number" ? a.last_loosened_at : null,
       // The contract resets spent_today on the first spend of a new UTC day (block time / 86,400 s), so a
       // stored total from an earlier day is not today's.
-      usage: usageOf(a, today),
+      usage: usageByToken ? (({ spentToday, reserved }) => ({ spentToday, reserved }))(usageByToken.find((u) => u.token === "near") ?? { token: "near", spentToday: "0", reserved: "0" }) : null,
+      usageByToken,
       key: fc ? { receiver: fc.receiver_id, methods, allowance: fc.allowance } : null,
       cannot: fc
         ? [
@@ -185,7 +219,8 @@ export async function readVault(vault: string, opts: { network?: Network; fetch?
     operator: config.operator ?? null,
     shape: perToken ? "per-token" : "near-only",
     ceiling,
-    exposure,
+    exposure: exposureByToken && exposureByToken.filter((e) => e.token === "near").map(({ target, amount, classAtRecord }) => ({ target, amount, classAtRecord })),
+    exposureByToken,
     fullAccessKeys,
     agents: agentViews,
     unknownKeys: [...keys.keys()].filter((k) => !agentViews.some((a) => a.publicKey === k)),

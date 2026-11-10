@@ -20,16 +20,18 @@ export function describeVault(v: VaultView): string {
   const lines = [`${v.vault}: owner ${v.owner}, operator ${v.operator ?? "none"}, full-access keys ${v.fullAccessKeys}.`];
   if (v.ceiling) {
     const c = v.ceiling;
-    const per = c.tokens.map((t) => `${t.token}: max ${amount(t.maxPerTx, t.token)} per transaction, ${amount(t.dailyTotal, t.token)} a day across agents`).join("; ");
+    const per = (c.tokens ?? [{ token: "near", maxPerTx: c.maxPerTx, dailyTotal: c.dailyTotal }]).map((t) => `${t.token}: max ${amount(t.maxPerTx, t.token)} per transaction, ${amount(t.dailyTotal, t.token)} a day across agents`).join("; ");
     lines.push(`Ceiling: ${per}; targets up to ${c.maxRiskClass}: ${c.allowedTargets.join(", ")}.`);
   }
   for (const a of v.agents) {
-    const limits = a.policy.limits.map((l) => `${l.token}: max ${amount(l.maxPerTx, l.token)} per transaction, ${amount(l.dailyCap, l.token)} a day`).join("; ") || "no token limits";
-    const usage = a.usage?.length ? `; spent today ${a.usage.map((u) => `${amount(u.spentToday, u.token)} (reserved ${amount(u.reserved, u.token)})`).join(", ")}` : "";
+    const limits = (a.policy.limits ?? [{ token: "near", maxPerTx: a.policy.maxPerTx, dailyCap: a.policy.dailyCap }]).map((l) => `${l.token}: max ${amount(l.maxPerTx, l.token)} per transaction, ${amount(l.dailyCap, l.token)} a day`).join("; ") || "no token limits";
+    const byToken = a.usageByToken ?? (a.usage ? [{ token: "near", ...a.usage }] : null);
+    const usage = byToken?.length ? `; spent today ${byToken.map((u) => `${amount(u.spentToday, u.token)} (reserved ${amount(u.reserved, u.token)})`).join(", ")}` : "";
     lines.push(`Agent ${a.label} (${a.publicKey}): ${a.status}${a.autoDisabled ? ", auto-disabled after repeated refusals" : ""}; ${limits}; targets up to ${a.policy.maxRiskClass}: ${a.policy.allowedTargets.join(", ")}${usage}.`);
     lines.push(`  Cannot: ${a.cannot.join("; ")}.`);
   }
-  if (v.exposure) lines.push(v.exposure.length ? `Exposure: ${v.exposure.map((e) => `${amount(e.amount, e.token)} to ${e.target} (recorded as ${e.classAtRecord})`).join("; ")}.` : "Exposure: none recorded.");
+  const exposure = v.exposureByToken ?? v.exposure?.map((e) => ({ ...e, token: "near" }));
+  if (exposure) lines.push(exposure.length ? `Exposure: ${exposure.map((e) => `${amount(e.amount, e.token ?? "near")} to ${e.target} (recorded as ${e.classAtRecord})`).join("; ")}.` : "Exposure: none recorded.");
   if (v.unknownKeys.length) lines.push(`WARNING: keys the vault does not know as agents: ${v.unknownKeys.join(", ")}.`);
   lines.push(`The operator cannot: ${v.operatorCannot.join("; ")}.`);
   return lines.join("\n");

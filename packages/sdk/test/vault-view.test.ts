@@ -29,10 +29,12 @@ describe("readVault", () => {
     expect(v.unknownKeys).toEqual([]);
     expect(v.agents[0].key?.methods).toEqual(["spend", "refresh_class"]);
     expect(v.shape).toBe("near-only");
-    expect(v.agents[0].usage).toEqual([{ token: "near", spentToday: "3", reserved: "1" }]);
+    expect(v.agents[0].usage).toEqual({ spentToday: "3", reserved: "1" });
+    expect(v.agents[0].usageByToken).toEqual([{ token: "near", spentToday: "3", reserved: "1" }]);
+    expect([v.agents[0].policy.maxPerTx, v.agents[0].policy.dailyCap]).toEqual(["5", "10"]);
     expect(v.agents[0].policy.limits).toEqual([{ token: "near", maxPerTx: "5", dailyCap: "10" }]);
     expect(v.agents[0].cannot.join(" ")).toMatch(/MethodNameMismatch/);
-    expect(v.agents[1].usage?.[0].spentToday).toBe("0");
+    expect(v.agents[1].usage?.spentToday).toBe("0");
     expect(v.agents[2].key).toBeNull();
     expect(v.agents[2].cannot[0]).toMatch(/deleted/);
     expect(v.operatorCannot.length).toBe(4);
@@ -65,8 +67,8 @@ describe("readVault", () => {
       return new Response(JSON.stringify({ jsonrpc: "2.0", id: "aruna", result }));
     }) as typeof fetch;
     const v = await readVault("v.factory.testnet", { endpoints: ["https://x"], fetch: fetchFn });
-    expect(v.ceiling).toEqual({ tokens: [{ token: "near", maxPerTx: "5", dailyTotal: "30" }], maxRiskClass: "local_upgradeable", allowedTargets: ["swap.testnet", "idle.testnet"], agentAllowance: "9" });
-    expect(v.exposure).toEqual([{ target: "swap.testnet", token: "near", amount: "7", classAtRecord: "local_upgradeable" }]);
+    expect(v.ceiling).toEqual({ maxPerTx: "5", dailyTotal: "30", tokens: [{ token: "near", maxPerTx: "5", dailyTotal: "30" }], maxRiskClass: "local_upgradeable", allowedTargets: ["swap.testnet", "idle.testnet"], agentAllowance: "9" });
+    expect(v.exposure).toEqual([{ target: "swap.testnet", amount: "7", classAtRecord: "local_upgradeable" }]);
   });
 
   it("reports no exposure for a vault version without get_exposure, and fails loudly on other contract errors", async () => {
@@ -118,10 +120,13 @@ describe("readVault", () => {
     }) as typeof fetch;
     const v = await readVault("v3.factory.testnet", { endpoints: ["https://x"], fetch: fetchFn, now: 20_000 * 86_400_000 + 1 });
     expect(v.shape).toBe("per-token");
-    expect(v.ceiling?.tokens.map((t) => t.token)).toEqual(["near", "usdc.testnet"]);
+    expect(v.ceiling?.tokens?.map((t) => t.token)).toEqual(["near", "usdc.testnet"]);
     expect(v.agents[0].policy.limits).toEqual([{ token: "usdc.testnet", maxPerTx: "5", dailyCap: "10" }]);
-    expect(v.agents[0].usage).toEqual([{ token: "usdc.testnet", spentToday: "4", reserved: "0" }]);
+    expect(v.agents[0].usageByToken).toEqual([{ token: "usdc.testnet", spentToday: "4", reserved: "0" }]);
+    expect(v.agents[0].usage).toEqual({ spentToday: "0", reserved: "0" });
+    expect([v.agents[0].policy.maxPerTx, v.ceiling?.maxPerTx]).toEqual(["0", "5"]);
     expect([v.agents[0].policyVersion, v.agents[0].lastLoosenedAt]).toEqual([2, 0]);
-    expect(v.exposure).toEqual([{ target: "t.testnet", token: "usdc.testnet", amount: "4", classAtRecord: "global_by_account" }]);
+    expect(v.exposureByToken).toEqual([{ target: "t.testnet", token: "usdc.testnet", amount: "4", classAtRecord: "global_by_account" }]);
+    expect(v.exposure).toEqual([]); // the NEAR-only list never shows a token amount
   });
 });
