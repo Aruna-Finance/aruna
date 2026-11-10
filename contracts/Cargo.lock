@@ -83,6 +83,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "aruna-pool"
+version = "0.1.0"
+dependencies = [
+ "aruna-common",
+ "near-sdk",
+]
+
+[[package]]
 name = "aruna-registry"
 version = "0.1.0"
 dependencies = [
