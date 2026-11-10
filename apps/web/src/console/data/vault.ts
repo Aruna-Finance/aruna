@@ -65,6 +65,8 @@ export interface VaultState {
   operator: string | null;
   version: string;
   latestVersion: string;
+  codeHash: string;
+  latestCodeHash: string;
   ceiling: Ceiling;
   agents: AgentRecord[];
   events: VaultEvent[];
@@ -85,6 +87,8 @@ export interface VaultStore {
   withdraw(id: string, amount: number, by: VaultActor): void;
   /** Owner only. */
   setAllowance(id: string, near: number, by: VaultActor): void;
+  /** Owner only. Moves to a new vault; each live agent gets a new key. */
+  migrate(by: VaultActor): void;
 }
 
 /** Why a policy cannot be saved under the owner's ceiling, or null. `skip` leaves one agent out of the daily total. */

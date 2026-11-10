@@ -11,10 +11,12 @@ import { ceilingProblem, isTightening, type AgentRecord } from "../data/vault";
 import { block, n0, n2 } from "../fmt";
 import { policyPrice } from "../pricing";
 import { useActions } from "../useActions";
+import { useCoverage } from "../useCoverage";
 import { useTargets } from "../useTargets";
 import { BudgetBar, BudgetLegend } from "../ui/BudgetBar";
 import { ClassTag } from "../ui/ClassTag";
 import { CopyBlock } from "../ui/CopyBlock";
+import { CoverageTable } from "../ui/CoverageTable";
 import { NumberField } from "../ui/Field";
 import { Panel } from "../ui/Panel";
 import { ClassPicker, draftFrom, LimitFields, TargetPicker, toPolicy, type PolicyDraft } from "../ui/PolicyFields";
@@ -383,23 +385,23 @@ function FundingTab({ a }: { a: AgentRecord }) {
 }
 
 function CoverageTab({ a }: { a: AgentRecord }) {
+  const { isOperator } = useActions();
+  const { policies } = useCoverage();
+  const mine = policies.filter((p) => p.agent === a.id);
   return (
     <Panel
       title="Coverage policies"
       aside={
-        <Link href="/console/coverage/" className="text-sm underline underline-offset-4">
-          Open Coverage
-        </Link>
+        !isOperator && (
+          <Link href={`/console/coverage/buy/?agent=${encodeURIComponent(a.id)}`} tabIndex={-1}>
+            <Button type="button" className="px-4! py-2! text-sm!">
+              Buy coverage
+            </Button>
+          </Link>
+        )
       }
     >
-      {a.coveredLimit ? (
-        <p className="text-[15px]">
-          Active coverage on this agent: <span className="mono">{n0(a.coveredLimit)} USDC</span> in total limits. The list of
-          policies and the buy flow are on the Coverage screen.
-        </p>
-      ) : (
-        <p className="text-sm text-muted">No coverage on this agent. It still runs under its limits.</p>
-      )}
+      {mine.length ? <CoverageTable policies={mine} /> : <p className="text-sm text-muted">No coverage on this agent. It still runs under its limits.</p>}
     </Panel>
   );
 }
