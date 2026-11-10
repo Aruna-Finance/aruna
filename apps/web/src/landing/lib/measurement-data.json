@@ -1,0 +1,87 @@
+{
+  "generatedFrom": "measurement/results/2026-11-10",
+  "network": "mainnet",
+  "input": "measurement/raw/top-accounts-2026-10-09_2026-11-08.csv",
+  "window": {
+    "from": "2026-10-09",
+    "to": "2026-11-08"
+  },
+  "readAt": "2026-11-09",
+  "blockRange": {
+    "min": 223796370,
+    "max": 223797070
+  },
+  "total": 1000,
+  "classified": 997,
+  "failed": [
+    "embr.playember_reserve.near",
+    "near",
+    "contract.dollaaa.near"
+  ],
+  "totalCalls": 62245972,
+  "classes": [
+    {
+      "class": "immutable_verified",
+      "accounts": 54,
+      "calls": 255258
+    },
+    {
+      "class": "local_upgradeable",
+      "accounts": 819,
+      "calls": 61518588
+    },
+    {
+      "class": "global_by_account",
+      "accounts": 3,
+      "calls": 10822
+    },
+    {
+      "class": "unknown",
+      "accounts": 121,
+      "calls": 461304
+    }
+  ],
+  "bases": [
+    {
+      "basis": "no_detected_path",
+      "class": "immutable_verified",
+      "accounts": 54,
+      "calls": 255258
+    },
+    {
+      "basis": "full_access_key",
+      "class": "local_upgradeable",
+      "accounts": 197,
+      "calls": 27514961
+    },
+    {
+      "basis": "upgrade_imports",
+      "class": "local_upgradeable",
+      "accounts": 617,
+      "calls": 33985487
+    },
+    {
+      "basis": "own_code",
+      "class": "local_upgradeable",
+      "accounts": 5,
+      "calls": 18140
+    },
+    {
+      "basis": "global_owner",
+      "class": "global_by_account",
+      "accounts": 3,
+      "calls": 10822
+    },
+    {
+      "basis": "undetermined",
+      "class": "unknown",
+      "accounts": 121,
+      "calls": 461304
+    }
+  ],
+  "invisible": [
+    "0x4e4542dd.c.aurora",
+    "0x4e4542bc.c.aurora",
+    "npoint.noamarket.near"
+  ]
+}
