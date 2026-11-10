@@ -212,14 +212,14 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 
 ## F5 - Owner and operator console · `ui/f5-owner-console`
 
-- [ ] Overview: vault, active agents, recorded exposure, premium for current policies, contracts touched, cost of protection
-- [ ] Agents list and agent detail with tabs, policy test trail, freeze/resume/revoke, refusal score
-- [ ] Create-agent wizard (identity, policy, targets, funding, review) with live price on each step; key shown once, not stored
-- [ ] **Policy-to-price panel**: tightening a limit or the riskiest allowed class moves the premium in the same view (non-negotiable 2)
+- [x] Overview (mock data): vault tile, active agents, recorded exposure, premium for current policies, agents table with freeze and resume, contracts touched, cost of protection with tightening options, who controls the vault, recent events. Create-agent button waits for the wizard
+- [x] Agents list and agent detail (`/console/agents/detail/?id=`) with six tabs: overview, policy, activity, funds and allowance, coverage summary, key and proof. Freeze, resume and revoke through the tx dialog. Counted refusals shown instead of a score (the threshold is not in the docs). **Left out on purpose: the prototype's "try a call" policy trail and the ten-request reservation test, because they are an in-browser model of contract behaviour**
+- [x] Create-agent wizard (`/console/agents/new/`): identity, policy, targets, funding, review, with the live price panel above every step; the done screen shows the connect snippet and what the protocol refuses. No key is created (mock), as in the prototype
+- [x] **Policy-to-price panel**: Overview tightening options, the Policy tab (limits, class, targets move the premium and show the delta before saving) and the wizard price panel (non-negotiable 2; mock model)
 - [ ] Coverage list and buy flow: both trust assumptions shown at purchase (non-negotiable 7); stale attestor heartbeat blocks the buy and says why (non-negotiable 8); owner-only
 - [ ] Migration flow: pause, create new vault, move funds and re-register agents, revoke old keys and withdraw. Coverage does not transfer
-- [ ] Owner can remove the operator; operator cannot loosen limits, resume an auto-disabled agent or withdraw
-- [ ] Wallet connect; every state-changing action goes through the tx dialog
+- [~] Owner can remove and restore the operator (done on the Overview). Operator cannot resume or loosen limits (the mock store refuses with `ARUNA_NOT_OWNER`, tested); withdraw waits for funding screens
+- [~] Wallet connect (not started); every state-changing action goes through the tx dialog (`console/ui/TxDialog.tsx`: signer, receiver, actions, note, confirm and cancel, Escape closes)
 
 ## F6 - Underwriter and attestor · `ui/f6-underwriter-attestor`
 
@@ -288,3 +288,7 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 | 2026-11-09 | F4 | Drawer smoother: slide-out and backdrop fade on close (Escape and backdrop click go through the parent so the exit plays), softer easing on open; reduced motion closes at once |
 | 2026-11-09 | F4 | Drawer content hides its scrollbar but still scrolls (wheel, touch, keyboard) |
 | 2026-11-09 | F4 | Console content area uses the landing wash grey (`bg-wash`, as in the "Three layers" section); top bar and sidebar stay white, cards stay white |
+| 2026-11-09 | F4 | Step 1 merged to `main` (PR #5). Next: Client menu (Overview, Agents, Coverage, Migration) in F5; target detail and Claims remain in F4 |
+| 2026-11-10 | F5 | Branch `ui/f5-owner-console` from `main` after pulling the team's backend (real `classifier-core`, `rpc`, `sdk` with `readVault`; run `pnpm install` and build `@aruna/classifier-core` and `@aruna/rpc` before `pnpm --filter @aruna/web build`). Step 1: Overview screen with a mutable mock vault store (`data/vault-mock.ts`, shapes follow the SDK `VaultView`), console pricing (`pricing.ts`, tightening options), `Panel`, `TxDialog`, `ClassTag`. 35 tests pass |
+| 2026-11-10 | F5 | Overview follows the Targets pattern: tables full width in cards; Cost of protection, Who controls this vault and Recent events open in the right `Drawer` from three header buttons. `Select` now portals into an enclosing `<dialog>` so its list works inside a drawer |
+| 2026-11-10 | F5 | Step 2: Agents. List, detail with six tabs, create wizard. Agent detail takes the id from the query string (`?id=`) because agents are created at runtime and a static export cannot pre-render them; `agents/` has its own route folder. One `TxProvider` in the console layout owns the confirmation dialog. Mock store gained add agent, deposit, owner-only withdraw and allowance, ceiling checks and tighten-only for operators. 39 tests pass |
