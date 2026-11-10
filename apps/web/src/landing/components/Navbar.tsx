@@ -34,7 +34,7 @@ export function Navbar({ home = false }: { home?: boolean }) {
         </ul>
         <Link href="/console/" tabIndex={-1}>
           <Button type="button" className="px-4 py-2.5 text-sm">
-            Open the demo
+            Open the console
           </Button>
         </Link>
       </div>

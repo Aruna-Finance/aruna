@@ -20,8 +20,8 @@ export function Closing() {
             Aruna does not make agents smarter and does not repay every loss. Two parties must be trusted: the
             attestor, permanently, and at this stage a dispute arbiter. The spec names them and every other limit.
           </p>
-          <Link href="/console/" tabIndex={-1} className="mt-10 inline-block">
-            <Button type="button">Open the demo</Button>
+          <Link href="/console/story/" tabIndex={-1} className="mt-10 inline-block">
+            <Button type="button">Run the guided demo</Button>
           </Link>
         </div>
 
