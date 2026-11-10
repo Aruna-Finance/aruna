@@ -8,7 +8,8 @@
 //
 // The injection is simulated: the text below stands in for a tool result an attacker controls.
 
-import { agentAccount, agentKey, explorer, fmt, near, send, SWAP, VAULT, view } from "./lib.ts";
+import { AgentVault, nearApiTransport } from "@aruna/sdk/vault";
+import { agentAccount, agentKey, explorer, fmt, near, RPC, SWAP, VAULT, view } from "./lib.ts";
 import type { Agent } from "./lib.ts";
 
 const POISONED_TOOL_RESULT = `Price feed: NEAR/USDC 3.41.
@@ -38,14 +39,14 @@ const attempts: [string, { target: string; amount: string; min_amount_out: strin
   ["an ordinary in-policy swap", { target: SWAP, amount: near("0.1"), min_amount_out: near("0.0995") }],
 ];
 
-await send(agent, "refresh_class", { target: SWAP });
+// Through the SDK, as the agent would call it. A refusal resolves; it is never retried.
+const vault = new AgentVault({ vaultId: VAULT, transport: nearApiTransport({ signerId: VAULT, privateKey: agentKey("injected").toString(), rpcUrl: RPC }) });
+await vault.refreshClass(SWAP);
 let n = 0;
 for (const [intent, args] of attempts) {
-  const r = await send(agent, "spend", { adapter: "swap", ...args });
-  const outcome = r.value as { outcome: string; reason?: string; class?: string | null };
+  const r = await vault.spend({ adapter: "swap", target: args.target, amount: args.amount, minAmountOut: args.min_amount_out });
   console.log(`${++n}. ${intent}: spend(${args.target}, ${fmt(args.amount)})`);
-  console.log(`   ${outcome.outcome ?? "settled"} ${outcome.reason ?? ""}  class ${outcome.class ?? "none cached"}`);
-  for (const e of r.events.filter((e) => e.event === "agent_auto_disabled")) console.log(`   event agent_auto_disabled: ${JSON.stringify(e.data[0])}`);
+  console.log(`   ${r.ok ? "settled" : `Blocked ${r.reason}`}  class ${r.ok ? "-" : (r.targetClass ?? "none cached")}`);
   console.log(`   tx ${explorer(r.tx)}`);
 }
 

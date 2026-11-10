@@ -1,0 +1,29 @@
+{
+  "name": "@aruna/attestor",
+  "version": "0.1.0",
+  "description": "Aruna drift attestor: watches targets on four channels with the shared classifier, files signed drift reports and heartbeats. Testnet only.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "aruna-attestor": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aruna/classifier-core": "workspace:*",
+    "@aruna/rpc": "workspace:*",
+    "near-api-js": "7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

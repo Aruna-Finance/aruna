@@ -43,6 +43,12 @@ policy, status, usage and key permissions as the network enforces them, what age
 cannot do, and exposure per target. It is what `aruna_budget` and `aruna_exposure` will read for the
 calling agent's own vault, available to anyone. Shipped in v0, over `@aruna/sdk` `readVault`.
 
+**As built.** The four Group B tools are registered when the server is started with
+`ARUNA_AGENT_VAULT` and `ARUNA_AGENT_KEY_FILE` (an existing agent key; the server creates none), over
+`@aruna/sdk/vault`. `aruna_simulate` needs vault v4, whose `simulate` view runs the same `evaluate`
+as `spend`. Its *premium impact* is not returned yet: it needs the coverage the agent holds, which
+the pool does not index by agent.
+
 `aruna_simulate` is a free view running the same checks without a transaction, so a
 refusal costs no gas. **Its result is not binding** — state can change before the
 transaction lands.

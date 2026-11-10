@@ -4,7 +4,7 @@
 //! dApp key the owner once granted.
 
 use crate::{Ceiling, Vault, VaultExt};
-use aruna_common::emit;
+use aruna_common::{emit, TokenId};
 use aruna_common::reasons::panics;
 use near_sdk::json_types::U128;
 use near_sdk::serde_json::json;
@@ -57,12 +57,22 @@ impl Vault {
     }
 
     /// Owner-only, available in every state, and pays only the registered owner (docs/CONTRACTS.md).
+    /// `token` omitted means NEAR; a fungible token must be one the ceiling lists.
     #[payable]
-    pub fn withdraw_to_owner(&mut self, amount: U128) {
+    pub fn withdraw_to_owner(&mut self, amount: U128, token: Option<TokenId>) {
         assert_one_yocto();
         self.assert_owner();
-        emit("withdrawal", json!({ "to": self.owner, "amount": amount }));
-        let p = env::promise_batch_create(&self.owner);
-        env::promise_batch_action_transfer(p, NearToken::from_yoctonear(amount.0));
+        let token = token.unwrap_or(TokenId::Near);
+        emit("withdrawal", json!({ "to": self.owner, "amount": amount, "token": token }));
+        match &token {
+            TokenId::Near => {
+                let p = env::promise_batch_create(&self.owner);
+                env::promise_batch_action_transfer(p, NearToken::from_yoctonear(amount.0));
+            }
+            TokenId::Ft(contract) => {
+                require!(self.accepts_token(&token), "ARUNA_TOKEN_NOT_IN_CEILING");
+                Self::send_ft(contract, &self.owner, amount.0);
+            }
+        }
     }
 }

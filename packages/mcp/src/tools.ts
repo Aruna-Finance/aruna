@@ -12,20 +12,26 @@ const near = (yocto: string) => {
   const v = BigInt(yocto);
   return `${v / 10n ** 24n}.${(v % 10n ** 24n).toString().padStart(24, "0").slice(0, 4)} NEAR`;
 };
+/** NEAR in NEAR; a fungible token in its smallest unit, named by its contract. */
+const amount = (value: string, token: string) => (token === "near" ? near(value) : `${value} ${token} units`);
 
-/** A plain-text summary of a vault: who controls it, its limits, each agent, and what nobody can do. */
+/** A plain-text summary of a vault: who controls it, its limits per token, each agent, and what nobody can do. */
 export function describeVault(v: VaultView): string {
   const lines = [`${v.vault}: owner ${v.owner}, operator ${v.operator ?? "none"}, full-access keys ${v.fullAccessKeys}.`];
   if (v.ceiling) {
     const c = v.ceiling;
-    lines.push(`Ceiling: max ${near(c.maxPerTx)} per transaction, ${near(c.dailyTotal)} a day across agents, targets up to ${c.maxRiskClass}: ${c.allowedTargets.join(", ")}.`);
+    const per = (c.tokens ?? [{ token: "near", maxPerTx: c.maxPerTx, dailyTotal: c.dailyTotal }]).map((t) => `${t.token}: max ${amount(t.maxPerTx, t.token)} per transaction, ${amount(t.dailyTotal, t.token)} a day across agents`).join("; ");
+    lines.push(`Ceiling: ${per}; targets up to ${c.maxRiskClass}: ${c.allowedTargets.join(", ")}.`);
   }
   for (const a of v.agents) {
-    const usage = a.usage ? `, spent today ${near(a.usage.spentToday)}, reserved ${near(a.usage.reserved)}` : "";
-    lines.push(`Agent ${a.label} (${a.publicKey}): ${a.status}${a.autoDisabled ? ", auto-disabled after repeated refusals" : ""}; max ${near(a.policy.maxPerTx)} per transaction, ${near(a.policy.dailyCap)} a day, targets up to ${a.policy.maxRiskClass}: ${a.policy.allowedTargets.join(", ")}${usage}.`);
+    const limits = (a.policy.limits ?? [{ token: "near", maxPerTx: a.policy.maxPerTx, dailyCap: a.policy.dailyCap }]).map((l) => `${l.token}: max ${amount(l.maxPerTx, l.token)} per transaction, ${amount(l.dailyCap, l.token)} a day`).join("; ") || "no token limits";
+    const byToken = a.usageByToken ?? (a.usage ? [{ token: "near", ...a.usage }] : null);
+    const usage = byToken?.length ? `; spent today ${byToken.map((u) => `${amount(u.spentToday, u.token)} (reserved ${amount(u.reserved, u.token)})`).join(", ")}` : "";
+    lines.push(`Agent ${a.label} (${a.publicKey}): ${a.status}${a.autoDisabled ? ", auto-disabled after repeated refusals" : ""}; ${limits}; targets up to ${a.policy.maxRiskClass}: ${a.policy.allowedTargets.join(", ")}${usage}.`);
     lines.push(`  Cannot: ${a.cannot.join("; ")}.`);
   }
-  if (v.exposure) lines.push(v.exposure.length ? `Exposure: ${v.exposure.map((e) => `${near(e.amount)} to ${e.target} (recorded as ${e.classAtRecord})`).join("; ")}.` : "Exposure: none recorded.");
+  const exposure = v.exposureByToken ?? v.exposure?.map((e) => ({ ...e, token: "near" }));
+  if (exposure) lines.push(exposure.length ? `Exposure: ${exposure.map((e) => `${amount(e.amount, e.token ?? "near")} to ${e.target} (recorded as ${e.classAtRecord})`).join("; ")}.` : "Exposure: none recorded.");
   if (v.unknownKeys.length) lines.push(`WARNING: keys the vault does not know as agents: ${v.unknownKeys.join(", ")}.`);
   lines.push(`The operator cannot: ${v.operatorCannot.join("; ")}.`);
   return lines.join("\n");

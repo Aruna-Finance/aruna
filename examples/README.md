@@ -8,8 +8,8 @@ only. Node ≥ 22.18 runs the `.ts` files directly.
 | Script | Signs as | Does |
 |---|---|---|
 | `add-agents.ts` | the operator, `demo-company` | adds agents `honest` and `injected`, same policy |
-| `honest-agent.ts` | the vault, with the `honest` key | refreshes the target's class, swaps 0.1 NEAR |
-| `injected-agent.ts` | the vault, with the `injected` key | follows a poisoned tool result until auto-disabled |
+| `honest-agent.ts` | the vault, with the `honest` key | reads its budget, simulates (vault v4), swaps 0.1 NEAR, through `@aruna/sdk/vault` |
+| `injected-agent.ts` | the vault, with the `injected` key | follows a poisoned tool result until auto-disabled, through `@aruna/sdk/vault` |
 | `resume-agent.ts` | the owner, `demo-client` | resumes an agent; the operator cannot |
 
 The policy both agents get: `max_per_tx` 0.2 NEAR, `daily_cap` 1 NEAR, `max_slippage_bps` 100,
@@ -115,3 +115,94 @@ What to read in it:
   on the vault and can be seen; only the owner can resume it, with a full-access key.
 - No refusal moved funds. The balance fell only by the gas of six transactions, which the vault pays
   because agents sign as the vault.
+
+## The coverage loop
+
+`coverage-demo.ts` runs Aruna's coverage end to end on testnet, against the stack
+`scripts/testnet-coverage-setup.sh` deploys (`registry2`, `factory2`, `pool`, `usdc`, `drift-owner`,
+`drift-target`, `attestor-a`, `attestor-b`, vault `demo3.factory2.arunafi.testnet`, vault v3). It
+fails with a non-zero exit if any step does not give its expected result.
+
+```bash
+pnpm install && pnpm -r build
+ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-coverage-setup.sh   # once, about 70 testnet NEAR
+ARUNA_TESTNET_ACCOUNT=you.testnet node examples/coverage-demo.ts
+```
+
+Each run adds a fresh agent (revoking the previous demo agent, which frees its share of the
+ceiling), so it never depends on what an earlier run spent today. Each run also republishes the
+target's code by account, which costs `drift-owner` about 12 NEAR; fund it before a rerun. The
+parameters are testnet values and labelled underwriting assumptions (`contracts/common/src/params.rs`).
+The attestor and the arbiter are trust assumptions, both run by Aruna here.
+
+### Recorded run, 11 November 2026
+
+`node examples/coverage-demo.ts` (block heights and links are from testnet):
+
+```
+
+1. vault demo3.factory2.arunafi.testnet
+   class immutable_verified, full-access keys 0, resolved 2NvTPrL33u6SXVmdEDN2i8iYp76eMf9kPFJK7zGscmSH
+   the operator revoked the previous demo agent covered-1794336438387  https://testnet.nearblocks.io/txns/8Ppf5obHRKjUWAgoKtRo6wSai54zejeRLNcTkpRfDL1A
+   the operator added agent "covered-1794336499724" (ed25519:7FKgiTYtxUccB4JxDadKdCwNGgAjs7hQpZsMnmBJvSqa)  https://testnet.nearblocks.io/txns/65J8uQgqcJMFMHZ1Ea26q3RCrNTV8Z6X2VfQTq8123Ee
+
+2. two quotes, same coverage, differing only in the agent's daily cap
+   C 1.0000 NEAR, ratio 80%, window touching 2 UTC days; UNDERWRITING ASSUMPTIONS, testnet: not derived from measured drift frequency
+   daily cap 1.0 NEAR -> reachable 1.0000 NEAR, premium 0.0086 NEAR
+   daily cap 0.2 NEAR -> reachable 0.3200 NEAR, premium 0.0027 NEAR
+
+3. the attestor attestor-a.arunafi.testnet observes drift-target.arunafi.testnet
+   2026-11-10T18:48:37.187Z heartbeat JEC1nm8yeMLnbHKnX2Xn81N1K6WQh1Qu2TP3TJAhpWMU
+
+4. the client buys coverage at the tight price, in NEAR and in the test USDC
+   NEAR coverage #6: C 1.0000 NEAR, premium 0.0027 NEAR paid by the owner, policy version 1  https://testnet.nearblocks.io/txns/5gxUPiTAjbZNfSDcnaK7kkoq1an8MNJKAQZo1khQ7m37
+   USDC coverage #7: C 10.00 tUSDC, premium 0.03 tUSDC  https://testnet.nearblocks.io/txns/4HZWKJDLd2WAik6CFw6zMjJJrEtTdPDUVf2LaiFakhw7
+
+5. after the waiting period, the agent swaps on the target
+
+   swapped 0.1 NEAR  https://testnet.nearblocks.io/txns/587WaWCm8tfZp9G9Na75G53jSiqFwboedroD8WHPBbGw
+   swapped 1.00 tUSDC  https://testnet.nearblocks.io/txns/7WKS8dVdPA76umc8QxJB68RvbvVUsv7drkHmLifQmZu8
+
+6. drift-owner.arunafi.testnet republishes the target's code by account; nothing touches drift-target.arunafi.testnet
+   2026-11-10T18:50:19.868Z heartbeat AnRgWHhZyjR4AfmYjWSZKGSDVQe68vGdSyBh48LtuEWC
+   version() drift-target-v1 -> drift-target-v2  https://testnet.nearblocks.io/txns/9XpAT8dMNtq6VNRp3jXVVd8zDYmY7TzFXXoagDN7tbLy
+   view_account.code_hash 11111111111111111111111111111111 -> 11111111111111111111111111111111  (unchanged: the field everyone monitors)
+
+7. the attestor sees it and files a signed report; the freeze reaches the vault
+   2026-11-10T18:50:35.971Z drift-target.arunafi.testnet: deploy_global_contract 8Nz8F6hgehrNaahgjCj8peBZGjBDPiGAWb1rnkyY3sHL -> CyPkJDS3XB6bLaataMJGYCvqSZaZ8Y8Zapr2KvCpENpx, changed_at_block 277106450; report 1  tx 3vFJjSj3FCZ7yjwmeMBXd65W6zhJMbBRnhEKuPJyb6XU
+   2026-11-10T18:50:39.995Z heartbeat 4pKgXScHX9i2W9U5sNNdxp68FUhnZHAejav7mWsEDGX8
+   report 1: pending, changed_at_block 277106450 (the attestor's claim)
+   push_freeze  https://testnet.nearblocks.io/txns/CYau7n5vY2VCntCGYntrrRhFKjCMdoymw9QGDVsUqu5r
+   the agent's next spend: ARUNA_TARGET_FROZEN
+
+8. claims: refused while the challenge window is open, paid after it
+   claim on #6 now: challenge window still open
+
+   NEAR claim: paid, 0.0800 NEAR = min(0.1 NEAR recorded before the change x 80%, C)
+   USDC claim: paid, 0.80 tUSDC = min(1.00 tUSDC x 80%, C)
+   the client's NEAR balance rose by 0.0764 NEAR (claims were sent by the client, who paid their gas)
+
+The loop ran end to end.
+```
+
+What to read in it:
+
+- **Policy to price.** The two quotes differ only in the agent's daily cap. At 1 NEAR a day the most
+  the coverage can pay is all of `C`; at 0.2 NEAR a day it is 0.32 NEAR, and the premium falls by
+  the same ratio (`docs/DECISIONS.md` D-55). The owner paid the tight price.
+- **The invisible change.** `drift-owner` republished the target's code by account. `version()`
+  changed; `view_account.code_hash` on the target stayed the zero hash.
+- **The attestor's claim.** `changed_at_block` 277106450 is the first block running the new code,
+  found by bisecting historical state (D-57). The registry checked the signature, bond, expiry,
+  nonce, the two hashes and the lookback bound, and froze the target; the next spend was refused.
+- **The payout.** Only exposure recorded inside the coverage window and before the change counts:
+  0.1 NEAR × 80% = 0.08 NEAR, and 1.00 tUSDC × 80% = 0.80 tUSDC, each from its own book (D-54).
+
+Earlier runs that day found four defects, each fixed with a test before this run: a payout that
+counted exposure from before the purchase, an attestor claim that could fall inside the waiting
+period, a frozen target that could never be covered again, and expired coverage that held pool
+capacity forever. They are in the git log from `d342faf` to the pool's `release_expired`.
+
+`pool.arunafi.testnet` runs the pool as of `d78635c`. `release_expired` adds a field to the stored
+coverage record, so it cannot be deployed over that pool's state without a migration; a fresh pool
+from `scripts/testnet-coverage-setup.sh` gets it.

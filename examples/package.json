@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@aruna/sdk": "workspace:*",
     "near-api-js": "7.4.0"
   },
   "devDependencies": {

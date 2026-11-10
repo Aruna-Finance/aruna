@@ -5,7 +5,8 @@
 //   node tools.mjs full-access-keys <id>     full-access public keys on a testnet account, comma-separated
 //   node tools.mjs exists <id>               exit 0 if the testnet account exists
 //   node tools.mjs class-args <id>           classify a testnet account and print registry set_class args:
-//                                            evidence_hash is the hex sha256 of JSON.stringify(evidence)
+//                                            evidence_hash is the hex sha256 of JSON.stringify(evidence);
+//                                            resolved_code_hash and upgrade_authority feed concentration
 //   node tools.mjs view <id> <method> [json] a testnet view call, result printed as JSON
 import { createHash, generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -43,8 +44,11 @@ if (cmd === "hash") {
 } else if (cmd === "class-args") {
   const { class: cls, evidence } = await classify(arg, reader);
   const evidence_hash = createHash("sha256").update(JSON.stringify(evidence)).digest("hex");
+  // For coverage concentration (plan KTD7): the code that runs, and who can change it.
+  const resolved_code_hash = evidence.resolvedCodeHash;
+  const upgrade_authority = evidence.codeRef?.kind === "global_account" ? evidence.codeRef.ownerAccount : arg;
   console.error(JSON.stringify({ class: cls, evidence }, null, 2));
-  console.log(JSON.stringify({ target: arg, class: cls, evidence_hash }));
+  console.log(JSON.stringify({ target: arg, class: cls, evidence_hash, resolved_code_hash, upgrade_authority }));
 } else if (cmd === "view") {
   const [method, json] = process.argv.slice(4);
   const res = await fetch("https://rpc.testnet.fastnear.com", {

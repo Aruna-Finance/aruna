@@ -1,0 +1,26 @@
+{
+  "note": "Golden vector for drift report signing (plan KTD6). TEST KEY ONLY: seed is 32 bytes of 0x01 and controls nothing.",
+  "seed_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+  "public_key_hex": "8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+  "report": {
+    "target": "fx-guser.arunafi.testnet",
+    "observed_at_block": 277000123,
+    "changed_at_block": 277000100,
+    "before_ref": {
+      "kind": "global_account",
+      "owner_account": "fx-gowner.arunafi.testnet"
+    },
+    "after_ref": {
+      "kind": "global_account",
+      "owner_account": "fx-gowner.arunafi.testnet"
+    },
+    "before_resolved_hash": "8ijWM1kfo9EdYWpRJfsa7HKsx3zAWkXTVr3tHsA9CEoW",
+    "after_resolved_hash": "6ptQjUdp6CHh7crhRVTDoSwFJ2inLHESt4q4b8FcxdeA",
+    "channel": "deploy_global_contract",
+    "attestor": "attestor-a.arunafi.testnet",
+    "nonce": 7,
+    "expires_at": 277000723
+  },
+  "signing_bytes_hex": "6172756e613a64726966742d7265706f72743a76310a1800000066782d67757365722e6172756e6166692e746573746e6574bbaf821000000000a4af821000000000021900000066782d676f776e65722e6172756e6166692e746573746e6574021900000066782d676f776e65722e6172756e6166692e746573746e65742c00000038696a574d316b666f394564595770524a66736137484b7378337a41576b5854567233744873413943456f572c000000367074516a5564703643486837637268525654446f5377464a32696e4c484553743471346238466378646541031a0000006174746573746f722d612e6172756e6166692e746573746e6574070000000000000013b2821000000000",
+  "signature_hex": "31db4a2158dd97a204aab5ca1fa6aa589ad59cd7158abd16a468cd9968f92942f2c5c0069777368d2cdf1db9390dd3f762a07b19893c3b47a4a7c0d5f171db09"
+}

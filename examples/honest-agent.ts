@@ -1,32 +1,36 @@
-// An honest agent: refreshes the target's class, then makes one swap within its policy.
+// An honest agent, written against @aruna/sdk the way an agent developer would (docs/SDK.md
+// "Integration example"): decide, simulate when the vault supports it, spend, log refusals.
 //   node examples/honest-agent.ts [amount-in-NEAR, default 0.1]
-// Expected: class local_upgradeable cached, spend Allowed, cb_settle returns true, exposure recorded.
-
-import { agentAccount, agentKey, explorer, fmt, near, send, SWAP, VAULT, view } from "./lib.ts";
-import type { Agent } from "./lib.ts";
+// Expected: the spend settles, exposure is recorded. A stale class is refreshed by the SDK, once.
+import { AgentVault, nearApiTransport } from "@aruna/sdk/vault";
+import { agentKey, fmt, near, RPC, SWAP, VAULT } from "./lib.ts";
 
 const amount = near(process.argv[2] ?? "0.1");
-// The swap fixture keeps a 0.5% fee; the policy allows 1% slippage. Ask for at least 99.5% back.
+// The swap target keeps a 0.5% fee; the policy allows 1% slippage. Ask for at least 99.5% back.
 const minOut = ((BigInt(amount) * 9_950n) / 10_000n).toString();
-const agent = agentAccount("honest");
-const key = agentKey("honest").getPublicKey().toString();
+const key = agentKey("honest");
+const vault = new AgentVault({ vaultId: VAULT, transport: nearApiTransport({ signerId: VAULT, privateKey: key.toString(), rpcUrl: RPC }) });
+const action = { adapter: "swap" as const, target: SWAP, amount, minAmountOut: minOut };
 
-console.log(`vault  ${VAULT}\nagent  honest  ${key}\n`);
+console.log(`vault  ${VAULT} (${await vault.vaultVersion()})\nagent  honest  ${key.getPublicKey().toString()}\n`);
 
-const refreshed = await send(agent, "refresh_class", { target: SWAP });
-console.log(`1. refresh_class(${SWAP})`);
-console.log(`   cached: ${JSON.stringify(refreshed.value)}`);
-console.log(`   tx ${explorer(refreshed.tx)}\n`);
+const before = await vault.budget();
+const near0 = before.tokens.find((t) => t.token === "near");
+console.log(`1. budget: ${fmt(near0?.remaining ?? "0")} left of ${fmt(near0?.dailyCap ?? "0")} today; vault balance ${fmt(before.balanceNear)}`);
 
-const spent = await send(agent, "spend", { adapter: "swap", target: SWAP, amount, min_amount_out: minOut });
-console.log(`2. spend swap ${fmt(amount)} on ${SWAP}, min_amount_out ${fmt(minOut)}`);
-for (const e of spent.events) console.log(`   event ${e.event}: ${JSON.stringify(e.data[0])}`);
-console.log(`   cb_settle returned ${JSON.stringify(spent.value)}`);
-console.log(`   tx ${explorer(spent.tx)}\n`);
+try {
+  const sim = await vault.simulate(action);
+  console.log(`2. simulate: ${sim.verdict}${sim.reason ? ` (${sim.reason})` : ""}, target class ${sim.targetClass}`);
+} catch (e) {
+  console.log(`2. simulate: not on this vault version (${e instanceof Error ? e.message.split(";")[1]?.trim() : e})`);
+}
 
-const a = await view<Agent>("get_agent", { public_key: key });
-const exposure = await view<{ amount: string; class_at_record: string } | null>("get_exposure", { target: SWAP });
-console.log(`3. state after settlement`);
-console.log(`   agent status ${a.status}, spent today ${fmt(a.budget.spent_today)}, reserved ${fmt(a.budget.reserved)}`);
-console.log(`   exposure to ${SWAP}: ${exposure ? `${fmt(exposure.amount)} recorded as ${exposure.class_at_record}` : "none"}`);
-if (spent.value !== true) process.exit(1);
+const r = await vault.spend(action);
+console.log(`3. spend swap ${fmt(amount)} on ${SWAP}, min_amount_out ${fmt(minOut)}`);
+if (r.ok) console.log(`   settled ${r.settled}  https://testnet.nearblocks.io/txns/${r.tx}`);
+else console.log(`   refused: ${r.reason}, target class ${r.targetClass}  https://testnet.nearblocks.io/txns/${r.tx}`);
+
+const after = await vault.budget();
+const exposure = (await vault.exposure()).find((e) => e.target === SWAP && (e.token ?? "near") === "near");
+console.log(`4. spent today ${fmt(after.tokens.find((t) => t.token === "near")?.spentToday ?? "0")}; exposure to ${SWAP}: ${exposure ? `${fmt(exposure.amount)} recorded as ${exposure.classAtRecord}` : "none"}`);
+if (!r.ok || !r.settled) process.exit(1);

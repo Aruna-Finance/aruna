@@ -51,4 +51,20 @@ impl Vault {
         self.classes.insert(target, cached.clone());
         Some(cached)
     }
+
+    /// Registry only (plan R16, KTD8). Marks a target frozen so the next spend to it is refused with
+    /// `ARUNA_TARGET_FROZEN`. A target outside this vault's ceiling is ignored, not an error, because
+    /// the registry pushes every freeze to every registered vault.
+    pub fn freeze_target(&mut self, target: AccountId) -> bool {
+        require!(env::predecessor_account_id() == self.registry, "ARUNA_NOT_REGISTRY");
+        if !self.ceiling.allowed_targets.contains(&target) {
+            return false;
+        }
+        let now = env::block_height();
+        let mut c = self.classes.get(&target).cloned().unwrap_or(CachedClass { class: RiskClass::Unknown, frozen: true, classified_at_block: 0, fetched_at_block: now });
+        c.frozen = true;
+        emit("target_frozen", json!({ "target": target, "block": now }));
+        self.classes.insert(target, c);
+        true
+    }
 }

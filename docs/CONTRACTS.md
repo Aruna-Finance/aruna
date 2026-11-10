@@ -41,6 +41,13 @@ SDK reason codes are these names without the `ARUNA_` prefix. A test asserts the
 Deployed by the factory from one global contract **by hash**, with **no full-access
 key**. Authority lives in state, not in a key.
 
+Since vault v3 the ceiling and every policy carry limits **per token**: NEAR, or a NEP-141 token the
+ceiling lists. Budgets, reservations and exposure are per token, with no conversion (D-54). A second
+named adapter, `ft_swap`, moves a token with `ft_transfer_call` and the 1 yoctoNEAR the vault attaches
+itself. Exposure is kept as checkpoints, readable with `exposure_before(agent, target, token, block)`;
+each policy change bumps a version and records any loosening (D-56); `freeze_target` takes a freeze
+from the registry.
+
 ### Owner and operator
 
 For the first customer, an agent-as-a-service company, the **client is the owner** and the
@@ -299,6 +306,10 @@ delay.** The freeze is **not atomic across vaults** — say so in the README.
 
 Underwriter capital, coverage policies, and payouts. Only the pool has the global view
 needed to enforce concentration. **Testnet only until release gate B.**
+
+As built (`contracts/pool`): one book per token (D-54); coverage per target, priced through the
+agent's daily cap (D-55); every window in blocks (D-60). The parameters, all declared assumptions,
+are in `contracts/common/src/params.rs`.
 
 ```rust
 pub struct Coverage {

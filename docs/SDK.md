@@ -75,6 +75,14 @@ Agent, operator and owner methods are separated in the types. An agent key physi
 reach owner methods, and the SDK should not pretend otherwise by exposing them on the
 same client instance.
 
+**As built (`@aruna/sdk/vault`).** `AgentVault` (`spend`, `simulate`, `budget`, `exposure`,
+`refreshClass`), `OperatorVault` (`createAgent`, `tightenPolicy`, `pauseAgent`, `revokeAgent`) and
+`OwnerVault` (the operator's methods plus `updatePolicy`, `resumeAgent`, `setOperator`, `setCeiling`,
+`withdrawToOwner`) take a `VaultTransport`; `nearApiTransport({ signerId, privateKey })` is the default.
+Each reads the vault's global contract hash and refuses a version it does not know
+(`KNOWN_VAULT_VERSIONS`: v1 to v4) or a call the version cannot make (`ft_swap` needs v3, `simulate`
+v4), with a `VaultVersionError`. The keyless entry point (`@aruna/sdk`) never loads a signer.
+
 ### `Registry` and `Pool`
 
 ```ts

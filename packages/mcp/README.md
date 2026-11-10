@@ -34,5 +34,16 @@ Or: *"Use aruna_read_vault on demo2.factory.arunafi.testnet."* Expected: 0 full-
 to `swap.arunafi.testnet` recorded as `local_upgradeable`. A vault's state is public, so this needs
 no key either; it reads and never spends.
 
-`aruna_watch_target` (drift channels) arrives with the attestor, after v0. The tools that act for an
-agent (`aruna_simulate`, `aruna_spend`) need an agent key and are not in v0.
+`aruna_watch_target` (drift channels) is not in this server yet.
+
+## Agent tools (optional, need an existing agent key)
+
+```bash
+ARUNA_AGENT_VAULT=demo2.factory.arunafi.testnet \
+ARUNA_AGENT_KEY_FILE=~/.near-credentials/aruna-agents/demo2.factory.arunafi.testnet/honest.json \
+node packages/mcp/dist/index.js
+```
+
+adds `aruna_spend`, `aruna_simulate` (vault v4), `aruna_budget` and `aruna_exposure` for that agent.
+A policy refusal is a successful call with `verdict: "block"` and its reason, never an error; only
+authorization and transport failures are. There is no coverage purchase: that is an owner action.

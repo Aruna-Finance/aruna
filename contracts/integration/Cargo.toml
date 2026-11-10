@@ -6,8 +6,9 @@ license.workspace = true
 publish = false
 
 # Sandbox tests for the vault, registry and factory. Build the contracts first:
-#   for c in registry vault factory; do (cd $c && cargo near build non-reproducible-wasm --no-abi); done
+#   for c in registry vault factory pool; do (cd $c && cargo near build non-reproducible-wasm --no-abi); done
 #   (cd ../fixtures/contracts/swap && cargo near build non-reproducible-wasm --no-abi --out-dir ../../wasm/swap)
+#   The coverage tests also read fixtures/wasm/usdc and fixtures/wasm/drift-target (committed).
 #   cargo test -p aruna-integration -- --nocapture
 
 [dependencies]
@@ -21,3 +22,5 @@ base64 = "0.22"
 borsh = "1"
 anyhow = "1"
 futures = "0.3"
+aruna-common = { workspace = true }
+near-sdk = { workspace = true, features = ["non-contract-usage"] }

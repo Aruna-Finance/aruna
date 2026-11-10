@@ -9,7 +9,8 @@
 #
 #   ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-setup.sh
 #
-# A new vault version: rebuild contracts/vault/res/aruna_vault.wasm and run again with a new
+# The v0 stack runs vault v2 (res/aruna_vault-v2.wasm); vault v3 runs on the coverage stack
+# (scripts/testnet-coverage-setup.sh). A new v0 vault version: point VAULT_WASM at it and run with a new
 # ARUNA_VAULT_NAME. The script publishes the new code (about 0.0001 NEAR per byte, spent), points the
 # factory at it, and creates a vault that runs it. Existing vaults keep their code forever.
 #
@@ -30,7 +31,7 @@ CLIENT="demo-client.$PARENT"
 COMPANY="demo-company.$PARENT"
 SWAP="swap.$PARENT"
 VAULT="${ARUNA_VAULT_NAME:-demo}.$FACTORY"
-VAULT_WASM=contracts/vault/res/aruna_vault.wasm
+VAULT_WASM=contracts/vault/res/aruna_vault-v2.wasm
 VAULT_HASH=$(node fixtures/tools.mjs hash "$VAULT_WASM")
 
 step() { printf '\n== %s\n' "$*"; }

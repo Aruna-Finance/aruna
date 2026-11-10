@@ -8,14 +8,16 @@
 //! code never uses near-sdk's `Promise`, only `env::promise_batch_*`, so the compiled module imports
 //! none of the host functions the classifier scans.
 
-mod agents;
+pub(crate) mod agents;
 mod class_cache;
+mod exposure;
 mod roles;
 mod spend;
+mod tokens;
 
-pub use spend::SpendOutcome;
+pub use spend::{Simulation, SpendOutcome};
 
-use aruna_common::RiskClass;
+use aruna_common::{RiskClass, TokenId};
 use near_sdk::json_types::U128;
 use near_sdk::store::{IterableMap, LookupMap};
 use near_sdk::{near, AccountId, BorshStorageKey, PanicOnDefault, PublicKey};
@@ -25,13 +27,23 @@ use near_sdk::{near, AccountId, BorshStorageKey, PanicOnDefault, PublicKey};
 /// callbacks (docs/DECISIONS.md D-03).
 pub const AGENT_METHODS: &[&str] = &["spend", "refresh_class"];
 
-/// The client's limits. Only the owner sets them; every agent policy must fit inside.
+/// The owner's limits for one token. Amounts are in that token's smallest unit.
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct TokenCeiling {
+    pub token: TokenId,
+    pub max_per_tx: U128,
+    /// Covers the sum of all agents' daily caps in this token, or an operator could reach any total by
+    /// adding keys.
+    pub daily_total: U128,
+}
+
+/// The client's limits. Only the owner sets them; every agent policy must fit inside. A token not
+/// listed is a token this vault does not accept or spend: there is no conversion between tokens.
 #[near(serializers = [borsh, json])]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ceiling {
-    pub max_per_tx: U128,
-    /// Covers the sum of all agents' daily caps, or an operator could reach any total by adding keys.
-    pub daily_total: U128,
+    pub tokens: Vec<TokenCeiling>,
     pub max_risk_class: RiskClass,
     pub allowed_targets: Vec<AccountId>,
     /// Gas allowance given to each agent key, in yoctoNEAR. Must exceed one call's prepaid gas
@@ -39,11 +51,19 @@ pub struct Ceiling {
     pub agent_allowance: U128,
 }
 
+/// One agent's limits in one token. A token missing from a policy has limits of zero.
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct TokenLimits {
+    pub token: TokenId,
+    pub max_per_tx: U128,
+    pub daily_cap: U128,
+}
+
 #[near(serializers = [borsh, json])]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Policy {
-    pub max_per_tx: U128,
-    pub daily_cap: U128,
+    pub limits: Vec<TokenLimits>,
     pub max_slippage_bps: u16,
     pub allowed_targets: Vec<AccountId>,
     pub max_risk_class: RiskClass,
@@ -66,15 +86,22 @@ pub struct Agent {
     pub created_at: u64,
     /// Set when the vault paused the agent itself; only the owner can resume it.
     pub auto_disabled: bool,
-    pub budget: Budget,
+    /// Per-token daily accounting.
+    pub budgets: Vec<Budget>,
     /// (block, weight) of agent-caused refusals inside the rolling window.
     pub refusals: Vec<(u64, u32)>,
+    /// Bumped on every policy change. Coverage records the version it was priced on (plan R10).
+    pub policy_version: u32,
+    /// Last block at which the policy was loosened; 0 if never. A claim on coverage bought before it
+    /// is rejected (plan R10).
+    pub last_loosened_at: u64,
 }
 
-/// Per-agent daily accounting. `reserved` is in flight: sent but not yet settled.
+/// Per-agent daily accounting in one token. `reserved` is in flight: sent but not yet settled.
 #[near(serializers = [borsh, json])]
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Budget {
+    pub token: TokenId,
     pub spent_today: U128,
     pub reserved: U128,
     pub day_index: u64,
@@ -109,6 +136,8 @@ enum Key {
     Agents,
     Classes,
     Exposure,
+    Checkpoints,
+    Reserved,
 }
 
 #[near(contract_state)]
@@ -120,9 +149,13 @@ pub struct Vault {
     ceiling: Ceiling,
     agents: IterableMap<PublicKey, Agent>,
     classes: LookupMap<AccountId, CachedClass>,
-    exposure: LookupMap<AccountId, Exposure>,
-    /// Sum of every agent's reservation, kept out of the balance available to new spends.
-    reserved_total: u128,
+    /// Running total per (target, token).
+    exposure: LookupMap<(AccountId, TokenId), Exposure>,
+    /// Exposure history per (agent, target, token): (block, cumulative amount) at each settlement,
+    /// so the pool can ask what was recorded before a block (plan R22).
+    checkpoints: LookupMap<(PublicKey, AccountId, TokenId), Vec<(u64, u128)>>,
+    /// Sum of every agent's reservation per token, kept out of the balance available to new spends.
+    reserved: LookupMap<TokenId, u128>,
 }
 
 #[near(serializers = [json])]
@@ -147,7 +180,8 @@ impl Vault {
             agents: IterableMap::new(Key::Agents),
             classes: LookupMap::new(Key::Classes),
             exposure: LookupMap::new(Key::Exposure),
-            reserved_total: 0,
+            checkpoints: LookupMap::new(Key::Checkpoints),
+            reserved: LookupMap::new(Key::Reserved),
         }
     }
 
@@ -173,8 +207,9 @@ impl Vault {
         self.classes.get(&target).cloned()
     }
 
-    pub fn get_exposure(&self, target: AccountId) -> Option<Exposure> {
-        self.exposure.get(&target).cloned()
+    /// Running exposure to a target in one token (NEAR when `token` is omitted).
+    pub fn get_exposure(&self, target: AccountId, token: Option<TokenId>) -> Option<Exposure> {
+        self.exposure.get(&(target, token.unwrap_or(TokenId::Near))).cloned()
     }
 }
 
