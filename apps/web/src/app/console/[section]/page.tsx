@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Developers } from "@/console/screens/Developers";
 import { Migration } from "@/console/screens/Migration";
 import { Overview } from "@/console/screens/Overview";
 import { ScreenPlaceholder } from "@/console/ScreenPlaceholder";
@@ -8,7 +9,7 @@ export const dynamicParams = false;
 
 export function generateStaticParams() {
   // "agents", "coverage", "claims" and "targets" have their own route folders, because they have sub-pages.
-  const own = new Set(["agents", "coverage", "claims", "targets"]);
+  const own = new Set(["agents", "coverage", "claims", "targets", "lookup"]);
   return SCREEN_IDS.filter((section) => !own.has(section)).map((section) => ({ section }));
 }
 
@@ -23,5 +24,6 @@ export default async function Page({ params }: { params: Promise<{ section: stri
   if (!(section in SCREENS)) notFound();
   if (section === "dashboard") return <Overview />;
   if (section === "migrate") return <Migration />;
+  if (section === "developers") return <Developers />;
   return <ScreenPlaceholder id={section as ScreenId} />;
 }
