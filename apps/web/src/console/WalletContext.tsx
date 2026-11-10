@@ -23,6 +23,13 @@ const Ctx = createContext<WalletState>({
   disconnect: async () => {},
 });
 
+/** Closing the wallet modal rejects the promise. That is a cancel, not a failure worth showing: returns null for it. */
+export function connectErrorMessage(e: unknown): string | null {
+  const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "";
+  if (!msg) return null;
+  return /cancel|clos|reject|abort|denied/i.test(msg) ? null : msg;
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const connector = useRef<NearConnector | null>(null);
   const [accountId, setAccountId] = useState<string | null>(null);
@@ -81,12 +88,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setStatus("idle");
     } catch (e) {
       // Closing the wallet modal rejects; that is a cancel, not a failure worth a banner.
-      setStatus("idle");
-      const msg = e instanceof Error ? e.message : "";
-      if (msg && !/cancel|clos|reject|abort/i.test(msg)) {
-        setError(msg);
-        setStatus("error");
-      }
+      const msg = connectErrorMessage(e);
+      setStatus(msg ? "error" : "idle");
+      setError(msg);
     }
   }, []);
 

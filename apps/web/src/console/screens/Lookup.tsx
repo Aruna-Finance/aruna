@@ -10,6 +10,8 @@ import { useVaultView } from "../useVaultView";
 import { TextField } from "../ui/Field";
 import { Panel } from "../ui/Panel";
 import { agentPageHref } from "../ui/agentPageHref";
+import { useWallet } from "../WalletContext";
+import { RELATION_TEXT, relationOf } from "../walletRole";
 
 // The vault the team's agent examples use (docs/AUDIT-v0.md). A real testnet vault, read live.
 export const EXAMPLE_VAULT = "demo2.factory.arunafi.testnet";
@@ -23,6 +25,8 @@ export function Lookup() {
   const [vault, setVault] = useState(first);
   const state = useVaultView(isSafeAccountId(vault) ? vault : "");
   const bad = draft !== "" && !isSafeAccountId(draft.trim());
+  const { accountId } = useWallet();
+  const relation = state.status === "ok" ? relationOf(accountId, state.view) : null;
 
   function pick(v: string) {
     setDraft(v);
@@ -46,7 +50,7 @@ export function Lookup() {
               if (!bad) setVault(draft.trim());
             }}
           >
-            <div className="min-w-72 flex-1 sm:max-w-xl">
+            <div className="w-full flex-1 sm:min-w-72 sm:max-w-xl">
               <TextField
                 label="Vault account"
                 value={draft}
@@ -84,6 +88,14 @@ export function Lookup() {
         {state.status === "ok" && (
           <>
             <Panel title="Who controls the money">
+              {relation && (
+                <p
+                  className={`mb-5 border-l-[3px] px-5 py-3 text-[15px] leading-[1.6] ${relation === "none" ? "border-line-2 bg-wash" : "border-ink bg-fog"}`}
+                  role="status"
+                >
+                  {RELATION_TEXT[relation]} <span className="mono text-sm">{accountId}</span>
+                </p>
+              )}
               <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
                 <div>
                   <dt className="text-muted">Vault</dt>

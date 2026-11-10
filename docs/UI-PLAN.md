@@ -140,14 +140,14 @@ Done (merged to `main`, PR #2):
 Not done:
 - [ ] `#hero` pause control (the diagram is static, so none is needed) and the artifact's vertical mobile layout (the diagram scrolls sideways under 900px)
 - [ ] Examples that show every basis, including `upgrade_imports` (the stub has four examples)
-- [ ] Responsive check to 360px, keyboard pass, contrast check, look in a real browser
-- [ ] Live RPC client: the earlier version was deleted at the user's request; rebuild when `@aruna/rpc` exists
+- [ ] (static pass done 2026-11-10: token contrast computed, no fixed-width overflow found at 360px except one fixed in Lookup; real-browser look still open) Responsive check to 360px, keyboard pass, contrast check, look in a real browser
+- [x] Live RPC client: the earlier version was deleted at the user's request; rebuild when `@aruna/rpc` exists
 
 Blocked on the engine:
 - [ ] Replace `lookup()` with `classify(accountId, fetchRpcReader(network))`; delete `classifier-types.ts` and the stub
 - [ ] Browser-origin CORS check in a real browser (curl-only so far)
 - [ ] Test: no-contract account is not shown as a global-contract account (both report a zero `code_hash`)
-- [ ] Test: `local_upgradeable` always renders its basis; `upgrade_imports` never reads "can be upgraded"
+- [x] Test: `local_upgradeable` always renders its basis; `upgrade_imports` never reads "can be upgraded"
 - [ ] Ask the engine team to expose the monitored `view_account.code_hash` in `ClassEvidence`
 
 Acceptance: a static build served by a plain static server shows the whole landing page; a real testnet and a real
@@ -191,7 +191,7 @@ Next steps, one at a time:
 - [ ] Shared pieces: toast, tx dialog (signer, receiver, actions, note, confirm and cancel, Escape closes), table, tabs, crumb, copy button, empty states
 - [ ] **Data port**: one interface per data need (`AgentsReader`, `TargetsReader`, `ExposureReader`, `ClaimsReader`, ...) with a mock adapter; replaced by `sdk` and `indexer`
 - [ ] Role-aware actions: the operator sees what it cannot do, with the reason
-- [ ] Detail routes `agents/<agent>`, `targets/<target>`, `claims/<report>`; the public agent page `p-<agent>` belongs to F4
+- [x] Detail routes `agents/<agent>`, `targets/<target>`, `claims/<report>`; the public agent page `p-<agent>` belongs to F4
 - [ ] Sidebar "Everyone" group links to the classifier and public pages (now internal links, same app)
 
 Notes: the simulated signer names (`budi.testnet`, `opsdesk.testnet`, ...) are the prototype's mock values.
@@ -203,12 +203,12 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 
 - [x] Look up an agent by vault, label or public key
 - [x] Public agent page: what the agent **cannot** do and who enforces it; owner and operator limits; limits and usage today; exposure by class; verify commands. One `view_access_key_list` call backs most of it
-- [ ] Refusals shown as outcomes with `ARUNA_*` reason codes
+- [x] Refusals shown as outcomes with `ARUNA_*` reason codes
 - [x] Targets table (list): class, certainty, premium effect, last recorded, freshness, evidence reachable per row. Data port `TargetsReader` with a mock adapter (`src/console/data`), `MAX_CLASS_AGE_BLOCKS = 7200` is the prototype's assumption
 - [x] Target detail with the four drift channels and stored evidence (`/console/targets/detail/?id=`)
 - [x] Reports and claims list and report detail, readable by everyone
-- [ ] Recorded exposure described as what was sent, not position value
-- [ ] Copy-link for the page
+- [x] Recorded exposure described as what was sent, not position value
+- [x] Copy-link for the page
 
 ## F5 - Owner and operator console · `ui/f5-owner-console`
 
@@ -224,10 +224,10 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 ## F6 - Underwriter and attestor · `ui/f6-underwriter-attestor`
 
 - [x] Pool view: concentration by code hash given top weight, capital deployed and locked, claims pending/disputed/paid
-- [ ] Claims view with challenge window and dispute state; conflicting-report flow if it is a UI surface
+- [x] Claims view with challenge window and dispute state; conflicting-report flow if it is a UI surface
 - [ ] (prototype model shipped and labelled; reading `@aruna/sim` output waits on that package) Simulation view reading `@aruna/sim` output; assumptions listed, the scenario that breaks the pool shown as it is
 - [x] Attestor console (built on mock data; ownership with the engine team is still unconfirmed, see the open items); heartbeat, monitored targets, report drift
-- [ ] Payout shown as formula output with the arithmetic visible
+- [x] Payout shown as formula output with the arithmetic visible
 
 ## F7 - Developer and demo · `ui/f7-developer-demo`
 
@@ -308,3 +308,4 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 | 2026-11-10 | F2 | Mainnet measurement section on `/proof/`: class and basis tables with share of calls, the three `global_by_account` accounts, failed reads, source folder, block range and the reproduce command. `scripts/sync-measurement.mjs` copies the numbers from `measurement/results/2026-11-10/` into `measurement-data.json`; `measurement.test.ts` re-derives them from that folder. No number typed by hand |
 | 2026-11-10 | F3 | Wallet connect (login only) in the console header: `WalletContext` + `WalletButton` using `@hot-labs/near-connect` 0.12 (package and API from docs.near.org wallet-login page, typings checked), testnet, imported dynamically so the static build never runs it. Connect, show account, disconnect, restore a saved session. No screen signs or sends a transaction yet; the role signer label stays mock. `@hot-labs/*` added to the boundary test so it cannot reach the landing code. Not tried against a real wallet in a browser |
 | 2026-11-10 | F1 | Landing buttons renamed: navbar "Open the console" (to `/console/`), closing section "Run the guided demo" (to `/console/story/`). The old label said demo for what is now a four-role console with live testnet reads and wallet login |
+| 2026-11-10 | F8 | Wallet-aware Lookup: with a connected wallet, Lookup says whether the account is the vault owner, the operator or neither, from the vault's own fields (`walletRole.ts`, tested). Static accessibility pass: contrast computed for text token pairs (all >= 4.5:1 except `dawn-ink` on `fog` at 4.31, which no screen uses); Lookup input no longer overflows at 360px; connected account in the header truncates on small screens. Eight checklist items ticked after checking the code. A real-browser check is still open

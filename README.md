@@ -31,7 +31,7 @@ pnpm -r test
 ```
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
-skipped), `cli` (8), `sdk` (12), `mcp` (6) and `apps/web` (90).
+skipped), `cli` (8), `sdk` (12), `mcp` (6) and `apps/web` (97).
 
 ### 2. Classify any NEAR contract
 
@@ -95,6 +95,15 @@ With the static host from step 5 still running, open `http://localhost:4173/cons
 of agents. Click an agent. Expected: a page listing what its key cannot do, its limits and usage, and a
 `curl` for `view_access_key_list` whose output you can compare by hand. The other console screens
 (`/console/dashboard/`, `/console/coverage/`, `/console/claims/`) run on mock data until the contracts are wired in.
+
+### 5c. Connect a testnet wallet
+
+You need a testnet wallet account. With the static host still running, open `http://localhost:4173/console/lookup/`
+and click `Connect wallet` in the header. Expected: a wallet picker opens; after you sign in with a testnet account,
+the header shows that account id and a `Disconnect` button, and the Lookup page adds a line saying whether your
+account is the vault owner, the operator, or neither (for `demo2.factory.arunafi.testnet` it is neither, unless you
+sign in as its owner). Connecting only logs in: no screen signs or sends a transaction yet, and the other console
+screens still run on mock data. Closing the picker is not an error.
 
 ### 6. Ask from an agent (MCP)
 

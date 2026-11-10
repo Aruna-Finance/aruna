@@ -11,7 +11,7 @@ export function WalletButton() {
   if (accountId) {
     return (
       <div className="flex items-center gap-2">
-        <span className="mono max-w-[16ch] truncate text-[13px] sm:max-w-[28ch]" title={`Connected wallet: ${accountId}`}>
+        <span className="mono max-w-[9ch] truncate text-[13px] sm:max-w-[28ch]" title={`Connected wallet: ${accountId}`}>
           {accountId}
         </span>
         <button type="button" className={btn} onClick={() => void disconnect()}>
