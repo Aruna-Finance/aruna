@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 
 /** A labelled number input with a unit suffix, the console's only numeric field. */
 export function NumberField({
@@ -15,7 +15,7 @@ export function NumberField({
   label: string;
   value: number;
   onChange: (v: number) => void;
-  suffix: string;
+  suffix: ReactNode;
   hint?: string;
   step?: number;
   min?: number;
@@ -37,7 +37,7 @@ export function NumberField({
           onChange={(e) => onChange(e.target.value === "" ? NaN : Number(e.target.value))}
           className="mono min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[15px] outline-none"
         />
-        <span className="label border-l border-line px-3 py-2.5 text-xs text-muted">{suffix}</span>
+        <span className="label flex min-w-12 items-center justify-center border-l border-line px-3 text-xs text-muted">{suffix}</span>
       </div>
       {hint && <p className="mt-1.5 text-sm text-muted">{hint}</p>}
     </div>
