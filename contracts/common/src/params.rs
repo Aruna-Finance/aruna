@@ -43,3 +43,5 @@ pub const K_X100: u128 = 500;
 /// ASSUMPTION. Concentration: limits on one resolved code hash, or one upgrade authority, ≤ this
 /// many basis points of the book's capital (docs/DECISIONS.md D-24).
 pub const CONCENTRATION_BPS: u128 = 20_000;
+/// Minimum attestor bond, in yoctoNEAR (1 NEAR). Testnet.
+pub const ATTESTOR_MIN_BOND: u128 = 1_000_000_000_000_000_000_000_000;

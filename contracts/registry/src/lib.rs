@@ -1,11 +1,19 @@
-//! registry — shared source of truth for what class a target is (docs/CONTRACTS.md).
-//! v0 scope: the authorized classifier set, class records, and vault version records written by the
-//! factory. Drift reports, bonds, challenge windows and freeze push arrive with the attestor (Stage 7).
+//! registry — shared source of truth for what class a target is and whether it is frozen
+//! (docs/CONTRACTS.md). Holds the authorized classifier set, class records, vault records and the
+//! vault code hashes allowed for coverage, and the drift path (plan U4): bonded attestors with
+//! signing keys and heartbeats, signed drift reports, freezes pushed to vaults, disputes and the
+//! arbiter's rulings. TWO TRUST ASSUMPTIONS: the attestor and the arbiter (docs/DECISIONS.md D-22).
+
+mod attestors;
+mod drift;
+
+pub use attestors::Attestor;
+pub use drift::StoredReport;
 
 use aruna_common::reasons::panics;
 use aruna_common::{emit, RiskClass};
 use near_sdk::serde_json::json;
-use near_sdk::store::{IterableSet, LookupMap};
+use near_sdk::store::{IterableSet, LookupMap, LookupSet, Vector};
 use near_sdk::{env, near, require, AccountId, BorshStorageKey, PanicOnDefault};
 
 #[near(serializers = [borsh, json])]
@@ -16,8 +24,13 @@ pub struct ClassRecord {
     pub evidence_hash: String,
     pub classified_at_block: u64,
     pub classifier: AccountId,
-    /// Set by the drift path (Stage 7). Always false in v0.
+    /// Set when a drift report is accepted; cleared if the arbiter rejects it.
     pub frozen: bool,
+    /// The code the target executes, from the classifier's evidence. Concentration limits use it
+    /// (plan KTD7). None on records written without it: such a target cannot be covered.
+    pub resolved_code_hash: Option<String>,
+    /// Who can change the code: the global contract owner for `global_by_account`, else the target.
+    pub upgrade_authority: Option<AccountId>,
 }
 
 #[near(serializers = [borsh, json])]
@@ -36,6 +49,13 @@ enum Key {
     Classifiers,
     Classes,
     Vaults,
+    VaultList,
+    AllowedHashes,
+    Attestors,
+    Assignments,
+    Reports,
+    Nonces,
+    LatestReport,
 }
 
 #[near(contract_state)]
@@ -46,6 +66,21 @@ pub struct Registry {
     classifiers: IterableSet<AccountId>,
     classes: LookupMap<AccountId, ClassRecord>,
     vaults: LookupMap<AccountId, VaultRecord>,
+    /// Every registered vault, in order, for freeze batches (plan KTD8).
+    vault_list: Vector<AccountId>,
+    /// Vault code hashes the owner allows for coverage (plan R22).
+    allowed_hashes: IterableSet<String>,
+    /// Resolves disputes; the protocol owner at first (docs/DECISIONS.md D-43).
+    arbiter: AccountId,
+    /// Receives slashed bonds as NEAR capital (plan KTD9).
+    pool: Option<AccountId>,
+    attestors: LookupMap<AccountId, Attestor>,
+    /// Each target's assigned attestor, whose heartbeat gates new coverage (D-29).
+    assignments: LookupMap<AccountId, AccountId>,
+    reports: Vector<StoredReport>,
+    used_nonces: LookupSet<(AccountId, u64)>,
+    /// The latest report id per target.
+    latest_report: LookupMap<AccountId, u32>,
 }
 
 #[near]
@@ -53,11 +88,20 @@ impl Registry {
     #[init]
     pub fn new(owner: AccountId) -> Self {
         Self {
-            owner,
+            owner: owner.clone(),
             factory: None,
             classifiers: IterableSet::new(Key::Classifiers),
             classes: LookupMap::new(Key::Classes),
             vaults: LookupMap::new(Key::Vaults),
+            vault_list: Vector::new(Key::VaultList),
+            allowed_hashes: IterableSet::new(Key::AllowedHashes),
+            arbiter: owner.clone(),
+            pool: None,
+            attestors: LookupMap::new(Key::Attestors),
+            assignments: LookupMap::new(Key::Assignments),
+            reports: Vector::new(Key::Reports),
+            used_nonces: LookupSet::new(Key::Nonces),
+            latest_report: LookupMap::new(Key::LatestReport),
         }
     }
 
@@ -87,11 +131,18 @@ impl Registry {
 
     // ---- authorized classifiers only (docs/DECISIONS.md D-12) ----
 
-    pub fn set_class(&mut self, target: AccountId, class: RiskClass, evidence_hash: String) {
+    pub fn set_class(
+        &mut self,
+        target: AccountId,
+        class: RiskClass,
+        evidence_hash: String,
+        resolved_code_hash: Option<String>,
+        upgrade_authority: Option<AccountId>,
+    ) {
         let classifier = env::predecessor_account_id();
         require!(self.classifiers.contains(&classifier), panics::NOT_CLASSIFIER);
         let frozen = self.classes.get(&target).is_some_and(|r| r.frozen);
-        let record = ClassRecord { class, evidence_hash, classified_at_block: env::block_height(), classifier, frozen };
+        let record = ClassRecord { class, evidence_hash, classified_at_block: env::block_height(), classifier, frozen, resolved_code_hash, upgrade_authority };
         emit("target_classified", json!({ "target": target, "record": record }));
         self.classes.insert(target, record);
     }
@@ -102,7 +153,41 @@ impl Registry {
         require!(Some(env::predecessor_account_id()) == self.factory, panics::NOT_FACTORY);
         let record = VaultRecord { vault: vault.clone(), owner, code_hash, registered_at_block: env::block_height() };
         emit("vault_deployed", json!(record));
+        if !self.vaults.contains_key(&vault) {
+            self.vault_list.push(vault.clone());
+        }
         self.vaults.insert(vault, record);
+    }
+
+    // ---- owner: coverage configuration ----
+
+    pub fn allow_vault_code_hash(&mut self, code_hash: String, allowed: bool) {
+        self.assert_owner();
+        if allowed {
+            self.allowed_hashes.insert(code_hash.clone());
+        } else {
+            self.allowed_hashes.remove(&code_hash);
+        }
+        emit("vault_code_hash_allowed", json!({ "code_hash": code_hash, "allowed": allowed }));
+    }
+
+    pub fn set_arbiter(&mut self, arbiter: AccountId) {
+        self.assert_owner();
+        emit("arbiter_set", json!({ "before": self.arbiter, "after": arbiter }));
+        self.arbiter = arbiter;
+    }
+
+    pub fn set_pool(&mut self, pool: AccountId) {
+        self.assert_owner();
+        emit("pool_set", json!({ "pool": pool }));
+        self.pool = Some(pool);
+    }
+
+    pub fn assign_attestor(&mut self, target: AccountId, attestor: AccountId) {
+        self.assert_owner();
+        require!(self.attestors.contains_key(&attestor), "ARUNA_UNKNOWN_ATTESTOR");
+        emit("attestor_assigned", json!({ "target": target, "attestor": attestor }));
+        self.assignments.insert(target, attestor);
     }
 
     // ---- views ----
@@ -113,6 +198,27 @@ impl Registry {
 
     pub fn get_vault(&self, vault: AccountId) -> Option<VaultRecord> {
         self.vaults.get(&vault).cloned()
+    }
+
+    /// The vault's record, only when it runs a code hash the owner allows for coverage.
+    pub fn get_allowed_vault(&self, vault: AccountId) -> Option<VaultRecord> {
+        self.vaults.get(&vault).filter(|r| self.allowed_hashes.contains(&r.code_hash)).cloned()
+    }
+
+    pub fn allowed_vault_code_hashes(&self) -> Vec<String> {
+        self.allowed_hashes.iter().cloned().collect()
+    }
+
+    pub fn vault_count(&self) -> u32 {
+        self.vault_list.len()
+    }
+
+    pub fn arbiter(&self) -> AccountId {
+        self.arbiter.clone()
+    }
+
+    pub fn pool(&self) -> Option<AccountId> {
+        self.pool.clone()
     }
 
     pub fn is_classifier(&self, account: AccountId) -> bool {
@@ -156,7 +262,7 @@ mod tests {
     fn authorized_classifier_writes_a_class_and_emits() {
         let mut r = registry();
         as_caller("classifier.near");
-        r.set_class(acc("t.near"), RiskClass::GlobalByAccount, "H".into());
+        r.set_class(acc("t.near"), RiskClass::GlobalByAccount, "H".into(), None, None);
         let rec = r.get_class(acc("t.near")).unwrap();
         assert_eq!(rec.class, RiskClass::GlobalByAccount);
         assert_eq!(rec.classified_at_block, 42);
@@ -169,7 +275,7 @@ mod tests {
     fn anyone_else_cannot_write_a_class() {
         let mut r = registry();
         as_caller("attacker.near");
-        r.set_class(acc("t.near"), RiskClass::ImmutableVerified, "H".into());
+        r.set_class(acc("t.near"), RiskClass::ImmutableVerified, "H".into(), None, None);
     }
 
     #[test]
@@ -178,7 +284,7 @@ mod tests {
         let mut r = registry();
         r.remove_classifier(acc("classifier.near"));
         as_caller("classifier.near");
-        r.set_class(acc("t.near"), RiskClass::Unknown, "H".into());
+        r.set_class(acc("t.near"), RiskClass::Unknown, "H".into(), None, None);
     }
 
     #[test]
@@ -205,3 +311,6 @@ mod tests {
         r.register_vault(acc("v.near"), acc("client.near"), "CODE".into());
     }
 }
+
+#[cfg(test)]
+mod tests_drift;
