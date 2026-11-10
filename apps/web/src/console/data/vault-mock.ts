@@ -15,6 +15,8 @@ const seed = (): VaultState => ({
   operator: "opsdesk.testnet",
   version: "v1",
   latestVersion: "v2",
+  codeHash: "sim-hash-vault-code-v1",
+  latestCodeHash: "sim-hash-vault-code-v2",
   ceiling: { maxPerTx: 250, dailyTotal: 1500 },
   block: BLOCK,
   agents: [
@@ -150,6 +152,20 @@ export function createVaultStore(): VaultStore {
       if (by === "operator") throw new Error("ARUNA_NOT_OWNER: only the owner can raise an allowance.");
       if (!(near > 0)) throw new Error("Enter an allowance above zero.");
       state = { ...state, agents: edit(id, (a) => ({ ...a, allowanceNear: near })), events: push({ type: "allowance_set", agent: id, detail: `${near} NEAR` }) };
+      emit();
+    },
+    migrate(by) {
+      if (by === "operator") throw new Error("ARUNA_NOT_OWNER: only the owner can migrate the vault.");
+      if (state.codeHash === state.latestCodeHash) throw new Error("This vault already runs the latest version.");
+      const next = "vault-budi-v2.aruna.testnet";
+      state = {
+        ...state,
+        vault: next,
+        version: state.latestVersion,
+        codeHash: state.latestCodeHash,
+        agents: state.agents.map((a) => (a.status === "Revoked" ? a : { ...a, publicKey: `ed25519:sim-${a.id}-v2` })),
+        events: push({ type: "vault_deployed", detail: `${next}, code ${state.latestCodeHash}` }),
+      };
       emit();
     },
     setOperator(account) {

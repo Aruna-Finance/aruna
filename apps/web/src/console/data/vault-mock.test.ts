@@ -80,3 +80,18 @@ describe("vault mock: agents and funds", () => {
     expect(s.get().agents[2].status).toBe("Revoked");
   });
 });
+
+describe("vault mock: migration", () => {
+  it("moves to the latest vault and re-keys live agents, owner only", () => {
+    const s = createVaultStore();
+    expect(() => s.migrate("operator")).toThrow(/ARUNA_NOT_OWNER/);
+    s.setAgentStatus("yield-runner", "Revoked", "owner");
+    s.migrate("owner");
+    const v = s.get();
+    expect(v.vault).toBe("vault-budi-v2.aruna.testnet");
+    expect(v.version).toBe("v2");
+    expect(v.agents[0].publicKey).toMatch(/-v2$/);
+    expect(v.agents[2].publicKey).not.toMatch(/-v2$/);
+    expect(() => s.migrate("owner")).toThrow(/latest version/);
+  });
+});
