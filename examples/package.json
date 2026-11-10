@@ -1,0 +1,21 @@
+{
+  "name": "@aruna/examples",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Two agents against a testnet vault: one honest, one prompt-injected. Testnet only.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "near-api-js": "7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}
