@@ -35,3 +35,22 @@ describe("drift channel inference (KTD4)", () => {
     expect(r?.before_ref).toEqual({ kind: "global_account", owner_account: "owner.testnet" });
   });
 });
+
+describe("bisecting the change block (KTD5)", () => {
+  const history = (changeAt: number, skipped: number[] = []) => async (b: number) => (skipped.includes(b) ? null : b >= changeAt ? "V2" : "V1");
+
+  it("finds the first block running the new code", async () => {
+    const { bisectChange } = await import("../src/watch.js");
+    expect(await bisectChange(history(1_337), 1_000, 2_000, "V2")).toBe(1_337);
+  });
+
+  it("steps over skipped heights", async () => {
+    const { bisectChange } = await import("../src/watch.js");
+    expect(await bisectChange(history(1_337, [1_336, 1_337, 1_500]), 1_000, 2_000, "V2")).toBe(1_338);
+  });
+
+  it("gives up when history cannot be read", async () => {
+    const { bisectChange } = await import("../src/watch.js");
+    expect(await bisectChange(async () => null, 1_000, 2_000, "V2")).toBeNull();
+  });
+});

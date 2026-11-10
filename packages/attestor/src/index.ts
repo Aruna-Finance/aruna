@@ -10,10 +10,10 @@ import { createFetchReader } from "@aruna/rpc";
 import { publicKeyOf, signingSeed } from "./keys.js";
 import { signReport, type DriftReport } from "./report.js";
 import { connect } from "./submit.js";
-import { observe, reportFor, type Observation } from "./watch.js";
+import { bisectChange, observe, reportFor, rpcHashAt, type Observation } from "./watch.js";
 
 export { signReport, signingBytes } from "./report.js";
-export { channelOf, observe, reportFor } from "./watch.js";
+export { bisectChange, channelOf, observe, reportFor } from "./watch.js";
 
 const USAGE = `aruna-attestor — testnet drift attestor
 
@@ -73,7 +73,8 @@ async function main(argv: string[]): Promise<number> {
   if (!registry) throw new Error("--registry is required");
   const endpoints = process.env.ARUNA_RPC_TESTNET?.split(",").map((s) => s.trim()).filter(Boolean);
   const reader = createFetchReader({ network: "testnet", endpoints, rotate: true });
-  const chain = connect(attestor, registry, endpoints?.[0] ?? "https://rpc.testnet.fastnear.com");
+  const rpcUrl = endpoints?.[0] ?? "https://rpc.testnet.fastnear.com";
+  const chain = connect(attestor, registry, rpcUrl);
   const seed = signingSeed(attestor);
 
   if (cmd === "heartbeat") {
@@ -112,9 +113,22 @@ async function main(argv: string[]): Promise<number> {
         if (prev) {
           const r = reportFor(prev, cur, attestor, state.nonce + 1, REPORT_TTL_BLOCKS);
           if (r) {
+            // Narrow the claim to the first block running the new code, when history is readable.
+            try {
+              const exact = await bisectChange(rpcHashAt(t, rpcUrl), prev.block, cur.block, r.after_resolved_hash);
+              if (exact !== null) r.changed_at_block = exact;
+            } catch (e) {
+              log(`${t}: history unreadable, keeping changed_at_block ${r.changed_at_block} (${e instanceof Error ? e.message : e})`);
+            }
             state.nonce += 1;
-            const filed = await chain.report(r, signReport(r, seed).toString("base64"));
-            log(`${t}: ${r.channel} ${r.before_resolved_hash} -> ${r.after_resolved_hash}, changed_at_block ${r.changed_at_block}; report ${filed.id}  tx ${filed.tx}`);
+            try {
+              const filed = await chain.report(r, signReport(r, seed).toString("base64"));
+              log(`${t}: ${r.channel} ${r.before_resolved_hash} -> ${r.after_resolved_hash}, changed_at_block ${r.changed_at_block}; report ${filed.id}  tx ${filed.tx}`);
+            } catch (e) {
+              // The registry refused it (e.g. ARUNA_OUTSIDE_LOOKBACK when the change is older than the
+              // lookback bound). The change is still the new baseline; the daemon keeps running.
+              log(`${t}: ${r.channel} changed_at_block ${r.changed_at_block}; REPORT REFUSED: ${e instanceof Error ? e.message : e}`);
+            }
           }
         } else {
           log(`${t}: first observation at block ${cur.block}, resolved ${cur.resolvedHash}`);

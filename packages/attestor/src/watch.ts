@@ -65,3 +65,52 @@ export function reportFor(prev: Observation, cur: Observation, attestor: string,
     expires_at: cur.block + ttlBlocks,
   };
 }
+
+/** The resolved code hash at a block, or null when the node has no such block (a skipped height). */
+export type HashAt = (block: number) => Promise<string | null>;
+
+/**
+ * Narrows `changed_at_block` from "the block after the last unchanged observation" to the first block
+ * whose executed code is `afterHash`, by bisection over historical state (plan KTD5). `lo` must run the
+ * old code and `hi` the new one. Skipped heights are stepped over. Returns null when history cannot
+ * be read, in which case the caller keeps the conservative claim.
+ */
+export async function bisectChange(hashAt: HashAt, lo: number, hi: number, afterHash: string): Promise<number | null> {
+  if ((await hashAt(lo)) === null) return null;
+  // Invariant: `lo` runs the old code and `hi` the new one. `limit` bounds where an existing block
+  // between them can still be: every height in [limit, hi) is known to be skipped.
+  let limit = hi;
+  while (limit - lo > 1) {
+    const mid = Math.floor((lo + limit) / 2);
+    let b = mid;
+    let hash: string | null = null;
+    for (; b < limit; b++) {
+      hash = await hashAt(b);
+      if (hash !== null) break;
+    }
+    if (b >= limit) {
+      limit = mid; // [mid, limit) are all skipped heights
+      continue;
+    }
+    if (hash === afterHash) {
+      hi = b;
+      limit = b;
+    } else lo = b;
+  }
+  return hi;
+}
+
+/** A HashAt over plain JSON-RPC `view_code` at a block height. */
+export function rpcHashAt(target: string, url: string, doFetch: typeof fetch = fetch): HashAt {
+  return async (block) => {
+    const res = await doFetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: "aruna-attestor", method: "query", params: { request_type: "view_code", account_id: target, block_id: block } }),
+    });
+    const body = (await res.json()) as { result?: { hash: string }; error?: { cause?: { name?: string } } };
+    if (body.result) return body.result.hash;
+    if (body.error?.cause?.name === "UNKNOWN_BLOCK") return null;
+    throw new Error(`view_code at ${block}: ${JSON.stringify(body.error)}`);
+  };
+}
