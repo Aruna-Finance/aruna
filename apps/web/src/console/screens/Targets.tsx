@@ -6,6 +6,7 @@ import { Drawer } from "@/shared/Drawer";
 import { toast } from "@/shared/Toaster";
 import type { RiskClass } from "@/landing/lib/classifier-types";
 import { mockTargets } from "../data/mock";
+import { ClassTag } from "../ui/ClassTag";
 import { MAX_CLASS_AGE_BLOCKS, type TargetPreset, type TargetRecord } from "../data/types";
 
 const INFO: Record<RiskClass, { title: string; certainty: string; premium: string }> = {
@@ -26,20 +27,6 @@ const BASIS: Record<TargetRecord["classification"]["evidence"]["mutabilityBasis"
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
-
-/** Unknown is never styled as safe: dashed rule, muted text, no reassuring colour. */
-function ClassTag({ c }: { c: RiskClass }) {
-  const unknown = c === "unknown";
-  return (
-    <span
-      className={`mono inline-block text-[13px] ${
-        unknown ? "border-l-[3px] border-dashed border-muted pl-2 text-muted" : c === "global_by_account" ? "text-dawn-ink" : ""
-      }`}
-    >
-      {c}
-    </span>
-  );
-}
 
 function Freshness({ age }: { age: number }) {
   const stale = age > MAX_CLASS_AGE_BLOCKS;
