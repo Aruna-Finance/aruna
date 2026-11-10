@@ -357,7 +357,10 @@ into a changed target. The cost: with one attestor, one party can freeze any tar
 bounded only by its bond and the arbiter. The freeze is pushed in batches to every vault the
 factory registered (the registry does not know vault ceilings); a vault ignores a target outside
 its ceiling, and a vault the push misses learns at its next `refresh_class`. A bond the arbiter
-slashes becomes capital in the pool's NEAR book.
+slashes becomes capital in the pool's NEAR book. A freeze stays until the arbiter rejects the
+report, or until the registry owner lifts it with `lift_freeze` once the latest report is final
+(Verified or Rejected), typically after the target's new code is classified again. A lifted freeze
+does not touch claims, which read the report's state.
 
 ### D-60 — The coverage stack is new, and chain time is block height
 Testnet runs a second stack (registry v2, factory, pool, vault v3) next to the v0 stack, which

@@ -141,6 +141,19 @@ impl Registry {
         }
     }
 
+    /// Owner only. Lifts a freeze once the target's latest report is final (Verified or Rejected),
+    /// typically after the target's new code has been classified again. Never while a report is
+    /// Pending or Disputed. Claims are unaffected: they read the report's state, not this flag.
+    /// Vaults lift their cached freeze at their next `refresh_class`.
+    pub fn lift_freeze(&mut self, target: AccountId) {
+        require!(env::predecessor_account_id() == self.owner, aruna_common::reasons::panics::NOT_OWNER);
+        if let Some(r) = self.latest_report(target.clone()) {
+            require!(matches!(r.state, ReportState::Verified | ReportState::Rejected), "ARUNA_REPORT_NOT_FINAL");
+        }
+        self.set_frozen(&target, false);
+        emit("freeze_lifted", json!({ "target": target }));
+    }
+
     /// A report with its state as of now.
     pub fn get_report(&self, id: u32) -> Option<StoredReport> {
         self.reports.get(id).map(|r| StoredReport { state: self.effective_state(r), ..r.clone() })

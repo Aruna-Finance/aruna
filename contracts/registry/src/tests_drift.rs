@@ -293,3 +293,31 @@ fn only_allowed_vault_code_hashes_are_returned_for_coverage() {
     r.allow_vault_code_hash("V3".into(), true);
     assert!(r.get_allowed_vault(acc("v.factory.testnet")).is_some());
 }
+
+#[test]
+#[should_panic(expected = "ARUNA_REPORT_NOT_FINAL")]
+fn a_freeze_cannot_be_lifted_while_the_report_is_pending() {
+    let mut r = setup();
+    file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
+    ctx("owner.testnet", NOW + 1, 0);
+    r.lift_freeze(acc(T));
+}
+
+#[test]
+fn the_owner_lifts_a_freeze_once_the_report_is_verified() {
+    let mut r = setup();
+    let id = file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
+    ctx("owner.testnet", NOW + CHALLENGE_WINDOW_BLOCKS, 0);
+    r.lift_freeze(acc(T));
+    assert!(!r.get_class(acc(T)).unwrap().frozen);
+    assert_eq!(r.get_report(id).unwrap().state, ReportState::Verified, "the report, which claims read, is untouched");
+}
+
+#[test]
+#[should_panic(expected = "ARUNA_NOT_OWNER")]
+fn only_the_owner_lifts_a_freeze() {
+    let mut r = setup();
+    file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
+    ctx(A, NOW + CHALLENGE_WINDOW_BLOCKS, 0);
+    r.lift_freeze(acc(T));
+}
