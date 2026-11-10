@@ -35,6 +35,6 @@ same people and tools that wrote the code.
 
 `demo.factory.arunafi.testnet` runs the first vault version (`5s1ggtt…`), before H1, M1, M2 and L2
 were fixed. Vaults are immutable, so it keeps them; it holds no real value. The fixed version
-(`4hDwnc…`, `contracts/vault/res/aruna_vault.wasm`) was published on 10 November 2026 and runs
+(`4hDwnc…`, `contracts/vault/res/aruna_vault-v2.wasm`) was published on 10 November 2026 and runs
 `demo2.factory.arunafi.testnet`, the vault the agent examples in `examples/` use
 (`docs/SELF-CLASSIFICATION.md`). A vault holding funds must run a version that includes these fixes.

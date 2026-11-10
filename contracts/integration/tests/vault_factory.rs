@@ -16,8 +16,7 @@ use serde_json::{json, Value};
 
 fn ceiling() -> Value {
     json!({
-        "max_per_tx": "1000000000000000000000000",
-        "daily_total": "5000000000000000000000000",
+        "tokens": [{ "token": "near", "max_per_tx": "1000000000000000000000000", "daily_total": "5000000000000000000000000" }],
         "max_risk_class": "local_upgradeable",
         "allowed_targets": ["swap.test.near"],
         "agent_allowance": "250000000000000000000000"
@@ -26,8 +25,7 @@ fn ceiling() -> Value {
 
 fn policy() -> Value {
     json!({
-        "max_per_tx": "500000000000000000000000",
-        "daily_cap": "2000000000000000000000000",
+        "limits": [{ "token": "near", "max_per_tx": "500000000000000000000000", "daily_cap": "2000000000000000000000000" }],
         "max_slippage_bps": 50,
         "allowed_targets": ["swap.test.near"],
         "max_risk_class": "immutable_verified"

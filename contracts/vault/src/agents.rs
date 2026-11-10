@@ -4,17 +4,24 @@
 //! need 1 yoctoNEAR (a full-access key); pausing and revoking do not, so a stop is never harder than
 //! a start.
 
-use crate::{Agent, AgentStatus, Policy, Vault, VaultExt, AGENT_METHODS};
+use crate::{Agent, AgentStatus, Policy, TokenLimits, Vault, VaultExt, AGENT_METHODS};
+use aruna_common::TokenId;
 use aruna_common::{emit, MAX_AGENTS};
 use aruna_common::reasons::panics;
 use near_sdk::serde_json::json;
 use near_sdk::{assert_one_yocto, env, near, require, Allowance, PublicKey};
 
-/// True if `next` permits anything `prev` did not.
+/// A policy's limits in one token; zero when the token is not listed.
+pub(crate) fn limits_for(policy: &Policy, token: &TokenId) -> (u128, u128) {
+    policy.limits.iter().find(|l| &l.token == token).map(|l| (l.max_per_tx.0, l.daily_cap.0)).unwrap_or((0, 0))
+}
+
+/// True if `next` permits anything `prev` did not, in any token.
 pub(crate) fn loosens(prev: &Policy, next: &Policy) -> bool {
-    next.max_per_tx.0 > prev.max_per_tx.0
-        || next.daily_cap.0 > prev.daily_cap.0
-        || next.max_slippage_bps > prev.max_slippage_bps
+    next.limits.iter().any(|l: &TokenLimits| {
+        let (tx, cap) = limits_for(prev, &l.token);
+        l.max_per_tx.0 > tx || l.daily_cap.0 > cap
+    }) || next.max_slippage_bps > prev.max_slippage_bps
         || next.max_risk_class > prev.max_risk_class
         || next.allowed_targets.iter().any(|t| !prev.allowed_targets.contains(t))
 }
@@ -24,16 +31,19 @@ impl Vault {
     /// can still spend. `replacing` is the key whose current cap is being replaced, if any.
     fn assert_within_ceiling(&self, policy: &Policy, replacing: Option<&PublicKey>) {
         let c = &self.ceiling;
-        require!(policy.max_per_tx.0 <= c.max_per_tx.0, panics::OVER_CEILING);
         require!(policy.max_risk_class <= c.max_risk_class, panics::OVER_CEILING);
         require!(policy.allowed_targets.iter().all(|t| c.allowed_targets.contains(t)), panics::OVER_CEILING);
-        let others: u128 = self
-            .agents
-            .iter()
-            .filter(|(k, a)| a.status != AgentStatus::Revoked && Some(*k) != replacing)
-            .map(|(_, a)| a.policy.daily_cap.0)
-            .sum();
-        require!(others + policy.daily_cap.0 <= c.daily_total.0, panics::OVER_CEILING);
+        for l in &policy.limits {
+            let tc = c.tokens.iter().find(|t| t.token == l.token).unwrap_or_else(|| env::panic_str(panics::OVER_CEILING));
+            require!(l.max_per_tx.0 <= tc.max_per_tx.0, panics::OVER_CEILING);
+            let others: u128 = self
+                .agents
+                .iter()
+                .filter(|(k, a)| a.status != AgentStatus::Revoked && Some(*k) != replacing)
+                .map(|(_, a)| limits_for(&a.policy, &l.token).1)
+                .sum();
+            require!(others + l.daily_cap.0 <= tc.daily_total.0, panics::OVER_CEILING);
+        }
     }
 
     pub(crate) fn agent_mut(&mut self, key: &PublicKey) -> &mut Agent {
@@ -82,8 +92,10 @@ impl Vault {
             policy,
             created_at: env::block_height(),
             auto_disabled: false,
-            budget: Default::default(),
+            budgets: vec![],
             refusals: vec![],
+            policy_version: 1,
+            last_loosened_at: 0,
         };
         self.agents.insert(public_key, agent);
     }
@@ -120,7 +132,17 @@ impl Vault {
             require!(!loosens(&prev, &policy), panics::OPERATOR_CANNOT_LOOSEN);
         }
         self.assert_within_ceiling(&policy, Some(&public_key));
-        emit("policy_updated", json!({ "public_key": public_key, "before": prev, "after": policy, "by": env::predecessor_account_id() }));
+        let loosened = loosens(&prev, &policy);
+        let agent = self.agent_mut(&public_key);
+        agent.policy_version += 1;
+        if loosened {
+            agent.last_loosened_at = env::block_height();
+        }
+        let version = agent.policy_version;
+        emit(
+            "policy_updated",
+            json!({ "public_key": public_key, "before": prev, "after": policy, "by": env::predecessor_account_id(), "version": version, "loosened": loosened }),
+        );
         self.agent_mut(&public_key).policy = policy;
     }
 }

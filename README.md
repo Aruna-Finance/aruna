@@ -151,8 +151,8 @@ node packages/cli/dist/index.js classify demo2.factory.arunafi.testnet --network
 
 Expected: `"class": "immutable_verified"`, `"fullAccessKeyCount": 0`, `"functionCallKeyCount": 2`
 (the two agents' keys), `"upgradeImports": []`, `"resolvedCodeHash":
-"4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam"`, the hash of `contracts/vault/res/aruna_vault.wasm`
-(`node fixtures/tools.mjs hash contracts/vault/res/aruna_vault.wasm`). The vault was created by
+"4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam"`, the hash of `contracts/vault/res/aruna_vault-v2.wasm`
+(`node fixtures/tools.mjs hash contracts/vault/res/aruna_vault-v2.wasm`). The vault was created by
 `factory.arunafi.testnet` from one global contract by hash, with no key; the operator then added the
 agent keys. Details and evidence: [`docs/SELF-CLASSIFICATION.md`](docs/SELF-CLASSIFICATION.md). To
 deploy your own copy: `ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-setup.sh` (about 35

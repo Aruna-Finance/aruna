@@ -9,8 +9,7 @@ const MILLI: u128 = NEAR / 1_000;
 
 fn ceiling(swap: &str) -> Value {
     json!({
-        "max_per_tx": (NEAR).to_string(),
-        "daily_total": (4 * NEAR).to_string(),
+        "tokens": [{ "token": "near", "max_per_tx": (NEAR).to_string(), "daily_total": (4 * NEAR).to_string() }],
         "max_risk_class": "local_upgradeable",
         "allowed_targets": [swap],
         "agent_allowance": (2 * NEAR).to_string()
@@ -19,8 +18,7 @@ fn ceiling(swap: &str) -> Value {
 
 fn policy(swap: &str, daily_cap: u128) -> Value {
     json!({
-        "max_per_tx": (500 * MILLI).to_string(),
-        "daily_cap": daily_cap.to_string(),
+        "limits": [{ "token": "near", "max_per_tx": (500 * MILLI).to_string(), "daily_cap": daily_cap.to_string() }],
         "max_slippage_bps": 50,
         "allowed_targets": [swap],
         "max_risk_class": "local_upgradeable"
@@ -90,8 +88,8 @@ async fn honest_agent_stale_class_reclassification_and_failed_settlement() -> an
     assert_eq!(ex["amount"], json!((500 * MILLI).to_string()));
     assert_eq!(ex["class_at_record"], "immutable_verified");
     let st = agent_state(&env, &agent).await?;
-    assert_eq!(st["budget"]["spent_today"], json!((500 * MILLI).to_string()));
-    assert_eq!(st["budget"]["reserved"], json!("0"));
+    assert_eq!(st["budgets"][0]["spent_today"], json!((500 * MILLI).to_string()));
+    assert_eq!(st["budgets"][0]["reserved"], json!("0"));
 
     // Slippage beyond policy is refused by the adapter check.
     let s = env.agent_call(&agent, "spend", spend(&swap, 100 * MILLI, 90 * MILLI)).await?;
@@ -103,8 +101,8 @@ async fn honest_agent_stale_class_reclassification_and_failed_settlement() -> an
     let s = env.agent_call(&agent, "spend", spend(&swap, 100 * MILLI, 99_900 * MILLI / 1_000)).await?;
     assert_eq!(returned(&s), json!(false), "settlement reports failure: {}", s.line());
     let st = agent_state(&env, &agent).await?;
-    assert_eq!(st["budget"]["reserved"], json!("0"), "reservation released");
-    assert_eq!(st["budget"]["spent_today"], json!((500 * MILLI).to_string()), "nothing spent");
+    assert_eq!(st["budgets"][0]["reserved"], json!("0"), "reservation released");
+    assert_eq!(st["budgets"][0]["spent_today"], json!((500 * MILLI).to_string()), "nothing spent");
     assert_eq!(env.view("get_exposure", json!({ "target": swap })).await?["amount"], json!((500 * MILLI).to_string()));
     println!("target fails           -> reservation released, spent and exposure unchanged");
 
@@ -150,7 +148,7 @@ async fn parallel_spends_never_exceed_the_daily_cap() -> anyhow::Result<()> {
     let settled = sent.iter().filter(|s| returned(s) == json!(true)).count();
     let capped = sent.iter().filter(|s| reason(s) == "ARUNA_DAILY_CAP_EXCEEDED").count();
     let st = agent_state(&env, &agent).await?;
-    let spent: u128 = st["budget"]["spent_today"].as_str().unwrap().parse()?;
+    let spent: u128 = st["budgets"][0]["spent_today"].as_str().unwrap().parse()?;
     println!("10 parallel x 0.4 NEAR, cap 2 NEAR -> {settled} settled, {capped} refused at the cap, spent_today {spent}");
     assert!(spent <= cap, "spent {spent} exceeds cap {cap}");
     assert_eq!(settled as u128 * each, spent);

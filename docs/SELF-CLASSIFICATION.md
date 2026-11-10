@@ -27,7 +27,7 @@ Two vault versions, each published once as a global contract by hash:
 
 | Version | Code hash | File | Size | Publish fee |
 |---|---|---|---|---|
-| current | `4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam` | `contracts/vault/res/aruna_vault.wasm` | 236,478 bytes | 23.649 NEAR |
+| current | `4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam` | `contracts/vault/res/aruna_vault-v2.wasm` | 236,478 bytes | 23.649 NEAR |
 | first | `5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq` | `contracts/vault/res/aruna_vault-v1.wasm` | 191,619 bytes | 19.163 NEAR |
 
 Recompute either hash: `node fixtures/tools.mjs hash <file>`. The factory's
@@ -68,7 +68,7 @@ code hash and owner. The operator then added two agent keys; the vault added the
   transfers and its own keys — `promise_create`, `promise_then`, `promise_result`,
   `promise_batch_create`, `promise_batch_action_transfer`, `promise_batch_action_delete_key`,
   `promise_batch_action_add_key_with_function_call` — and none of the six the classifier scans.
-  Check the file: `node packages/cli/dist/index.js imports contracts/vault/res/aruna_vault.wasm`
+  Check the file: `node packages/cli/dist/index.js imports contracts/vault/res/aruna_vault-v2.wasm`
   (expected `"scannedPresent": []`).
 
 ## What this does and does not claim
