@@ -1,7 +1,7 @@
 {
   "name": "@aruna/sdk",
   "version": "0.1.0",
-  "description": "Typed client for Aruna. v0 ships the keyless Classifier: can this NEAR contract still change?",
+  "description": "Typed client for Aruna. v0 ships the keyless Classifier (can this NEAR contract still change?), a read-only vault view and the refusal reason codes.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -25,6 +25,7 @@
     "@aruna/rpc": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
     "typescript": "5.9.3",
     "vitest": "5.1.0"
   }

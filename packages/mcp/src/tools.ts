@@ -1,12 +1,41 @@
-// Group A of docs/MCP.md: keyless, vault-free. Handlers only shape arguments and results; the logic
-// lives in @aruna/sdk.
+// Group A of docs/MCP.md (keyless, vault-free) and the one keyless read of Group B, aruna_read_vault.
+// Handlers only shape arguments and results; the logic lives in @aruna/sdk.
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Classifier, type Network, type RiskClass } from "@aruna/sdk";
+import { Classifier, readVault, type Network, type RiskClass, type VaultView } from "@aruna/sdk";
 import { z } from "zod";
 
 const CLASSES = ["immutable_verified", "local_upgradeable", "global_by_account", "unknown"] as const;
 
-export function registerTools(server: McpServer, make: (network: Network) => Classifier = (network) => new Classifier({ network })) {
+type ReadVault = (vault: string, network: Network) => Promise<VaultView>;
+
+const near = (yocto: string) => {
+  const v = BigInt(yocto);
+  return `${v / 10n ** 24n}.${(v % 10n ** 24n).toString().padStart(24, "0").slice(0, 4)} NEAR`;
+};
+
+/** A plain-text summary of a vault: who controls it, its limits, each agent, and what nobody can do. */
+export function describeVault(v: VaultView): string {
+  const lines = [`${v.vault}: owner ${v.owner}, operator ${v.operator ?? "none"}, full-access keys ${v.fullAccessKeys}.`];
+  if (v.ceiling) {
+    const c = v.ceiling;
+    lines.push(`Ceiling: max ${near(c.maxPerTx)} per transaction, ${near(c.dailyTotal)} a day across agents, targets up to ${c.maxRiskClass}: ${c.allowedTargets.join(", ")}.`);
+  }
+  for (const a of v.agents) {
+    const usage = a.usage ? `, spent today ${near(a.usage.spentToday)}, reserved ${near(a.usage.reserved)}` : "";
+    lines.push(`Agent ${a.label} (${a.publicKey}): ${a.status}${a.autoDisabled ? ", auto-disabled after repeated refusals" : ""}; max ${near(a.policy.maxPerTx)} per transaction, ${near(a.policy.dailyCap)} a day, targets up to ${a.policy.maxRiskClass}: ${a.policy.allowedTargets.join(", ")}${usage}.`);
+    lines.push(`  Cannot: ${a.cannot.join("; ")}.`);
+  }
+  if (v.exposure) lines.push(v.exposure.length ? `Exposure: ${v.exposure.map((e) => `${near(e.amount)} to ${e.target} (recorded as ${e.classAtRecord})`).join("; ")}.` : "Exposure: none recorded.");
+  if (v.unknownKeys.length) lines.push(`WARNING: keys the vault does not know as agents: ${v.unknownKeys.join(", ")}.`);
+  lines.push(`The operator cannot: ${v.operatorCannot.join("; ")}.`);
+  return lines.join("\n");
+}
+
+export function registerTools(
+  server: McpServer,
+  make: (network: Network) => Classifier = (network) => new Classifier({ network }),
+  read: ReadVault = (vault, network) => readVault(vault, { network }),
+) {
   const classifiers = new Map<Network, Classifier>();
   const classifierFor = (n: Network) => {
     let c = classifiers.get(n);
@@ -47,5 +76,28 @@ export function registerTools(server: McpServer, make: (network: Network) => Cla
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ class: cls }) => ({ content: [{ type: "text", text: `${cls}: ${Classifier.explain(cls as RiskClass)}` }] }),
+  );
+
+  server.registerTool(
+    "aruna_read_vault",
+    {
+      title: "What can this Aruna vault's agents do?",
+      description:
+        "Reads an Aruna vault's public state: owner, operator, the owner's ceiling, every agent with its policy, status and usage, the agent keys exactly as the network enforces them, what each agent and the operator cannot do, and settled exposure per target. Read-only and keyless: no account or agent key needed. It does not spend or simulate.",
+      inputSchema: {
+        vault_id: z.string().describe("NEAR account id of the vault, e.g. demo2.factory.arunafi.testnet"),
+        network: z.enum(["mainnet", "testnet"]).default("testnet").describe("Which network to read; v0 vaults are on testnet"),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ vault_id, network }) => {
+      try {
+        const v = await read(vault_id, network);
+        return { content: [{ type: "text", text: describeVault(v) }], structuredContent: v as unknown as Record<string, unknown> };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { isError: true, content: [{ type: "text", text: `Could not read vault ${vault_id} on ${network}: ${msg}. It may not be an Aruna vault.` }] };
+      }
+    },
   );
 }

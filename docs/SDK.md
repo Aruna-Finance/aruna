@@ -120,6 +120,10 @@ if (!r.ok) {
 Reason codes map one-to-one to the contract's `ARUNA_*` values. A test asserts the two
 sets are identical; let them drift and every integrator's error handling rots.
 
+In v0: `REASONS`, `AUTO_DISABLE_REASONS` and `parseReason("ARUNA_…")` (which throws on a value it
+does not know) are exported. `packages/sdk/test/reasons.test.ts` checks both lists against
+`contracts/common/src/reasons.rs` and the table in `CONTRACTS.md`.
+
 ## Staleness is handled here, not by the caller
 
 The vault refuses a spend when its cached class is older than the bound. The SDK

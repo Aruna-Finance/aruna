@@ -37,6 +37,12 @@ able to call them.
 | `aruna_budget` | — | balance, spent today, reserved, remaining |
 | `aruna_exposure` | — | exposure per target, each with its class |
 
+One read in this group needs no key, because a vault's state is public: `aruna_read_vault`
+(`vault_id`, optional `network`) returns the vault's owner, operator and ceiling, every agent with its
+policy, status, usage and key permissions as the network enforces them, what agents and the operator
+cannot do, and exposure per target. It is what `aruna_budget` and `aruna_exposure` will read for the
+calling agent's own vault, available to anyone. Shipped in v0, over `@aruna/sdk` `readVault`.
+
 `aruna_simulate` is a free view running the same checks without a transaction, so a
 refusal costs no gas. **Its result is not binding** — state can change before the
 transaction lands.
