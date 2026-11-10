@@ -94,6 +94,28 @@ importers:
         specifier: workspace:*
         version: link:../packages/rpc
 
+  packages/attestor:
+    dependencies:
+      '@aruna/classifier-core':
+        specifier: workspace:*
+        version: link:../classifier-core
+      '@aruna/rpc':
+        specifier: workspace:*
+        version: link:../rpc
+      near-api-js:
+        specifier: 7.4.0
+        version: 7.4.0
+    devDependencies:
+      '@types/node':
+        specifier: 22.20.5
+        version: 22.20.5
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.1.0
+        version: 5.1.0(@types/node@22.20.5)(vite@8.3.6(@types/node@22.20.5)(jiti@2.7.0))
+
   packages/classifier-core:
     devDependencies:
       typescript:

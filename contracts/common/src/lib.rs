@@ -2,12 +2,17 @@
 //! No promises here: the vault links this crate and must import no scanned host function.
 
 pub mod class;
+pub mod drift;
 pub mod events;
+pub mod params;
 pub mod reasons;
+pub mod token;
 
 pub use class::RiskClass;
+pub use drift::{CodeRef, DriftChannel, DriftReport, ReportState};
 pub use events::emit;
 pub use reasons::Reason;
+pub use token::TokenId;
 
 /// How old a vault's cached class may get before `spend` refuses with `ARUNA_CLASS_STALE`.
 /// Also the upper bound on how late a freeze reaches a vault the push missed (docs/ARCHITECTURE.md).
