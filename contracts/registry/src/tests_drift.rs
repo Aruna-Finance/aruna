@@ -203,27 +203,53 @@ fn the_same_attestor_cannot_dispute_itself() {
 }
 
 #[test]
-fn the_arbiter_upholding_verifies_the_report() {
+fn upholding_verifies_this_report_and_rejects_and_slashes_the_one_disputing_it() {
+    let mut r = setup();
+    let first = file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
+    let second = file(&mut r, &report(B, NOW - 40, 1, "AFTER"), 2);
+    ctx("owner.testnet", NOW + 1, 0);
+    r.rule(first, true);
+    assert_eq!(r.get_report(first).unwrap().state, ReportState::Verified);
+    assert_eq!(r.get_report(second).unwrap().state, ReportState::Rejected);
+    assert_eq!(r.get_attestor(acc(B)).unwrap().bond.0, 0);
+    assert_eq!(r.get_attestor(acc(A)).unwrap().bond.0, ATTESTOR_MIN_BOND);
+    assert!(r.get_class(acc(T)).unwrap().frozen, "the verified report stands");
+}
+
+#[test]
+fn rejecting_slashes_this_attestor_and_verifies_the_other_report() {
+    let mut r = setup();
+    let first = file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
+    let second = file(&mut r, &report(B, NOW - 40, 1, "AFTER"), 2);
+    ctx("owner.testnet", NOW + 1, 0);
+    r.rule(first, false);
+    assert_eq!(r.get_report(first).unwrap().state, ReportState::Rejected);
+    assert_eq!(r.get_report(second).unwrap().state, ReportState::Verified);
+    assert_eq!(r.get_attestor(acc(A)).unwrap().bond.0, 0);
+    assert!(get_logs().iter().any(|l| l.contains("\"slashed\"")));
+    assert!(r.get_class(acc(T)).unwrap().frozen, "the other report still stands: no unfreeze");
+}
+
+#[test]
+#[should_panic(expected = "ARUNA_NOT_DISPUTED")]
+fn the_other_report_cannot_be_ruled_on_again() {
+    let mut r = setup();
+    let first = file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
+    let second = file(&mut r, &report(B, NOW - 40, 1, "AFTER"), 2);
+    ctx("owner.testnet", NOW + 1, 0);
+    r.rule(first, true);
+    r.rule(second, true);
+}
+
+#[test]
+fn a_settled_dispute_no_longer_blocks_lifting_the_freeze() {
     let mut r = setup();
     let first = file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
     file(&mut r, &report(B, NOW - 40, 1, "AFTER"), 2);
     ctx("owner.testnet", NOW + 1, 0);
     r.rule(first, true);
-    assert_eq!(r.get_report(first).unwrap().state, ReportState::Verified);
-    assert!(r.get_class(acc(T)).unwrap().frozen);
-}
-
-#[test]
-fn the_arbiter_rejecting_slashes_the_bond_and_unfreezes() {
-    let mut r = setup();
-    let first = file(&mut r, &report(A, NOW - 100, 1, "AFTER"), 1);
-    file(&mut r, &report(B, NOW - 40, 1, "AFTER"), 2);
-    ctx("owner.testnet", NOW + 1, 0);
-    r.rule(first, false);
-    assert_eq!(r.get_report(first).unwrap().state, ReportState::Rejected);
-    assert_eq!(r.get_attestor(acc(A)).unwrap().bond.0, 0);
+    r.lift_freeze(acc(T));
     assert!(!r.get_class(acc(T)).unwrap().frozen);
-    assert!(get_logs().iter().any(|l| l.contains("\"slashed\"")));
 }
 
 #[test]

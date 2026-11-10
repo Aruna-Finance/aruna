@@ -13,7 +13,7 @@ mod views;
 
 pub use pricing::{Assumptions, Quote};
 
-use aruna_common::params::{CLAIM_REPORTING_BLOCKS, CONCENTRATION_BPS, K_X100, WAITING_PERIOD_BLOCKS};
+use aruna_common::params::{CLAIM_REPORTING_BLOCKS, CLAIM_TIMEOUT_BLOCKS, CONCENTRATION_BPS, K_X100, MAX_COVERAGE_WINDOW_BLOCKS, MIN_CLAIM_GAS_TGAS, WAITING_PERIOD_BLOCKS};
 use aruna_common::{emit, ReportState, RiskClass, TokenId};
 use near_sdk::json_types::U128;
 use near_sdk::serde::Deserialize;
@@ -74,6 +74,13 @@ pub struct Coverage {
     pub paid_out: U128,
     pub claims: Vec<ClaimRecord>,
     pub claim_in_flight: bool,
+    /// When the claim in flight started; a claim whose callbacks never arrive may be retried after
+    /// CLAIM_TIMEOUT_BLOCKS.
+    pub claim_started_at: u64,
+    /// Exposure up to this block has been paid for or was recorded before the purchase: the next
+    /// payout counts only what was recorded after it. Starts at the purchase block, moves to each paid
+    /// change's block, so one change is never paid twice (found in review).
+    pub paid_through_block: u64,
     /// Set once its remaining limit has left the book's totals (`release_expired`).
     #[serde(default)]
     pub released: bool,
@@ -232,6 +239,8 @@ impl Pool {
         require!(amount > 0, "ARUNA_ZERO_DEPOSIT");
         let mut b = self.book(token);
         let minted = if b.total_shares.0 == 0 || b.capital.0 == 0 { amount } else { mul_div(amount, b.total_shares.0, b.capital.0) };
+        // A deposit that rounds to no shares would be taken and credited to nobody.
+        require!(minted > 0, "ARUNA_DEPOSIT_TOO_SMALL");
         b.capital = U128(b.capital.0 + amount);
         b.total_shares = U128(b.total_shares.0 + minted);
         self.books.insert(token.clone(), b);
@@ -351,6 +360,14 @@ impl Pool {
         if vault.owner != buyer {
             return self.refuse_buy(&buyer, &token, paid, "only the vault's owner buys coverage");
         }
+        // Request fields are checked HERE, as refusals: a panic in this callback would strand the NEAR
+        // premium the buyer already sent.
+        if request.limit.0 == 0 || request.limit.0 > u128::MAX / 1_000_000 || request.payout_ratio_bps == 0 || request.payout_ratio_bps > 10_000 {
+            return self.refuse_buy(&buyer, &token, paid, "limit must be positive and the payout ratio within 1..=10000 bps");
+        }
+        if request.window_blocks <= WAITING_PERIOD_BLOCKS || request.window_blocks > MAX_COVERAGE_WINDOW_BLOCKS {
+            return self.refuse_buy(&buyer, &token, paid, "window must be longer than the waiting period and within the maximum window");
+        }
         let Some(Some(class)) = result::<Option<ClassView>>(1) else {
             return self.refuse_buy(&buyer, &token, paid, "target has no class record");
         };
@@ -373,10 +390,15 @@ impl Pool {
             return self.refuse_buy(&buyer, &token, paid, "target class is above the agent's max_risk_class");
         }
         let daily_cap = agent.policy.limits.iter().find(|l| l.token == token).map(|l| l.daily_cap.0).unwrap_or(0);
-        require!(request.window_blocks > WAITING_PERIOD_BLOCKS, "ARUNA_WINDOW_TOO_SHORT");
+        if daily_cap == 0 {
+            return self.refuse_buy(&buyer, &token, paid, "the agent has no daily cap in this token: nothing to cover");
+        }
         let Some(q) = pricing::quote(class.class, request.limit.0, request.payout_ratio_bps, request.window_blocks, daily_cap) else {
             return self.refuse_buy(&buyer, &token, paid, "class is not insurable");
         };
+        if q.premium.0 == 0 {
+            return self.refuse_buy(&buyer, &token, paid, "premium rounds to zero");
+        }
         if paid < q.premium.0 {
             return self.refuse_buy(&buyer, &token, paid, "premium attached is below the quote");
         }
@@ -418,6 +440,8 @@ impl Pool {
             paid_out: U128(0),
             claims: vec![],
             claim_in_flight: false,
+            claim_started_at: 0,
+            paid_through_block: now,
             released: false,
         };
         let mut b = book;
@@ -470,10 +494,15 @@ impl Pool {
     /// Anyone may start a claim; the payout always goes to the coverage's owner. Re-validated now, not
     /// at report time (plan R23).
     pub fn claim(&mut self, coverage_id: u32, report_id: u32) -> Promise {
+        // Anyone may call this, so it must not be possible to wedge a coverage by calling it with too
+        // little gas for its callbacks (found in review): require enough, and let a stuck claim expire.
+        require!(env::prepaid_gas() >= Gas::from_tgas(MIN_CLAIM_GAS_TGAS), "ARUNA_NOT_ENOUGH_GAS");
+        let now = env::block_height();
         let c = self.coverages.get_mut(coverage_id).unwrap_or_else(|| env::panic_str("ARUNA_UNKNOWN_COVERAGE"));
-        require!(!c.claim_in_flight, "ARUNA_CLAIM_IN_FLIGHT");
+        require!(!c.claim_in_flight || now >= c.claim_started_at + CLAIM_TIMEOUT_BLOCKS, "ARUNA_CLAIM_IN_FLIGHT");
         require!(!c.claims.iter().any(|k| k.report_id == report_id && k.outcome == "paid"), "ARUNA_ALREADY_PAID");
         c.claim_in_flight = true;
+        c.claim_started_at = now;
         let vault = c.vault.clone();
         let args = |v: serde_json::Value| v.to_string().into_bytes();
         Promise::new(self.registry.clone())
@@ -506,24 +535,31 @@ impl Pool {
         if at < c.waiting_period_ends {
             return reject(self, "change inside the waiting period");
         }
+        if at <= c.paid_through_block {
+            return reject(self, "change already covered by an earlier payout");
+        }
         if at > c.end_block {
             return reject(self, "change after the coverage ended");
         }
         let view = |m: &str, a: serde_json::Value| Promise::new(c.vault.clone()).function_call(m.to_string(), a.to_string().into_bytes(), NearToken::from_yoctonear(0), GAS_VIEW);
         PromiseOrValue::Promise(
             view("exposure_before", json!({ "agent": c.agent, "target": c.target, "token": c.token, "block": at }))
-                .and(view("exposure_before", json!({ "agent": c.agent, "target": c.target, "token": c.token, "block": c.start_block })))
+                .and(view("exposure_before", json!({ "agent": c.agent, "target": c.target, "token": c.token, "block": c.paid_through_block })))
                 .and(view("get_agent", json!({ "public_key": c.agent })))
-                .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CB_CLAIM).cb_claim_pay(coverage_id, report_id)),
+                .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CB_CLAIM).cb_claim_pay(coverage_id, report_id, at)),
         )
     }
 
     #[private]
-    pub fn cb_claim_pay(&mut self, coverage_id: u32, report_id: u32) -> U128 {
+    pub fn cb_claim_pay(&mut self, coverage_id: u32, report_id: u32, changed_at_block: u64) -> U128 {
         let c = self.coverages.get(coverage_id).cloned().unwrap();
-        // Only exposure recorded inside this coverage's window counts: before the change, and not before
-        // the purchase. Exposure from earlier was not priced (the reachable payout assumes at most
-        // daily_cap x days inside the window, D-55).
+        if c.claims.iter().any(|k| k.report_id == report_id && k.outcome == "paid") || changed_at_block <= c.paid_through_block {
+            self.finish_claim(coverage_id, report_id, 0, "change already covered by an earlier payout");
+            return U128(0);
+        }
+        // Only exposure recorded after `paid_through_block` (the purchase, or the last paid change) and
+        // before this change counts. Earlier exposure was never priced (the reachable payout assumes at
+        // most daily_cap x days inside the window, D-55) or was already paid.
         let (Some(until_change), Some(until_start)) = (result::<U128>(0), result::<U128>(1)) else {
             self.finish_claim(coverage_id, report_id, 0, "vault did not answer exposure_before");
             return U128(0);
@@ -558,9 +594,10 @@ impl Pool {
         }
         emit(
             "claim_paid",
-            json!({ "coverage": coverage_id, "report": report_id, "exposure_in_window": exposure, "exposure_before_change": until_change, "exposure_before_purchase": until_start, "payout_ratio_bps": c.payout_ratio_bps, "limit": c.limit, "paid_before": c.paid_out, "payout": U128(owed), "to": c.owner, "token": c.token }),
+            json!({ "coverage": coverage_id, "report": report_id, "exposure_in_window": exposure, "exposure_before_change": until_change, "exposure_through_last_paid_block": until_start, "payout_ratio_bps": c.payout_ratio_bps, "limit": c.limit, "paid_before": c.paid_out, "payout": U128(owed), "to": c.owner, "token": c.token }),
         );
         pay(&c.token, &c.owner, owed);
+        self.coverages.get_mut(coverage_id).unwrap().paid_through_block = changed_at_block;
         self.finish_claim(coverage_id, report_id, owed, "paid");
         U128(owed)
     }

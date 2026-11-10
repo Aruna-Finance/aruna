@@ -369,6 +369,27 @@ period, challenge window, lookback, heartbeat staleness, lockup, coverage) is a 
 because `changed_at_block` and exposure checkpoints are blocks. Pricing turns blocks into days with
 a declared `BLOCKS_PER_DAY` set low on purpose, so the price errs high.
 
+### D-61 — A dispute settles both reports, and the loser's bond is slashed
+The arbiter's ruling on one report of a dispute decides both: the winner is Verified, the loser
+Rejected and its attestor's bond goes to the pool's NEAR book (D-59). The target stays frozen,
+because a verified report stands either way; only `lift_freeze` ends the freeze. Ruling on one
+report only left the other Disputed forever, which blocked `lift_freeze` and, on a rejection,
+unfroze a target whose other report was still standing. *Refines D-22, D-59.*
+
+### D-62 — A change is paid once: exposure counts from the last paid change
+Each coverage keeps `paid_through_block`, the purchase block at first and then the block of each paid
+change. A payout counts only exposure recorded after it and before the claimed change, and a
+report whose change is at or before it is rejected. Without this, two agreeing reports for one
+change, or two claims for two changes, paid the same exposure again. *Refines D-55.*
+
+### D-63 — Purchase requests are refused, never panicked on, and bounded
+A panic in the purchase callback strands the NEAR premium already sent, so every bad request (zero
+or oversized limit, ratio outside 1..=10000 bps, window outside the waiting period and 30 days, an
+agent with no daily cap in the token, a premium that rounds to zero) is a refusal that returns it.
+Pricing saturates instead of overflowing. The window bound and the non-zero premium keep one buyer
+from locking a book's capital or its capacity for free. A claim needs 150 Tgas up front and a stuck
+one expires after 100 blocks, so nobody can wedge a coverage by claiming with too little gas.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

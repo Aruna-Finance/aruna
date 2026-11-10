@@ -176,6 +176,10 @@ fn allowed() -> PromiseResult {
 fn claim_stage1(p: &mut Pool, results: Vec<PromiseResult>) {
     claim_on(p, 0, results)
 }
+/// The change block the tests give each report: report 0 changed at NOW+200, report 1 at NOW+300.
+fn changed_of(report_id: u32) -> u64 {
+    NOW + 200 + 100 * report_id as u64
+}
 fn claim_on(p: &mut Pool, report_id: u32, results: Vec<PromiseResult>) {
     ctx("anyone.testnet", NOW + 500, 0, vec![]);
     let _ = p.claim(0, report_id);
@@ -223,7 +227,7 @@ fn pay_on(p: &mut Pool, report_id: u32, exposure: u128, loosened: u64) -> U128 {
 }
 fn pay_window(p: &mut Pool, report_id: u32, before_change: u128, before_purchase: u128, loosened: u64) -> U128 {
     ctx("pool.testnet", NOW + 501, 0, vec![ok(json!(U128(before_change))), ok(json!(U128(before_purchase))), agent_view(loosened)]);
-    p.cb_claim_pay(0, report_id)
+    p.cb_claim_pay(0, report_id, changed_of(report_id))
 }
 
 #[test]
@@ -318,4 +322,118 @@ fn expired_coverage_stops_holding_capacity() {
     assert_eq!(p.release_expired(vec![0, 0, 99]), 1, "once, and unknown ids are skipped");
     assert_eq!(p.get_book(TokenId::Near).total_limits.0, limits.0 - c.limit.0);
     assert!(p.get_coverage(0).unwrap().released);
+}
+
+// ---- found in review ----
+
+fn buy_with(window: u64, limit: u128, ratio: u16, cap: u128) -> (Pool, Option<String>) {
+    let mut p = pool_with_capital(10 * NEAR);
+    let mut req = request("t.testnet", limit);
+    req.window_blocks = window;
+    req.payout_ratio_bps = ratio;
+    let r = purchase_results("client.testnet", "local_upgradeable", "H1", true, cap, "local_upgradeable", json!("near"), 0);
+    buy(&mut p, req, TokenId::Near, NEAR, r);
+    let reason = refused_reason();
+    (p, reason)
+}
+
+#[test]
+fn bad_requests_are_refusals_that_return_the_premium_not_panics() {
+    // A panic in cb_buy would strand the NEAR the buyer already sent.
+    for (window, limit, ratio, cap, why) in [
+        (WAITING_PERIOD_BLOCKS, NEAR, 8_000, NEAR, "window must be longer"),
+        (aruna_common::params::MAX_COVERAGE_WINDOW_BLOCKS + 1, NEAR, 8_000, NEAR, "within the maximum window"),
+        (BLOCKS_PER_DAY, 0, 8_000, NEAR, "limit must be positive"),
+        (BLOCKS_PER_DAY, NEAR, 0, NEAR, "payout ratio"),
+        (BLOCKS_PER_DAY, NEAR, 10_001, NEAR, "payout ratio"),
+        (BLOCKS_PER_DAY, u128::MAX / 2, 8_000, NEAR, "limit must be positive"),
+        (BLOCKS_PER_DAY, NEAR, 8_000, 0, "no daily cap"),
+    ] {
+        let (p, reason) = buy_with(window, limit, ratio, cap);
+        assert!(reason.unwrap_or_default().contains(why), "{why}");
+        assert!(p.get_coverage(0).is_none());
+    }
+}
+
+#[test]
+fn an_agent_with_a_huge_daily_cap_prices_at_the_limit_instead_of_overflowing() {
+    let q = pricing::quote(RiskClass::LocalUpgradeable, 5 * NEAR, 10_000, 30 * BLOCKS_PER_DAY, u128::MAX / 2).unwrap();
+    assert_eq!(q.reachable_payout, U128(5 * NEAR));
+    let (p, reason) = buy_with(BLOCKS_PER_DAY, NEAR, 8_000, u128::MAX / 2);
+    assert_eq!(reason, None, "{:?}", get_logs());
+    assert!(p.get_coverage(0).is_some());
+}
+
+#[test]
+fn a_claim_needs_enough_gas_and_a_stuck_one_expires() {
+    let mut p = covered_pool();
+    ctx("anyone.testnet", NOW + 500, 0, vec![]);
+    let _ = p.claim(0, 0);
+    assert!(p.get_coverage(0).unwrap().claim_in_flight);
+    // Its callbacks never arrive. Within the timeout a second claim is refused...
+    let again = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut q = covered_pool_in_flight();
+        ctx("anyone.testnet", NOW + 500 + aruna_common::params::CLAIM_TIMEOUT_BLOCKS - 1, 0, vec![]);
+        let _ = q.claim(0, 0);
+    }));
+    assert!(again.is_err());
+    // ...after it, the claim may be retried.
+    ctx("anyone.testnet", NOW + 500 + aruna_common::params::CLAIM_TIMEOUT_BLOCKS, 0, vec![]);
+    let _ = p.claim(0, 0);
+}
+
+fn covered_pool_in_flight() -> Pool {
+    let mut p = covered_pool();
+    ctx("anyone.testnet", NOW + 500, 0, vec![]);
+    let _ = p.claim(0, 0);
+    p
+}
+
+#[test]
+#[should_panic(expected = "ARUNA_NOT_ENOUGH_GAS")]
+fn a_claim_with_too_little_gas_is_refused_up_front() {
+    let mut p = covered_pool();
+    testing_env!(VMContextBuilder::new()
+        .current_account_id(acc("pool.testnet"))
+        .predecessor_account_id(acc("anyone.testnet"))
+        .block_height(NOW + 500)
+        .prepaid_gas(near_sdk::Gas::from_tgas(60))
+        .build());
+    let _ = p.claim(0, 0);
+}
+
+#[test]
+fn one_change_is_never_paid_twice() {
+    // Two reports that agree (both Verified) for the same change: the second finds it already paid.
+    let mut p = covered_pool();
+    claim_on(&mut p, 0, vec![report("verified", "t.testnet", NOW + 200), allowed()]);
+    assert_eq!(pay_on(&mut p, 0, 2 * NEAR / 10, 0), U128(16 * NEAR / 100));
+    // Report 1 claims the same change one block later: nothing new was recorded after the first change.
+    claim_on(&mut p, 1, vec![report("verified", "t.testnet", NOW + 200), allowed()]);
+    assert_eq!(last_outcome(&p), "change already covered by an earlier payout");
+    let c = p.get_coverage(0).unwrap();
+    assert_eq!((c.paid_out, c.paid_through_block), (U128(16 * NEAR / 100), NOW + 200));
+}
+
+#[test]
+fn a_later_change_pays_only_exposure_recorded_after_the_earlier_payout() {
+    let mut p = covered_pool();
+    claim_on(&mut p, 0, vec![report("verified", "t.testnet", NOW + 200), allowed()]);
+    assert_eq!(pay_on(&mut p, 0, NEAR / 10, 0), U128(8 * NEAR / 100));
+    // A second change at NOW+300: 0.3 NEAR recorded before it in total, 0.1 of it through the first.
+    claim_on(&mut p, 1, vec![report("verified", "t.testnet", NOW + 300), allowed()]);
+    assert_eq!(pay_window(&mut p, 1, 3 * NEAR / 10, NEAR / 10, 0), U128(16 * NEAR / 100), "only the 0.2 NEAR after the first change, x 80%");
+}
+
+#[test]
+#[should_panic(expected = "ARUNA_DEPOSIT_TOO_SMALL")]
+fn a_deposit_that_rounds_to_no_shares_is_refused() {
+    // Capital has grown far past the shares (premiums, slashed bonds): a 1 yocto deposit mints none.
+    let mut p = pool_with_capital(0);
+    ctx("first.testnet", NOW, 1, vec![]);
+    p.deposit();
+    ctx("registry.testnet", NOW, 5 * NEAR, vec![]);
+    p.receive_slash(acc("attestor.testnet"));
+    ctx("victim.testnet", NOW, 1, vec![]);
+    p.deposit();
 }

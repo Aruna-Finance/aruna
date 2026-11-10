@@ -116,25 +116,26 @@ impl Registry {
         end.saturating_sub(from)
     }
 
-    /// Arbiter only, on a Disputed report. Upheld: the report is Verified and its claims may proceed.
-    /// Rejected: the report is Rejected, the target unfrozen, and the reporting attestor's bond sent to
-    /// the pool's NEAR book (plan KTD9).
+    /// Arbiter only, on a Disputed report; it settles BOTH reports of the dispute. `upheld`: this report
+    /// is Verified and the one disputing it Rejected. Not upheld: the reverse. The report ruled against
+    /// has its attestor's bond slashed to the pool's NEAR book (plan KTD9). The target stays frozen: a
+    /// verified report stands either way, and only `lift_freeze` ends it. (Review: ruling on one report
+    /// left the other Disputed forever, which blocked `lift_freeze` and, on a rejection, unfroze a
+    /// target whose other report was still standing.)
     pub fn rule(&mut self, report_id: u32, upheld: bool) {
         require!(env::predecessor_account_id() == self.arbiter, "ARUNA_NOT_ARBITER");
         let r = self.reports.get(report_id).cloned().unwrap_or_else(|| env::panic_str("ARUNA_UNKNOWN_REPORT"));
         require!(r.state == ReportState::Disputed, "ARUNA_NOT_DISPUTED");
-        if upheld {
-            self.report_mut(report_id).state = ReportState::Verified;
-            emit("report_ruled", json!({ "report": report_id, "upheld": true }));
-            return;
-        }
-        self.report_mut(report_id).state = ReportState::Rejected;
-        self.set_frozen(&r.report.target, false);
-        let attestor = r.report.attestor.clone();
+        let other = r.disputed_by.unwrap_or_else(|| env::panic_str("ARUNA_NOT_DISPUTED"));
+        require!(self.reports.get(other).is_some_and(|o| o.state == ReportState::Disputed), "ARUNA_NOT_DISPUTED");
+        let (winner, loser) = if upheld { (report_id, other) } else { (other, report_id) };
+        self.report_mut(winner).state = ReportState::Verified;
+        self.report_mut(loser).state = ReportState::Rejected;
+        let attestor = self.reports.get(loser).unwrap().report.attestor.clone();
         let a = self.attestors.get_mut(&attestor).unwrap();
         let bond = a.bond.0;
         a.bond = U128(0);
-        emit("report_ruled", json!({ "report": report_id, "upheld": false, "slashed": U128(bond), "attestor": attestor }));
+        emit("report_ruled", json!({ "winner": winner, "loser": loser, "slashed": U128(bond), "attestor": attestor }));
         if bond > 0 {
             let pool = self.pool.clone().unwrap_or_else(|| env::panic_str("ARUNA_NO_POOL"));
             Promise::new(pool).function_call("receive_slash".to_string(), json!({ "attestor": attestor }).to_string().into_bytes(), NearToken::from_yoctonear(bond), GAS_SLASH).detach();
