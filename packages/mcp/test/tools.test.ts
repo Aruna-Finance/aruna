@@ -18,8 +18,9 @@ const VAULT: VaultView = {
   vault: "v.factory.testnet",
   owner: "client.testnet",
   operator: "company.testnet",
-  ceiling: { maxPerTx: "1000000000000000000000000", dailyTotal: "3000000000000000000000000", maxRiskClass: "local_upgradeable", allowedTargets: ["swap.testnet"], agentAllowance: "1" },
-  exposure: [{ target: "swap.testnet", amount: "200000000000000000000000", classAtRecord: "local_upgradeable" }],
+  shape: "per-token",
+  ceiling: { tokens: [{ token: "near", maxPerTx: "1000000000000000000000000", dailyTotal: "3000000000000000000000000" }, { token: "usdc.testnet", maxPerTx: "10000000", dailyTotal: "40000000" }], maxRiskClass: "local_upgradeable", allowedTargets: ["swap.testnet"], agentAllowance: "1" },
+  exposure: [{ target: "swap.testnet", token: "near", amount: "200000000000000000000000", classAtRecord: "local_upgradeable" }, { target: "swap.testnet", token: "usdc.testnet", amount: "4000000", classAtRecord: "local_upgradeable" }],
   fullAccessKeys: 0,
   agents: [
     {
@@ -27,8 +28,10 @@ const VAULT: VaultView = {
       label: "injected",
       status: "Paused",
       autoDisabled: true,
-      policy: { maxPerTx: "200000000000000000000000", dailyCap: "1000000000000000000000000", maxSlippageBps: 100, allowedTargets: ["swap.testnet"], maxRiskClass: "local_upgradeable" },
-      usage: { spentToday: "0", reserved: "0" },
+      policy: { limits: [{ token: "near", maxPerTx: "200000000000000000000000", dailyCap: "1000000000000000000000000" }], maxSlippageBps: 100, allowedTargets: ["swap.testnet"], maxRiskClass: "local_upgradeable" },
+      policyVersion: 1,
+      lastLoosenedAt: 0,
+      usage: [{ token: "near", spentToday: "0", reserved: "0" }],
       key: { receiver: "v.factory.testnet", methods: ["spend", "refresh_class"], allowance: "1" },
       cannot: ["call any method other than spend, refresh_class (MethodNameMismatch)"],
     },
@@ -62,7 +65,8 @@ describe("MCP tools", () => {
     expect(text).toMatch(/full-access keys 0/);
     expect(text).toMatch(/Agent injected .*Paused, auto-disabled/);
     expect(text).toMatch(/max 0\.2000 NEAR per transaction/);
-    expect(text).toMatch(/Exposure: 0\.2000 NEAR to swap\.testnet \(recorded as local_upgradeable\)/);
+    expect(text).toMatch(/Exposure: 0\.2000 NEAR to swap\.testnet \(recorded as local_upgradeable\); 4000000 usdc\.testnet units to swap\.testnet/);
+    expect(text).toMatch(/usdc\.testnet: max 10000000 usdc\.testnet units per transaction/);
     expect((r.structuredContent as unknown as VaultView).agents[0].autoDisabled).toBe(true);
   });
 
