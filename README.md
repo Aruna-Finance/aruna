@@ -31,7 +31,7 @@ pnpm -r test
 ```
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
-skipped), `cli` (8), `sdk` (5), `mcp` (4) and `apps/web` (23).
+skipped), `cli` (8), `sdk` (5), `mcp` (4) and `apps/web` (57).
 
 ### 2. Classify any NEAR contract
 
@@ -86,6 +86,15 @@ Open `http://localhost:4173`, click `fx-guser.arunafi.testnet`. Expected: class
 `global_by_account` and a side-by-side table: `view_account.code_hash` marked wrong, `view_code.hash`
 marked as the code that runs. The tab reads public RPC directly — no backend, no wallet. Switch
 the selector to mainnet and type `wrap.near` for a mainnet read.
+
+### 5b. The console and the public agent page
+
+With the static host from step 5 still running, open `http://localhost:4173/console/lookup/`. It reads
+`demo2.factory.arunafi.testnet` live through `@aruna/sdk` `readVault`, with no login. Expected: owner
+`demo-client.arunafi.testnet`, operator `demo-company.arunafi.testnet`, `0` full-access keys, and a list
+of agents. Click an agent. Expected: a page listing what its key cannot do, its limits and usage, and a
+`curl` for `view_access_key_list` whose output you can compare by hand. The other console screens
+(`/console/dashboard/`, `/console/coverage/`, `/console/claims/`) run on mock data until the contracts are wired in.
 
 ### 6. Ask from an agent (MCP)
 

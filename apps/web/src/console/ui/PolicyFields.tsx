@@ -5,6 +5,7 @@ import { CLASS_RANK, type Policy } from "../data/vault";
 import { CLASS_INFO, CLASS_ORDER } from "../classInfo";
 import { ClassTag } from "./ClassTag";
 import { NumberField } from "./Field";
+import { TokenIcon } from "./Token";
 
 /** A policy as the forms edit it: slippage in percent, targets as a plain list. */
 export interface PolicyDraft {
@@ -40,8 +41,8 @@ export function toPolicy(d: PolicyDraft, classOf: (t: string) => RiskClass | und
 export function LimitFields({ d, set }: { d: PolicyDraft; set: (d: PolicyDraft) => void }) {
   return (
     <div className="grid gap-4 sm:grid-cols-3">
-      <NumberField label="Max per transaction" suffix="USDC" min={1} value={d.maxTx} onChange={(v) => set({ ...d, maxTx: v })} />
-      <NumberField label="Daily cap" suffix="USDC" min={1} value={d.cap} onChange={(v) => set({ ...d, cap: v })} />
+      <NumberField label="Max per transaction" suffix={<TokenIcon t="USDC" />} min={1} value={d.maxTx} onChange={(v) => set({ ...d, maxTx: v })} />
+      <NumberField label="Daily cap" suffix={<TokenIcon t="USDC" />} min={1} value={d.cap} onChange={(v) => set({ ...d, cap: v })} />
       <NumberField
         label="Max slippage"
         suffix="%"

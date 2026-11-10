@@ -201,8 +201,8 @@ One `pnpm dev` in `apps/web` serves the landing and the console; no second port.
 
 Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 
-- [ ] Look up an agent by vault, label or public key
-- [ ] Public agent page: what the agent **cannot** do and who enforces it; owner and operator limits; limits and usage today; exposure by class; verify commands. One `view_access_key_list` call backs most of it
+- [x] Look up an agent by vault, label or public key
+- [x] Public agent page: what the agent **cannot** do and who enforces it; owner and operator limits; limits and usage today; exposure by class; verify commands. One `view_access_key_list` call backs most of it
 - [ ] Refusals shown as outcomes with `ARUNA_*` reason codes
 - [x] Targets table (list): class, certainty, premium effect, last recorded, freshness, evidence reachable per row. Data port `TargetsReader` with a mock adapter (`src/console/data`), `MAX_CLASS_AGE_BLOCKS = 7200` is the prototype's assumption
 - [x] Target detail with the four drift channels and stored evidence (`/console/targets/detail/?id=`)
@@ -231,7 +231,7 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 
 ## F7 - Developer and demo · `ui/f7-developer-demo`
 
-- [ ] MCP/SDK reference: keyless tools, vault tools, reason-code table matching the contract set, what is deliberately left out
+- [x] MCP/SDK reference: keyless tools, vault tools, reason-code table matching the contract set, what is deliberately left out
 - [ ] Playground: `aruna_simulate` against an agent, and the injected-agent run with refusals and auto-disable
 - [ ] Guided demo (ten steps) wired to real testnet runs where possible; any simulated step is labelled
 
@@ -296,3 +296,6 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 | 2026-11-10 | F5 | Removed the "Testnet only, with assumed numbers" banner from Coverage and Buy (user request). The assumptions stay labelled where they are used |
 | 2026-11-10 | F4 | Claims: list (`/console/claims/`) and report detail (`/console/claims/detail/?id=`), readable by every role. Mock store `claims-mock.ts` has an empty seed as in the prototype; a "Simulate a drift report" panel (mock only, stands in for the attestor console in F6) opens a report on a target, with one claim per covered policy. Timeline, payout formula, the five conditions, skip challenge window, conflicting report and arbiter ruling follow the prototype. Deviation: "approved" is folded into "paid" (no separate approved state). `coverageStore` gained `book()` so claims can read every policy |
 | 2026-11-10 | F4 | Target detail (`/console/targets/detail/?id=`): how the class was reached, why hash monitors miss a global target (lab table), check-it-yourself curl blocks, stored evidence, the four drift channels and the client agents on the target. Target ids in the Targets table now link to it. Deviations: "how reached" and channel states are derived from the stored evidence and the frozen flag, because the record carries no step log; channels that do not apply to a code reference show "not applicable"; no Refresh button, since the mock cache is never stale. `BASIS` moved to `classInfo.ts`, `Freshness` to `ui/Freshness.tsx`. Targets now has its own route folder
+| 2026-11-10 | F4 | Look up and public agent page, read LIVE from testnet through `@aruna/sdk` `readVault` (new workspace dependency of `apps/web`; build `@aruna/sdk` before the web build). Routes `/console/lookup/?vault=` and `/console/lookup/agent/?vault=&key=`; default vault `demo2.factory.arunafi.testnet`, checked read-only (owner, operator, 2 agents, 0 full-access keys). Failed reads show as an ordinary outcome. Amounts are yoctoNEAR shown as NEAR with integers only (`yoctoToNear`, tested). Deviations: lookup takes a vault account only (no label or key search); the page omits recent refusals, coverage and exposure-by-class, because `readVault` does not return them; token unit is NEAR, not the prototype's USDC
+| 2026-11-10 | F7 | MCP and SDK reference at `/console/developers/`: keyless tools (with `aruna_read_vault`), vault tools, refusal reasons with the auto-disable column, what is deliberately left out, and the two examples. Static, copied from `docs/MCP.md`. `developers.test.ts` asserts the reasons table equals `@aruna/sdk` `REASONS` and `AUTO_DISABLE_REASONS`. Playground and guided demo are not built; they need `aruna_simulate` against a real agent
+| 2026-11-10 | F5 | Token marks: the USDC and NEAR logos from `public/images/` replace the ticker text in form inputs only (`NumberField` suffix, via `ui/Token.tsx`). Amounts shown elsewhere stay as text on request. `NumberField.suffix` now takes a node. The `alt` text keeps the ticker

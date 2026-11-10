@@ -22,6 +22,7 @@ import { Panel } from "../ui/Panel";
 import { ClassPicker, draftFrom, LimitFields, TargetPicker, toPolicy, type PolicyDraft } from "../ui/PolicyFields";
 import { StatusChip } from "../ui/StatusChip";
 import { Tabs } from "../ui/Tabs";
+import { TokenIcon } from "../ui/Token";
 
 type Tab = "overview" | "policy" | "activity" | "funding" | "coverage" | "access";
 const TABS: { id: Tab; label: string }[] = [
@@ -296,7 +297,7 @@ function FundingTab({ a }: { a: AgentRecord }) {
         <p className="-mt-2 mb-5 text-sm text-muted">The vault holds the funds. The agent holds none.</p>
         <div className="grid gap-5">
           <div className="grid gap-3">
-            <NumberField label="Deposit" suffix="USDC" value={dep} onChange={setDep} />
+            <NumberField label="Deposit" suffix={<TokenIcon t="USDC" />} value={dep} onChange={setDep} />
             <div>
               <Button
                 type="button"
@@ -320,7 +321,7 @@ function FundingTab({ a }: { a: AgentRecord }) {
             <div className="grid gap-3">
               <NumberField
                 label={`Withdraw to ${vault.owner}`}
-                suffix="USDC"
+                suffix={<TokenIcon t="USDC" />}
                 value={wd}
                 onChange={setWd}
                 hint="Only the owner can do this, in any state, and only to the owner's account."
@@ -352,7 +353,7 @@ function FundingTab({ a }: { a: AgentRecord }) {
         <div className="grid gap-3">
           <NumberField
             label="New allowance"
-            suffix="NEAR"
+            suffix={<TokenIcon t="NEAR" />}
             step={0.01}
             value={gas}
             onChange={setGas}

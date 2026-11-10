@@ -16,6 +16,7 @@ import { NumberField, TextField } from "../ui/Field";
 import { Panel } from "../ui/Panel";
 import { ClassPicker, LimitFields, TargetPicker, toPolicy, type PolicyDraft } from "../ui/PolicyFields";
 import { agentHref } from "../ui/AgentsTable";
+import { TokenIcon } from "../ui/Token";
 
 const STEPS = ["Identity", "Policy", "Targets", "Funding", "Review"] as const;
 const ID_RULE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -210,14 +211,14 @@ export function AgentWizard() {
             <div className="grid gap-6 sm:grid-cols-2">
               <NumberField
                 label="Deposit into the vault"
-                suffix="USDC"
+                suffix={<TokenIcon t="USDC" />}
                 value={deposit}
                 onChange={setDeposit}
                 hint="Restricted keys cannot attach the 1 yoctoNEAR that NEP-141 requires, so the vault holds the funds."
               />
               <NumberField
                 label="Gas allowance on the key"
-                suffix="NEAR"
+                suffix={<TokenIcon t="NEAR" />}
                 step={0.01}
                 value={gas}
                 onChange={setGas}

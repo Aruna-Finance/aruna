@@ -15,6 +15,7 @@ import { ClassTag } from "../ui/ClassTag";
 import { NumberField } from "../ui/Field";
 import { NotCovered } from "../ui/CoverageNotes";
 import { Panel } from "../ui/Panel";
+import { TokenIcon } from "../ui/Token";
 
 export function CoverageBuy() {
   const { vault, isOperator, ask, run } = useActions();
@@ -206,7 +207,7 @@ export function CoverageBuy() {
               />
               <p className="mt-1.5 text-sm">{cls ? <ClassTag c={cls} /> : <span className="text-muted">Loading</span>}</p>
             </div>
-            <NumberField label="Coverage limit" suffix="USDC" min={1} value={limit} onChange={setLimit} />
+            <NumberField label="Coverage limit" suffix={<TokenIcon t="USDC" />} min={1} value={limit} onChange={setLimit} />
             <NumberField label="Duration" suffix="days" min={1} value={period} onChange={setPeriod} />
             <NumberField
               label="Payout ratio"
