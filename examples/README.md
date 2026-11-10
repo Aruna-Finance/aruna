@@ -8,8 +8,8 @@ only. Node ≥ 22.18 runs the `.ts` files directly.
 | Script | Signs as | Does |
 |---|---|---|
 | `add-agents.ts` | the operator, `demo-company` | adds agents `honest` and `injected`, same policy |
-| `honest-agent.ts` | the vault, with the `honest` key | refreshes the target's class, swaps 0.1 NEAR |
-| `injected-agent.ts` | the vault, with the `injected` key | follows a poisoned tool result until auto-disabled |
+| `honest-agent.ts` | the vault, with the `honest` key | reads its budget, simulates (vault v4), swaps 0.1 NEAR, through `@aruna/sdk/vault` |
+| `injected-agent.ts` | the vault, with the `injected` key | follows a poisoned tool result until auto-disabled, through `@aruna/sdk/vault` |
 | `resume-agent.ts` | the owner, `demo-client` | resumes an agent; the operator cannot |
 
 The policy both agents get: `max_per_tx` 0.2 NEAR, `daily_cap` 1 NEAR, `max_slippage_bps` 100,
