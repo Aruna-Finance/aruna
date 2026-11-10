@@ -219,7 +219,10 @@ fn pay_stage(p: &mut Pool, exposure: u128, loosened: u64) -> U128 {
     pay_on(p, 0, exposure, loosened)
 }
 fn pay_on(p: &mut Pool, report_id: u32, exposure: u128, loosened: u64) -> U128 {
-    ctx("pool.testnet", NOW + 501, 0, vec![ok(json!(U128(exposure))), agent_view(loosened)]);
+    pay_window(p, report_id, exposure, 0, loosened)
+}
+fn pay_window(p: &mut Pool, report_id: u32, before_change: u128, before_purchase: u128, loosened: u64) -> U128 {
+    ctx("pool.testnet", NOW + 501, 0, vec![ok(json!(U128(before_change))), ok(json!(U128(before_purchase))), agent_view(loosened)]);
     p.cb_claim_pay(0, report_id)
 }
 
@@ -232,7 +235,15 @@ fn payout_is_exposure_before_the_change_times_the_ratio() {
     assert_eq!(pay_stage(&mut p, 3 * NEAR, 0), U128(24 * NEAR / 10));
     assert_eq!(last_outcome(&p), "paid");
     assert_eq!(p.get_book(TokenId::Near).capital.0, before - 24 * NEAR / 10);
-    assert!(get_logs().iter().any(|l| l.contains("claim_paid") && l.contains("\"exposure_before\"")));
+    assert!(get_logs().iter().any(|l| l.contains("claim_paid") && l.contains("\"exposure_in_window\"")));
+}
+
+#[test]
+fn exposure_recorded_before_the_purchase_does_not_count() {
+    // Found on testnet: the same agent had swapped 0.1 NEAR before this coverage was bought.
+    let mut p = covered_pool();
+    claim_stage1(&mut p, vec![report("verified", "t.testnet", NOW + 200), allowed()]);
+    assert_eq!(pay_window(&mut p, 0, 2 * NEAR / 10, NEAR / 10, 0), U128(8 * NEAR / 100), "only the 0.1 NEAR inside the window, x 80%");
 }
 
 #[test]

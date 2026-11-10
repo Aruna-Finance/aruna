@@ -480,6 +480,7 @@ impl Pool {
         let view = |m: &str, a: serde_json::Value| Promise::new(c.vault.clone()).function_call(m.to_string(), a.to_string().into_bytes(), NearToken::from_yoctonear(0), GAS_VIEW);
         PromiseOrValue::Promise(
             view("exposure_before", json!({ "agent": c.agent, "target": c.target, "token": c.token, "block": at }))
+                .and(view("exposure_before", json!({ "agent": c.agent, "target": c.target, "token": c.token, "block": c.start_block })))
                 .and(view("get_agent", json!({ "public_key": c.agent })))
                 .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CB_CLAIM).cb_claim_pay(coverage_id, report_id)),
         )
@@ -488,11 +489,15 @@ impl Pool {
     #[private]
     pub fn cb_claim_pay(&mut self, coverage_id: u32, report_id: u32) -> U128 {
         let c = self.coverages.get(coverage_id).cloned().unwrap();
-        let Some(exposure) = result::<U128>(0) else {
+        // Only exposure recorded inside this coverage's window counts: before the change, and not before
+        // the purchase. Exposure from earlier was not priced (the reachable payout assumes at most
+        // daily_cap x days inside the window, D-55).
+        let (Some(until_change), Some(until_start)) = (result::<U128>(0), result::<U128>(1)) else {
             self.finish_claim(coverage_id, report_id, 0, "vault did not answer exposure_before");
             return U128(0);
         };
-        let Some(Some(agent)) = result::<Option<AgentView>>(1) else {
+        let exposure = U128(until_change.0.saturating_sub(until_start.0));
+        let Some(Some(agent)) = result::<Option<AgentView>>(2) else {
             self.finish_claim(coverage_id, report_id, 0, "vault did not answer get_agent");
             return U128(0);
         };
@@ -521,7 +526,7 @@ impl Pool {
         }
         emit(
             "claim_paid",
-            json!({ "coverage": coverage_id, "report": report_id, "exposure_before": exposure, "payout_ratio_bps": c.payout_ratio_bps, "limit": c.limit, "paid_before": c.paid_out, "payout": U128(owed), "to": c.owner, "token": c.token }),
+            json!({ "coverage": coverage_id, "report": report_id, "exposure_in_window": exposure, "exposure_before_change": until_change, "exposure_before_purchase": until_start, "payout_ratio_bps": c.payout_ratio_bps, "limit": c.limit, "paid_before": c.paid_out, "payout": U128(owed), "to": c.owner, "token": c.token }),
         );
         pay(&c.token, &c.owner, owed);
         self.finish_claim(coverage_id, report_id, owed, "paid");

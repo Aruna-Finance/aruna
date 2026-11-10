@@ -309,6 +309,63 @@ at a block near `classified_at_block` and compare; a later read differs in `chec
 state that moved, so the hash proves what was read, not that it is still true. Written by
 `node fixtures/tools.mjs class-args <account>`, which uses `@aruna/classifier-core` and nothing else.
 
+### D-54 — Coverage is per token, with no price conversion
+Coverage, premium, underwriter capital, payout and recorded exposure are always in the same token:
+NEAR, or one NEP-141 token the owner's ceiling lists. The pool keeps one book per token, and `k`
+and concentration apply per book. Paying a token claim from NEAR exposure would need a price
+oracle, a third trust assumption. Ceilings and policies therefore carry limits per token. On
+testnet the token is Aruna's own test USDC, which has no value. From
+`docs/plans/2026-11-10-2106-feat-coverage-loop-testnet-plan.md`.
+
+### D-55 — Coverage is per target, priced through the agent's daily cap
+One coverage names one agent, one target and one token. Its price depends on the target's class,
+the sum insured `C`, the payout ratio, the window, and the agent's `daily_cap`, through the most it
+can pay: `min(daily_cap × days × ratio, C)`, where `days` is the number of UTC days the window can
+touch. `max_per_tx` is not an input (ten small spends reach the same daily total) and
+`max_risk_class` only gates the purchase, since the target's class is already known. A tighter cap
+lowers the price only while `daily_cap × days × ratio < C`. A payout counts only exposure recorded
+inside the coverage's own window, after purchase and before `changed_at_block`; exposure from before
+the purchase was never priced (found on testnet, where the same agent had swapped before buying).
+Per-agent coverage across all of an
+agent's targets, where `max_risk_class` would become a price input, is deferred.
+
+### D-56 — A policy loosened after purchase voids the claim
+Coverage records the policy version and the daily cap it was priced on. The vault records the
+block of every loosening. A claim on coverage bought before that block is rejected, even if the
+policy was tightened back later. Repricing after the fact would need the pool to charge the owner
+more; rejecting is checkable and closes buy-tight-then-loosen.
+
+### D-57 — The attestor infers the channel from state, and claims the earliest block
+The four channels of D-13 are told apart by what changed between two observations, not by reading
+transactions: a changed local code hash is `deploy_contract`; a ref that moved is
+`use_global_contract`; an unchanged global-by-account ref whose executed code changed is
+`deploy_global_contract`; anything else is `resolved_code`. `changed_at_block` is the first block
+running the new code, found by bisecting historical `view_code` between the two observations; when
+the RPC cannot serve that history, it is the block after the last unchanged observation. Either way
+exposure recorded after the change never counts toward a payout. Detection lag is the polling
+interval, and a report filed later than the lookback bound is refused (seen on testnet:
+`ARUNA_OUTSIDE_LOOKBACK`). *Refines D-13.*
+
+### D-58 — An attestor signs one canonical encoding, fixed by a golden vector
+The signed bytes are a domain prefix followed by the report's borsh encoding, covering every
+field. The registry verifies them with `env::ed25519_verify`; `fixtures/golden/drift-report.json`
+is asserted by `contracts/common`, `contracts/registry` and `packages/attestor`.
+
+### D-59 — A report freezes at once; freezes reach every vault; a slashed bond is pool capital
+An accepted report freezes the target before its challenge window closes, so agents stop spending
+into a changed target. The cost: with one attestor, one party can freeze any target at any time,
+bounded only by its bond and the arbiter. The freeze is pushed in batches to every vault the
+factory registered (the registry does not know vault ceilings); a vault ignores a target outside
+its ceiling, and a vault the push misses learns at its next `refresh_class`. A bond the arbiter
+slashes becomes capital in the pool's NEAR book.
+
+### D-60 — The coverage stack is new, and chain time is block height
+Testnet runs a second stack (registry v2, factory, pool, vault v3) next to the v0 stack, which
+keeps working unchanged: the deployed factory fixes its registry at init. Every window (waiting
+period, challenge window, lookback, heartbeat staleness, lockup, coverage) is a block count,
+because `changed_at_block` and exposure checkpoints are blocks. Pricing turns blocks into days with
+a declared `BLOCKS_PER_DAY` set low on purpose, so the price errs high.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to
