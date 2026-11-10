@@ -27,8 +27,9 @@ Two vault versions, each published once as a global contract by hash:
 
 | Version | Code hash | File | Size | Publish fee |
 |---|---|---|---|---|
-| current | `4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam` | `contracts/vault/res/aruna_vault-v2.wasm` | 236,478 bytes | 23.649 NEAR |
-| first | `5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq` | `contracts/vault/res/aruna_vault-v1.wasm` | 191,619 bytes | 19.163 NEAR |
+| v3, coverage stack | `2NvTPrL33u6SXVmdEDN2i8iYp76eMf9kPFJK7zGscmSH` | `contracts/vault/res/aruna_vault.wasm` | 285,648 bytes | 28.567 NEAR |
+| v2 | `4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam` | `contracts/vault/res/aruna_vault-v2.wasm` | 236,478 bytes | 23.649 NEAR |
+| v1 | `5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq` | `contracts/vault/res/aruna_vault-v1.wasm` | 191,619 bytes | 19.163 NEAR |
 
 Recompute either hash: `node fixtures/tools.mjs hash <file>`. The factory's
 `set_vault_code_hash` moved new vaults to the current version (event `vault_version_set`); the first
@@ -85,3 +86,39 @@ The same property is proven on a local sandbox, with the agent-key refusals:
 **The first vault predates the fixes in `docs/AUDIT-v0.md`** (H1, M1, M2, L2). Vaults are
 immutable, so it keeps them; it holds no real value. `demo2` runs the current version, which includes
 them, and is the vault the agent examples use.
+
+## Vault v3, on the coverage stack (11 November 2026)
+
+`demo3.factory2.arunafi.testnet` runs vault v3: limits per token, the `ft_swap` adapter, exposure
+checkpoints and freezes (`docs/CONTRACTS.md`). It was created by `factory2.arunafi.testnet`, which
+registers vaults with `registry2.arunafi.testnet` (`scripts/testnet-coverage-setup.sh`). Same check:
+
+```bash
+node packages/cli/dist/index.js classify demo3.factory2.arunafi.testnet --network testnet
+```
+
+Expected `"class": "immutable_verified"` and `"upgradeImports": []`; the wasm passes the same import
+gate (`node packages/cli/dist/index.js imports contracts/vault/res/aruna_vault.wasm` shows
+`"scannedPresent": []`). As read on 11 November 2026, with the demo agent's function-call key:
+
+```json
+{
+  "class": "immutable_verified",
+  "evidence": {
+    "accountId": "demo3.factory2.arunafi.testnet",
+    "checkedAtBlock": 277105004,
+    "codeRef": {
+      "kind": "global_hash",
+      "globalHash": "2NvTPrL33u6SXVmdEDN2i8iYp76eMf9kPFJK7zGscmSH"
+    },
+    "fullAccessKeyCount": 0,
+    "functionCallKeyCount": 1,
+    "monitoredCodeHash": "11111111111111111111111111111111",
+    "resolvedCodeHash": "2NvTPrL33u6SXVmdEDN2i8iYp76eMf9kPFJK7zGscmSH",
+    "upgradeImports": [],
+    "mutabilityBasis": "no_detected_path",
+    "wasmParsed": true
+  }
+}
+```
+

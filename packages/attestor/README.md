@@ -16,9 +16,11 @@ true (`docs/ATTESTOR.md`, `docs/DECISIONS.md` D-22, D-23).
   transactions: a changed local code hash is `deploy_contract`; a ref that moved is
   `use_global_contract`; an unchanged global-by-account ref whose executed code changed is
   `deploy_global_contract`; anything else is `resolved_code`.
-- `changed_at_block` is the block after the last unchanged observation: the earliest block the change
-  cannot be ruled out at. It never counts exposure recorded after the change. Detection lag is the
-  polling interval.
+- `changed_at_block` is the first block running the new code, found by bisecting historical
+  `view_code` between the two observations. When the RPC cannot serve that history it is the block
+  after the last unchanged observation. Neither counts exposure recorded after the change. Detection
+  lag is the polling interval; a change older than the registry's lookback bound is refused, logged,
+  and becomes the new baseline.
 - A failed RPC read observes nothing and reports nothing.
 
 ## Keys

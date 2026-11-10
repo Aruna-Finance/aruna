@@ -68,6 +68,14 @@ at all.
 The attestor imports `@aruna/classifier-core`. It runs the same checks as the browser
 page and the MCP tool, on a schedule.
 
+**As built (`packages/attestor`, testnet).** The four channels are told apart by what changed
+between two observations, not by reading transactions (D-57). A changed local code hash is
+`deploy_contract`; a ref that moved is `use_global_contract`; an unchanged global-by-account ref whose
+executed code changed is `deploy_global_contract`. `changed_at_block` is the first block running the new code, bisected over
+historical `view_code`; without history, the block after the last unchanged observation. Detection
+lag is the polling interval; a change older than the lookback bound can no longer be reported. Reports are signed over a domain
+prefix plus the report's borsh encoding (D-58), fixed by `fixtures/golden/drift-report.json`.
+
 ## Report shape
 
 ```ts

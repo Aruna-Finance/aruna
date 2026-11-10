@@ -205,6 +205,28 @@ poisoned tool result, five spends are refused (`ARUNA_TARGET_NOT_ALLOWED`,
 after that is refused with `ARUNA_AGENT_AUTO_DISABLED`. The recorded runs with every transaction
 link, and how to run them against your own vault: [`examples/README.md`](examples/README.md).
 
+### 12. Coverage: a code change, reported, frozen and paid
+
+```bash
+node fixtures/tools.mjs view pool.arunafi.testnet get_coverage '{"id":6}'
+node fixtures/tools.mjs view registry2.arunafi.testnet get_report '{"id":1}'
+node fixtures/tools.mjs view pool.arunafi.testnet quote '{"class":"global_by_account","limit":"1000000000000000000000000","payout_ratio_bps":8000,"window_blocks":43200,"daily_cap":"200000000000000000000000"}'
+```
+
+No key needed. Expected: coverage 6 has one claim with `"outcome":"paid"` and `"paid":"80000000000000000000000"`
+(0.08 NEAR); report 1 is `"verified"`, `deploy_global_contract`, with two different resolved hashes
+and `changed_at_block` 277106450; the quote returns its premium next to every input and the declared
+assumptions. They come from one run of [`examples/coverage-demo.ts`](examples/coverage-demo.ts) on
+11 November 2026: two quotes that differ only in the agent's daily cap, purchase at the tighter
+price in NEAR and in a test USDC, swaps, the target's code republished by account while its
+`view_account.code_hash` stays the zero hash, a signed report from
+[`packages/attestor`](packages/attestor/README.md), the freeze refusing the next spend, a claim
+refused during the challenge window, then paid by `min(exposure in the window before the change ×
+80%, C)`. The recorded run, and how to run it against your own stack:
+[`examples/README.md`](examples/README.md). On a sandbox, with no account:
+`cargo test -p aruna-integration --test coverage -- --nocapture` (after the builds in step 10,
+plus `pool`), which also runs a dispute upheld and rejected and a stale heartbeat.
+
 ---
 
 ## The measurement
@@ -244,11 +266,18 @@ the MCP server.
 ## Trust assumptions
 
 Classification needs none: anyone can re-run the three RPC reads and get the same answer. The
-coverage layer on the roadmap adds two, stated here before it ships:
+coverage layer, running on testnet (step 12), adds two:
 
 1. **The attestor.** Detecting that code changed needs an off-chain observer; five on-chain routes
-   were tested and are closed (`docs/NEAR-FACTS.md` §1).
+   were tested and are closed (`docs/NEAR-FACTS.md` §1). The registry checks a report's signature,
+   bond, expiry, nonce, that the two resolved hashes differ, and that the claimed block lies within
+   the lookback bound. It cannot check that the claimed block is true.
 2. **The arbiter.** Disputed drift reports are resolved by a designated account.
+
+Both are run by Aruna on testnet, openly. A report freezes the target as soon as it is accepted,
+before its challenge window closes: with one attestor, one party can freeze any covered target at
+any time, bounded only by its bond and the arbiter's slashing. That is deliberate, so agents stop
+spending into a target whose code changed (`docs/DECISIONS.md` D-59).
 
 Aruna is verifiable and reproducible. It is not trustless.
 
@@ -267,9 +296,10 @@ Aruna is verifiable and reproducible. It is not trustless.
 
 | In v0 | Not yet |
 |---|---|
-| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | exposure checkpoints, indexer, console on real data |
+| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | indexer; console on real data |
+| coverage on testnet: pool, registry drift path, attestor, vault v3 (step 12) | pool simulation, and `k` and the concentration limit derived from it |
 | live classifier page (`apps/web`) | migration tooling between vault versions |
-| keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | coverage pool, attestor, claims, simulation |
+| keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | an attestor independent of Aruna |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
 | testnet fixtures and the drift demo | |
 | lab evidence T0–T9 | |
@@ -287,6 +317,8 @@ packages/rpc               fetch-based RpcReader with endpoint fallback, browser
 packages/cli               aruna classify | measure | imports
 packages/sdk               keyless Classifier, readVault, refusal reason codes
 packages/mcp               MCP server: aruna_check_target, aruna_explain_class, aruna_read_vault
+packages/attestor          drift attestor: watches targets, files signed reports and heartbeats
+contracts/                 vault, registry, factory, pool, common; integration tests on a sandbox
 apps/web                   static classifier page, spec, proof and console shell
 fixtures/                  one testnet account per class, the drift demo
 examples/                  an honest and a prompt-injected agent against the testnet vault

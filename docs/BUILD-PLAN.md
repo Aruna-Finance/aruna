@@ -133,6 +133,12 @@ Required before any mainnet vault: immutable vaults can never be patched.
 - a stale heartbeat from a target's assigned attestor blocks new coverage on that target
 - the README states both trust assumptions: attestor and arbiter
 
+**Status (11 November 2026).** Built and passing on a sandbox: `contracts/integration/tests/coverage.rs`
+(NEAR and USDC loops, dispute upheld and rejected, stale heartbeat) and the unit tests in
+`contracts/registry` (forged, expired, replayed, swapped, lookback, identical hashes) and
+`contracts/pool` (adequacy, concentration, payout arithmetic, loosening, allowed vaults). Live on
+testnet with `examples/coverage-demo.ts`. Plan: `docs/plans/2026-11-10-2106-feat-coverage-loop-testnet-plan.md`.
+
 ## Stage 8 — `sim`
 
 200 agents over 60 days. Normal operation, one target changes, mass correlated claims,
