@@ -18,3 +18,10 @@ describe("drift report signing (golden vector shared with contracts/common)", ()
     expect(signingBytes({ ...golden.report, nonce: golden.report.nonce + 1 }).toString("hex")).not.toBe(golden.signing_bytes_hex);
   });
 });
+
+describe("signing key", () => {
+  it("derives the golden public key from the golden seed", async () => {
+    const { publicKeyOf, base58 } = await import("../src/keys.js");
+    expect(publicKeyOf(Buffer.from(golden.seed_hex, "hex"))).toBe("ed25519:" + base58(Buffer.from(golden.public_key_hex, "hex")));
+  });
+});

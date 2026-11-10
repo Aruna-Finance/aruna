@@ -4,11 +4,14 @@
   "description": "Aruna drift attestor: watches targets on four channels with the shared classifier, files signed drift reports and heartbeats. Testnet only.",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "aruna-attestor": "./dist/index.js"
+  },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist"
