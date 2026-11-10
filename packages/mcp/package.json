@@ -1,7 +1,7 @@
 {
   "name": "@aruna/mcp",
   "version": "0.1.0",
-  "description": "MCP server for Aruna. Keyless tools any agent can call: can this NEAR contract still change under me?",
+  "description": "MCP server for Aruna. Keyless, read-only tools any agent can call: can this NEAR contract still change under me, and what can this vault's agents do?",
   "license": "MIT",
   "type": "module",
   "bin": {

@@ -95,7 +95,10 @@ claude mcp add aruna -- node "$(pwd)/packages/mcp/dist/index.js"
 
 Then ask: *"Use aruna_check_target on fx-guser.arunafi.testnet on testnet."* Expected:
 `global_by_account`, with a reason naming `fx-gowner.arunafi.testnet` as the account that can
-redeploy it. Keyless: any agent on NEAR can call it. Details: [`packages/mcp/README.md`](packages/mcp/README.md).
+redeploy it. Keyless: any agent on NEAR can call it. Then: *"Use aruna_read_vault on
+demo2.factory.arunafi.testnet."* Expected: 0 full-access keys, agent `injected` paused and
+auto-disabled, exposure to `swap.arunafi.testnet` as `local_upgradeable` (the vault from steps 9
+and 11). Details: [`packages/mcp/README.md`](packages/mcp/README.md).
 
 ### 7. The mainnet measurement
 
@@ -248,7 +251,7 @@ Aruna is verifiable and reproducible. It is not trustless.
 |---|---|
 | `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | exposure checkpoints, indexer, console on real data |
 | live classifier page (`apps/web`) | migration tooling between vault versions |
-| keyless MCP tools and `@aruna/sdk` `Classifier` | coverage pool, attestor, claims, simulation |
+| keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | coverage pool, attestor, claims, simulation |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
 | testnet fixtures and the drift demo | |
 | lab evidence T0–T9 | |
@@ -264,8 +267,8 @@ Build order and release gates: [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
 packages/classifier-core   the engine: account id + RpcReader -> class + evidence, zero deps
 packages/rpc               fetch-based RpcReader with endpoint fallback, browser-safe
 packages/cli               aruna classify | measure | imports
-packages/sdk               keyless Classifier
-packages/mcp               MCP server: aruna_check_target, aruna_explain_class
+packages/sdk               keyless Classifier, readVault, refusal reason codes
+packages/mcp               MCP server: aruna_check_target, aruna_explain_class, aruna_read_vault
 apps/web                   static classifier page, spec, proof and console shell
 fixtures/                  one testnet account per class, the drift demo
 examples/                  an honest and a prompt-injected agent against the testnet vault
