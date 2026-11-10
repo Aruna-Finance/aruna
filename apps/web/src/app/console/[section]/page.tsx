@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { Developers } from "@/console/screens/Developers";
 import { Migration } from "@/console/screens/Migration";
 import { Overview } from "@/console/screens/Overview";
+import { Pool } from "@/console/screens/Pool";
+import { Simulation } from "@/console/screens/Simulation";
 import { ScreenPlaceholder } from "@/console/ScreenPlaceholder";
 import { SCREENS, SCREEN_IDS, type ScreenId } from "@/console/nav";
 
@@ -25,5 +27,7 @@ export default async function Page({ params }: { params: Promise<{ section: stri
   if (section === "dashboard") return <Overview />;
   if (section === "migrate") return <Migration />;
   if (section === "developers") return <Developers />;
+  if (section === "pool") return <Pool />;
+  if (section === "simulation") return <Simulation />;
   return <ScreenPlaceholder id={section as ScreenId} />;
 }

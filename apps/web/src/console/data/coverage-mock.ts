@@ -70,7 +70,7 @@ const ATTESTORS: Attestor[] = [
   { id: "attestor-2.testnet", heartbeatAgeBlocks: 5400 },
 ];
 
-const POOL_CAPITAL = 100_000;
+const SEED_CAPITAL = 100_000;
 
 const active = (book: CoveragePolicy[]) => book.filter((p) => p.status !== "expired" && NOW < p.expiresAt);
 const totalLimits = (book: CoveragePolicy[]) => active(book).reduce((s, p) => s + p.limit, 0);
@@ -105,21 +105,24 @@ export function createCoverageStore(): CoverageStore & {
   utilization(): number;
   checks(target: string, limit: number): PoolChecks;
   book(): CoveragePolicy[];
+  totalLimits(): number;
+  addCapital(delta: number): void;
 } {
   let own = [...OWN];
+  let capital = SEED_CAPITAL;
   const listeners = new Set<() => void>();
   const book = () => [...own, ...OTHERS];
-  const state = (): CoverageState => ({ policies: own, attestors: ATTESTORS, poolCapital: POOL_CAPITAL });
+  const state = (): CoverageState => ({ policies: own, attestors: ATTESTORS, poolCapital: capital });
   let snapshot = state();
 
   const checks = (target: string, limit: number): PoolChecks => {
-    const max = POOL_CAPITAL * COVERAGE_ASSUME.capitalAdequacyK;
+    const max = capital * COVERAGE_ASSUME.capitalAdequacyK;
     const after = totalLimits(book()) + limit;
     const group = groupOf(target);
     const now = active(book())
       .filter((p) => groupOf(p.target) === group)
       .reduce((s, p) => s + p.limit, 0);
-    const cap = POOL_CAPITAL * COVERAGE_ASSUME.concentrationPct;
+    const cap = capital * COVERAGE_ASSUME.concentrationPct;
     const adequacy = { ok: after <= max, after, max };
     const concentration = { ok: now + limit <= cap, after: now + limit, cap, group };
     return { ok: adequacy.ok && concentration.ok, adequacy, concentration };
@@ -131,9 +134,15 @@ export function createCoverageStore(): CoverageStore & {
       listeners.add(l);
       return () => listeners.delete(l);
     },
-    utilization: () => Math.min(1, totalLimits(book()) / (POOL_CAPITAL * COVERAGE_ASSUME.capitalAdequacyK)),
+    utilization: () => Math.min(1, totalLimits(book()) / (capital * COVERAGE_ASSUME.capitalAdequacyK)),
     checks,
     book,
+    totalLimits: () => totalLimits(book()),
+    addCapital(delta: number) {
+      capital += delta;
+      snapshot = state();
+      listeners.forEach((l) => l());
+    },
     buy(input: BuyInput, quote: CoverageQuote) {
       if (!quote.priced) throw new Error("ARUNA_TARGET_NOT_COVERABLE: unknown targets cannot be covered.");
       const attestor = ATTESTORS.find((a) => a.id === attestorFor(input.target));
