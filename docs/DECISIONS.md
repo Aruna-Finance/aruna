@@ -302,6 +302,13 @@ At most 32 agents that are not revoked per vault, and `refresh_class` only for t
 owner's ceiling, so neither the operator nor a stranger can drain the vault through gas allowances
 or storage. From the internal review in `AUDIT-v0.md`.
 
+### D-53 — A registry class record's `evidence_hash` is the sha256 of the evidence JSON
+`evidence_hash` in `set_class` is the lowercase hex sha256 of `JSON.stringify(evidence)`, the
+`evidence` object `classify` returns, in the engine's field order. Anyone can re-run the classifier
+at a block near `classified_at_block` and compare; a later read differs in `checkedAtBlock` and any
+state that moved, so the hash proves what was read, not that it is still true. Written by
+`node fixtures/tools.mjs class-args <account>`, which uses `@aruna/classifier-core` and nothing else.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

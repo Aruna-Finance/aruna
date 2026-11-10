@@ -18,8 +18,9 @@ should see.
 ## Steps
 
 Requirements: Node 20+, pnpm 9 (`corepack enable`). Steps 8 and 10 also need Rust ≥ 1.95 and
-`cargo-near`. Deploying your own copies (steps 4 and 9) needs `near-cli-rs` ≥ 0.31 and a funded
-testnet account; reading ours needs nothing.
+`cargo-near`. Deploying your own copies (steps 4, 9 and 11) needs `near-cli-rs` ≥ 0.31 and a funded
+testnet account, and running the agents in `examples/` needs Node ≥ 22.18; reading ours needs
+nothing.
 
 ### 1. Install, build and test
 
@@ -124,15 +125,17 @@ a self-deleting child lets its parent recreate the name with other code. Results
 ### 9. Aruna's own vault classifies as immutable
 
 ```bash
-node packages/cli/dist/index.js classify demo.factory.arunafi.testnet --network testnet
+node packages/cli/dist/index.js classify demo2.factory.arunafi.testnet --network testnet
 ```
 
-Expected: `"class": "immutable_verified"`, `"fullAccessKeyCount": 0`, `"functionCallKeyCount": 1`
-(the agent's key), `"upgradeImports": []`. The vault was created by `factory.arunafi.testnet` from
-one global contract by hash, with no key; the operator then added an agent key. Details and
-evidence: [`docs/SELF-CLASSIFICATION.md`](docs/SELF-CLASSIFICATION.md). To deploy your own copy:
-`ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-setup.sh` (about 26 NEAR, most of it the
-one-time global contract publish).
+Expected: `"class": "immutable_verified"`, `"fullAccessKeyCount": 0`, `"functionCallKeyCount": 2`
+(the two agents' keys), `"upgradeImports": []`, `"resolvedCodeHash":
+"4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam"`, the hash of `contracts/vault/res/aruna_vault.wasm`
+(`node fixtures/tools.mjs hash contracts/vault/res/aruna_vault.wasm`). The vault was created by
+`factory.arunafi.testnet` from one global contract by hash, with no key; the operator then added the
+agent keys. Details and evidence: [`docs/SELF-CLASSIFICATION.md`](docs/SELF-CLASSIFICATION.md). To
+deploy your own copy: `ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-setup.sh` (about 35
+NEAR, most of it the one-time global contract publish).
 
 ### 10. What an agent can and cannot do
 
@@ -163,9 +166,23 @@ keys and the operator adds agents. Expected output:
 - **Injected agent.** Three attempts to pay an outside contract return `ARUNA_TARGET_NOT_ALLOWED`;
   the third pauses the agent (`agent_auto_disabled`). The operator cannot resume it; the owner can.
 
-Refusals are returned values with an `execution_rejected` event, never panics. The testnet vault in
-step 9 is the earlier version without the spend path; publishing a new vault version is a new
-global contract (about 24 NEAR at this size).
+Refusals are returned values with an `execution_rejected` event, never panics.
+
+### 11. The same agents, on testnet
+
+```bash
+node fixtures/tools.mjs view demo2.factory.arunafi.testnet get_agents
+node fixtures/tools.mjs view demo2.factory.arunafi.testnet get_exposure '{"target":"swap.arunafi.testnet"}'
+```
+
+No key needed. Expected: agent `honest` is `Active` with swaps settled and exposure recorded against
+`swap.arunafi.testnet` as `local_upgradeable`; agent `injected` is `Paused` with
+`"auto_disabled":true`. They got there by running [`examples/honest-agent.ts`](examples/honest-agent.ts)
+and [`examples/injected-agent.ts`](examples/injected-agent.ts): the injected agent follows a
+poisoned tool result, five spends are refused (`ARUNA_TARGET_NOT_ALLOWED`,
+`ARUNA_MAX_PER_TX_EXCEEDED`, `ARUNA_SLIPPAGE_TOO_HIGH`), the fifth pauses it, and an in-policy swap
+after that is refused with `ARUNA_AGENT_AUTO_DISABLED`. The recorded runs with every transaction
+link, and how to run them against your own vault: [`examples/README.md`](examples/README.md).
 
 ---
 
@@ -229,14 +246,15 @@ Aruna is verifiable and reproducible. It is not trustless.
 
 | In v0 | Not yet |
 |---|---|
-| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | the spend path on testnet (sandbox-proven; needs a new vault version published) |
-| live classifier page (`apps/web`) | exposure, indexer, console on real data |
+| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | exposure checkpoints, indexer, console on real data |
+| live classifier page (`apps/web`) | migration tooling between vault versions |
 | keyless MCP tools and `@aruna/sdk` `Classifier` | coverage pool, attestor, claims, simulation |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
 | testnet fixtures and the drift demo | |
 | lab evidence T0–T9 | |
 | vault, registry and factory on testnet; vault self-classified `immutable_verified` | |
 | spend path, reservations, auto-disable and one swap adapter, proven on a sandbox | |
+| the same spend path on testnet: an honest and an injected agent (`examples/`) | |
 
 Build order and release gates: [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
 
@@ -250,6 +268,7 @@ packages/sdk               keyless Classifier
 packages/mcp               MCP server: aruna_check_target, aruna_explain_class
 apps/web                   static classifier page, spec, proof and console shell
 fixtures/                  one testnet account per class, the drift demo
+examples/                  an honest and a prompt-injected agent against the testnet vault
 measurement/               BigQuery query, raw export, results, report
 lab/                       sandbox protocol evidence (T0–T9)
 docs/                      architecture, decisions, protocol facts

@@ -5,26 +5,35 @@ account. Re-run it yourself:
 
 ```bash
 pnpm install && pnpm -r build
-node packages/cli/dist/index.js classify demo.factory.arunafi.testnet --network testnet
+node packages/cli/dist/index.js classify demo2.factory.arunafi.testnet --network testnet
 ```
 
 Expected: `"class": "immutable_verified"`, `"mutabilityBasis": "no_detected_path"`,
-`"fullAccessKeyCount": 0`, `"upgradeImports": []`.
+`"fullAccessKeyCount": 0`, `"functionCallKeyCount": 2`, `"upgradeImports": []`.
 
 ## What was deployed (10 November 2026, testnet)
 
 | Account | Role |
 |---|---|
-| `registry.arunafi.testnet` | classifier set and vault versions; owner `arunafi.testnet` |
+| `registry.arunafi.testnet` | classifier set, class records and vault versions; owner `arunafi.testnet` |
 | `factory.arunafi.testnet` | creates vaults by global hash, adds no key |
-| `demo-client.arunafi.testnet` | the client: owner of the vault |
+| `demo-client.arunafi.testnet` | the client: owner of the vaults |
 | `demo-company.arunafi.testnet` | the agent-as-a-service company: operator |
-| `demo.factory.arunafi.testnet` | the vault, created by `demo-company` for `demo-client` |
+| `swap.arunafi.testnet` | the swap fixture, the one adapter target; registry class `local_upgradeable` |
+| `demo2.factory.arunafi.testnet` | **the current vault**, version `4hDwnc…`, with two agents (`examples/`) |
+| `demo.factory.arunafi.testnet` | the first vault, version `5s1ggtt…`, kept as it is |
 
-The vault code was published once as a global contract by hash,
-`5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq`, from `contracts/vault/res/aruna_vault.wasm`
-(fee 19.163 NEAR). The registry records the vault with that code hash and `demo-client` as owner.
-The operator then added one agent key; the vault added it to itself.
+Two vault versions, each published once as a global contract by hash:
+
+| Version | Code hash | File | Size | Publish fee |
+|---|---|---|---|---|
+| current | `4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam` | `contracts/vault/res/aruna_vault.wasm` | 236,478 bytes | 23.649 NEAR |
+| first | `5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq` | `contracts/vault/res/aruna_vault-v1.wasm` | 191,619 bytes | 19.163 NEAR |
+
+Recompute either hash: `node fixtures/tools.mjs hash <file>`. The factory's
+`set_vault_code_hash` moved new vaults to the current version (event `vault_version_set`); the first
+vault kept its code, because no vault can change its own. The registry records each vault with its
+code hash and owner. The operator then added two agent keys; the vault added them to itself.
 
 ## The evidence, as read
 
@@ -32,16 +41,16 @@ The operator then added one agent key; the vault added it to itself.
 {
   "class": "immutable_verified",
   "evidence": {
-    "accountId": "demo.factory.arunafi.testnet",
-    "checkedAtBlock": 276952782,
+    "accountId": "demo2.factory.arunafi.testnet",
+    "checkedAtBlock": 277069081,
     "codeRef": {
       "kind": "global_hash",
-      "globalHash": "5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq"
+      "globalHash": "4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam"
     },
     "fullAccessKeyCount": 0,
-    "functionCallKeyCount": 1,
+    "functionCallKeyCount": 2,
     "monitoredCodeHash": "11111111111111111111111111111111",
-    "resolvedCodeHash": "5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq",
+    "resolvedCodeHash": "4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam",
     "upgradeImports": [],
     "mutabilityBasis": "no_detected_path",
     "wasmParsed": true
@@ -52,12 +61,15 @@ The operator then added one agent key; the vault added it to itself.
 - **By hash:** `codeRef.kind` is `global_hash`. The monitored `code_hash` is the zero hash and
   the resolved hash is the published vault code.
 - **No full-access key:** the factory created the account without one, and nothing in the vault can
-  add one. The one function-call key is the agent's; it can call only `spend` and
-  `refresh_class` on the vault (`docs/NEAR-FACTS.md` §2, §10: T5 and T8).
-- **Clean imports:** the compiled vault imports four promise host functions —
+  add one. The two function-call keys are the agents'; each can call only `spend` and
+  `refresh_class` on the vault (`docs/NEAR-FACTS.md` §2, §10: T5 and T8). See them with
+  `node examples/add-agents.ts`'s last lines, or any `view_access_key_list` on the vault.
+- **Clean imports:** the compiled vault imports promise host functions for calls, callbacks,
+  transfers and its own keys — `promise_create`, `promise_then`, `promise_result`,
   `promise_batch_create`, `promise_batch_action_transfer`, `promise_batch_action_delete_key`,
   `promise_batch_action_add_key_with_function_call` — and none of the six the classifier scans.
-  Check the file: `node packages/cli/dist/index.js imports contracts/vault/res/aruna_vault.wasm`.
+  Check the file: `node packages/cli/dist/index.js imports contracts/vault/res/aruna_vault.wasm`
+  (expected `"scannedPresent": []`).
 
 ## What this does and does not claim
 
@@ -70,6 +82,6 @@ be patched, which is why migration tooling is required before any mainnet vault
 The same property is proven on a local sandbox, with the agent-key refusals:
 `cd contracts && cargo test -p aruna-integration -- --nocapture`.
 
-**This vault version predates the fixes in `docs/AUDIT-v0.md`** (H1, M1, M2, L2). Vaults are
-immutable, so it keeps them; it holds no real value and exists to show self-classification. The
-fixed version is the one built from `contracts/vault` today and tested in `contracts/integration`.
+**The first vault predates the fixes in `docs/AUDIT-v0.md`** (H1, M1, M2, L2). Vaults are
+immutable, so it keeps them; it holds no real value. `demo2` runs the current version, which includes
+them, and is the vault the agent examples use.
