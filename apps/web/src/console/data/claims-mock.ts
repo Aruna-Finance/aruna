@@ -11,6 +11,9 @@ const BASE_BLOCK = 187_400_000;
 const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 /** A stable fake base58-looking hash, so the same target always shows the same mock value. */
+/** The mock resolved code hash of a target, before or after its change. */
+export const resolvedHash = (target: string, when: "before" | "after") => hash(`${target}:${when}`);
+
 const hash = (seed: string) => {
   let h = 2166136261;
   let out = "";
@@ -40,8 +43,17 @@ export function conditionsFor(c: Claim, r: Report, policy: CoveragePolicy | unde
   ];
 }
 
+export interface ReportOpts {
+  attestor?: string;
+  channel?: string;
+  /** Blocks between the change and the report. Sets changedAtBlock. */
+  agoBlocks?: number;
+  /** The resolved code hash after the change. An equal hash is rejected. */
+  afterHash?: string;
+}
+
 export function createClaimsStore(): ClaimsStore & {
-  reportDrift(target: string): Report;
+  reportDrift(target: string, opts?: ReportOpts): Report;
   advance(sec: number): void;
   conflict(id: string, attestor: string, resolvedHash: string): void;
   rule(id: string, uphold: boolean): void;
@@ -94,7 +106,10 @@ export function createClaimsStore(): ClaimsStore & {
       return () => listeners.delete(l);
     },
     policyOf,
-    reportDrift(target) {
+    reportDrift(target, opts = {}) {
+      const afterHash = (opts.afterHash ?? resolvedHash(target, "after")).trim();
+      if (afterHash === resolvedHash(target, "before")) throw new Error("ARUNA_HASHES_EQUAL: the resolved hash did not change, so there is nothing to report.");
+      if ((opts.agoBlocks ?? 0) > CLAIMS_ASSUME.maxLookbackBlocks) throw new Error(`ARUNA_LOOKBACK_EXCEEDED: changedAtBlock must be within ${CLAIMS_ASSUME.maxLookbackBlocks} blocks.`);
       if (reports.some((r) => r.target === target && r.status === "challenge_window")) {
         throw new Error(`ARUNA_REPORT_OPEN: ${target} already has a report in its challenge window.`);
       }
@@ -103,15 +118,15 @@ export function createClaimsStore(): ClaimsStore & {
       const r: Report = {
         id,
         target,
-        attestor: attestorForTarget(target),
-        channel: "view_code",
+        attestor: opts.attestor ?? attestorForTarget(target),
+        channel: opts.channel ?? "resolved_code",
         reportedAt: now,
         endsAt: now + COVERAGE_ASSUME.challengeWindowSec,
         observedAtBlock: BASE_BLOCK + n * 900,
-        changedAtBlock: BASE_BLOCK + n * 900 - 240,
-        changedAtSec: now - 3600,
+        changedAtBlock: BASE_BLOCK + n * 900 - (opts.agoBlocks ?? 240),
+        changedAtSec: now - (opts.agoBlocks ?? 240) * 1,
         beforeResolvedHash: hash(`${target}:before`),
-        afterResolvedHash: hash(`${target}:after`),
+        afterResolvedHash: afterHash,
         nonce: `drift-${target}-${n}`,
         bond: CLAIMS_ASSUME.attestorBond,
         status: "challenge_window",

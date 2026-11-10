@@ -14,7 +14,8 @@ export type ScreenId =
   | "attestor"
   | "lookup"
   | "developers"
-  | "playground";
+  | "playground"
+  | "story";
 
 export type Role = {
   id: RoleId;
@@ -37,6 +38,7 @@ export const ROLES: Role[] = [
       { id: "coverage", label: "Coverage" },
       { id: "claims", label: "Claims" },
       { id: "migrate", label: "Migration" },
+      { id: "story", label: "Guided demo" },
     ],
   },
   {
@@ -50,6 +52,7 @@ export const ROLES: Role[] = [
       { id: "targets", label: "Targets" },
       { id: "coverage", label: "Coverage" },
       { id: "claims", label: "Claims" },
+      { id: "story", label: "Guided demo" },
     ],
   },
   {
@@ -61,6 +64,7 @@ export const ROLES: Role[] = [
       { id: "pool", label: "Pool" },
       { id: "claims", label: "Claims" },
       { id: "simulation", label: "Simulation" },
+      { id: "story", label: "Guided demo" },
     ],
   },
   {
@@ -72,6 +76,7 @@ export const ROLES: Role[] = [
       { id: "attestor", label: "Console" },
       { id: "claims", label: "Reports and claims" },
       { id: "targets", label: "Targets" },
+      { id: "story", label: "Guided demo" },
     ],
   },
   {
@@ -83,6 +88,7 @@ export const ROLES: Role[] = [
       { id: "lookup", label: "Look up an agent" },
       { id: "claims", label: "Reports and claims" },
       { id: "targets", label: "Targets" },
+      { id: "story", label: "Guided demo" },
     ],
   },
   {
@@ -93,6 +99,7 @@ export const ROLES: Role[] = [
     items: [
       { id: "developers", label: "MCP tools" },
       { id: "playground", label: "Simulate and injection" },
+      { id: "story", label: "Guided demo" },
     ],
   },
 ];
@@ -170,6 +177,12 @@ export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: str
     phase: "F7",
     role: "developer",
     plan: "Simulate an agent and run the injected agent, with refusals and auto-disable.",
+  },
+  story: {
+    title: "Guided demo",
+    phase: "F7",
+    role: "developer",
+    plan: "Eight steps from classifying a contract to a paid claim and a rejected false report, on the same state the screens read.",
   },
 };
 

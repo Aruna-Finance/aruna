@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+import { Attestor } from "@/console/screens/Attestor";
 import { Developers } from "@/console/screens/Developers";
 import { Migration } from "@/console/screens/Migration";
 import { Overview } from "@/console/screens/Overview";
 import { Pool } from "@/console/screens/Pool";
+import { Playground } from "@/console/screens/Playground";
 import { Simulation } from "@/console/screens/Simulation";
+import { Story } from "@/console/screens/Story";
 import { ScreenPlaceholder } from "@/console/ScreenPlaceholder";
 import { SCREENS, SCREEN_IDS, type ScreenId } from "@/console/nav";
 
@@ -29,5 +32,8 @@ export default async function Page({ params }: { params: Promise<{ section: stri
   if (section === "developers") return <Developers />;
   if (section === "pool") return <Pool />;
   if (section === "simulation") return <Simulation />;
+  if (section === "story") return <Story />;
+  if (section === "attestor") return <Attestor />;
+  if (section === "playground") return <Playground />;
   return <ScreenPlaceholder id={section as ScreenId} />;
 }
