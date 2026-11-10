@@ -74,6 +74,9 @@ pub struct Coverage {
     pub paid_out: U128,
     pub claims: Vec<ClaimRecord>,
     pub claim_in_flight: bool,
+    /// Set once its remaining limit has left the book's totals (`release_expired`).
+    #[serde(default)]
+    pub released: bool,
 }
 
 #[near]
@@ -415,6 +418,7 @@ impl Pool {
             paid_out: U128(0),
             claims: vec![],
             claim_in_flight: false,
+            released: false,
         };
         let mut b = book;
         b.capital = U128(capital_after);
@@ -431,6 +435,34 @@ impl Pool {
             return U128(0);
         }
         U128(excess)
+    }
+
+    /// Anyone may call. For each coverage past its end and its claim reporting period, with no claim in
+    /// flight, its remaining limit leaves the book's total and the concentration totals, so expired
+    /// coverage stops holding capacity. Returns how many were released.
+    pub fn release_expired(&mut self, ids: Vec<u32>) -> u32 {
+        let now = env::block_height();
+        let mut n = 0;
+        for id in ids {
+            let Some(c) = self.coverages.get(id).cloned() else { continue };
+            if c.released || c.claim_in_flight || now < c.end_block + CLAIM_REPORTING_BLOCKS {
+                continue;
+            }
+            let remaining = c.limit.0.saturating_sub(c.paid_out.0);
+            let mut b = self.book(&c.token);
+            b.total_limits = U128(b.total_limits.0.saturating_sub(remaining));
+            self.books.insert(c.token.clone(), b);
+            let hk = (c.token.clone(), c.code_hash.clone());
+            let ak = (c.token.clone(), c.upgrade_authority.clone());
+            let h = self.by_hash.get(&hk).copied().unwrap_or(0);
+            self.by_hash.insert(hk, h.saturating_sub(remaining));
+            let a = self.by_authority.get(&ak).copied().unwrap_or(0);
+            self.by_authority.insert(ak, a.saturating_sub(remaining));
+            self.coverages.get_mut(id).unwrap().released = true;
+            emit("coverage_released", json!({ "coverage": id, "remaining_limit": U128(remaining) }));
+            n += 1;
+        }
+        n
     }
 
     // ---- claims ----

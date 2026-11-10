@@ -306,3 +306,16 @@ fn only_the_registry_sends_slashed_bonds() {
     ctx("stranger.testnet", NOW, NEAR, vec![]);
     p.receive_slash(acc("attestor.testnet"));
 }
+
+#[test]
+fn expired_coverage_stops_holding_capacity() {
+    let mut p = covered_pool();
+    let c = p.get_coverage(0).unwrap();
+    let limits = p.get_book(TokenId::Near).total_limits;
+    ctx("anyone.testnet", c.end_block + aruna_common::params::CLAIM_REPORTING_BLOCKS - 1, 0, vec![]);
+    assert_eq!(p.release_expired(vec![0]), 0, "not before the reporting period ends");
+    ctx("anyone.testnet", c.end_block + aruna_common::params::CLAIM_REPORTING_BLOCKS, 0, vec![]);
+    assert_eq!(p.release_expired(vec![0, 0, 99]), 1, "once, and unknown ids are skipped");
+    assert_eq!(p.get_book(TokenId::Near).total_limits.0, limits.0 - c.limit.0);
+    assert!(p.get_coverage(0).unwrap().released);
+}
