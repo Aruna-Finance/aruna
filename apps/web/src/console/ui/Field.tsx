@@ -26,7 +26,7 @@ export function NumberField({
       <label htmlFor={id} className="block text-sm font-medium">
         {label}
       </label>
-      <div className="mt-1.5 flex border border-line-2 bg-paper focus-within:border-ink focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
+      <div className="mt-1.5 flex border border-line-2 bg-white transition-colors hover:border-ink focus-within:border-ink">
         <input
           id={id}
           type="number"
@@ -35,7 +35,7 @@ export function NumberField({
           step={step}
           value={Number.isFinite(value) ? value : ""}
           onChange={(e) => onChange(e.target.value === "" ? NaN : Number(e.target.value))}
-          className="mono min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[15px] outline-none"
+          className="mono min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm outline-none"
         />
         <span className="label flex min-w-12 items-center justify-center border-l border-line px-3 text-xs text-muted">{suffix}</span>
       </div>
@@ -70,7 +70,7 @@ export function TextField({
         autoComplete="off"
         spellCheck={false}
         onChange={(e) => onChange(e.target.value)}
-        className={`mt-1.5 block w-full border border-line-2 bg-paper px-3 py-2.5 text-[15px] focus:border-ink focus:outline-2 focus:outline-offset-2 focus:outline-ink ${mono ? "mono" : ""}`}
+        className={`mt-1.5 block w-full border border-line-2 bg-white px-3 py-3.5 text-sm outline-none transition-colors hover:border-ink focus:border-ink ${mono ? "mono" : ""}`}
       />
       {hint && <p className="mt-1.5 text-sm text-muted">{hint}</p>}
     </div>

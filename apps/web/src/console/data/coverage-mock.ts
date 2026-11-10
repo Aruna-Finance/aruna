@@ -107,12 +107,14 @@ export function createCoverageStore(): CoverageStore & {
   book(): CoveragePolicy[];
   totalLimits(): number;
   addCapital(delta: number): void;
+  restartAttestor(id: string): void;
 } {
   let own = [...OWN];
   let capital = SEED_CAPITAL;
+  let attestors = ATTESTORS.map((a) => ({ ...a }));
   const listeners = new Set<() => void>();
   const book = () => [...own, ...OTHERS];
-  const state = (): CoverageState => ({ policies: own, attestors: ATTESTORS, poolCapital: capital });
+  const state = (): CoverageState => ({ policies: own, attestors, poolCapital: capital });
   let snapshot = state();
 
   const checks = (target: string, limit: number): PoolChecks => {
@@ -138,6 +140,11 @@ export function createCoverageStore(): CoverageStore & {
     checks,
     book,
     totalLimits: () => totalLimits(book()),
+    restartAttestor(id: string) {
+      attestors = attestors.map((a) => (a.id === id ? { ...a, heartbeatAgeBlocks: 4 } : a));
+      snapshot = state();
+      listeners.forEach((l) => l());
+    },
     addCapital(delta: number) {
       capital += delta;
       snapshot = state();
@@ -145,7 +152,7 @@ export function createCoverageStore(): CoverageStore & {
     },
     buy(input: BuyInput, quote: CoverageQuote) {
       if (!quote.priced) throw new Error("ARUNA_TARGET_NOT_COVERABLE: unknown targets cannot be covered.");
-      const attestor = ATTESTORS.find((a) => a.id === attestorFor(input.target));
+      const attestor = attestors.find((a) => a.id === attestorFor(input.target));
       if (attestor && heartbeatStale(attestor)) {
         throw new Error(`ARUNA_ATTESTOR_STALE: the attestor assigned to ${input.target} has stopped reporting, so coverage cannot be sold on it.`);
       }

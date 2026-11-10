@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { CodeRef } from "@/landing/lib/classifier-types";
 import { curlFor } from "@/landing/lib/verify-commands";
 import { CLAIMS_ASSUME } from "../data/claims";
+import { attestorStore } from "../data/attestor";
+import { channelsOf } from "../data/channels";
 import { mockTargets } from "../data/mock";
 import type { TargetRecord } from "../data/types";
 import { BASIS, CLASS_INFO } from "../classInfo";
@@ -25,20 +27,6 @@ function refText(r: CodeRef | null): string {
   if (r.kind === "local") return `local: ${short(r.codeHash)}`;
   if (r.kind === "global_hash") return `global_hash: ${short(r.globalHash)}`;
   return `global_account: ${r.ownerAccount}`;
-}
-
-type Channel = { name: string; key: string; state: "clear" | "changed" | "not applicable" };
-
-/** The four channels docs/ATTESTOR.md requires. The mock marks them clear, or changed when a report froze the target. */
-function channelsOf(t: TargetRecord): Channel[] {
-  const ref = t.classification.evidence.codeRef;
-  const frozen = t.frozen;
-  return [
-    { name: "view_code hash, polled", key: "resolved_code", state: frozen ? "changed" : "clear" },
-    { name: "DeployContract on the target", key: "deploy_contract", state: "clear" },
-    { name: "UseGlobalContract on the target", key: "use_global_contract", state: ref && ref.kind !== "local" ? "clear" : "not applicable" },
-    { name: "DeployGlobalContract on the owner", key: "deploy_global_contract", state: ref?.kind === "global_account" ? "clear" : "not applicable" },
-  ];
 }
 
 /** What the three public reads found, written from the stored evidence only. */
@@ -75,6 +63,7 @@ export function TargetDetail() {
   const vault = useVault();
   const [target, setTarget] = useState<TargetRecord | null | undefined>(undefined);
   const [now, setNow] = useState(0);
+  const { pending } = useSyncExternalStore(attestorStore.subscribe, attestorStore.get, attestorStore.get);
 
   useEffect(() => {
     let live = true;
@@ -114,7 +103,7 @@ export function TargetDetail() {
   const cls = target.classification.class;
   const ev = target.classification.evidence;
   const agents = vault.agents.filter((a) => (a.exposure[target.id] ?? 0) > 0);
-  const channels = channelsOf(target);
+  const channels = channelsOf(target, pending.find((d) => d.target === target.id)?.channel ?? null);
   const owner = ev.codeRef?.kind === "global_account" ? ev.codeRef.ownerAccount : null;
   const age = now - target.fetchedAtBlock;
 
