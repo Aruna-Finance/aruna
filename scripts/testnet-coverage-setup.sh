@@ -2,7 +2,7 @@
 # Deploys the coverage stack to testnet under ARUNA_TESTNET_ACCOUNT (plan U9, KTD1). The v0 stack
 # (registry, factory, demo2) is left as it is.
 #   registry2.<you>     registry v2: classes, attestors, drift reports, freezes, disputes
-#   factory2.<you>      creates vault v3 by global hash, with no key
+#   factory2.<you>      creates vaults (the current version, res/aruna_vault.wasm) by global hash, with no key
 #   pool.<you>          the pool, one book per token
 #   usdc.<you>          a TEST NEP-141 token (six decimals, no value), minted by <you>
 #   drift-owner.<you>   publishes the drift target BY ACCOUNT; its redeploy is the change in the demo

@@ -27,7 +27,7 @@ Two vault versions, each published once as a global contract by hash:
 
 | Version | Code hash | File | Size | Publish fee |
 |---|---|---|---|---|
-| v3, coverage stack | `2NvTPrL33u6SXVmdEDN2i8iYp76eMf9kPFJK7zGscmSH` | `contracts/vault/res/aruna_vault.wasm` | 285,648 bytes | 28.567 NEAR |
+| v3, coverage stack | `2NvTPrL33u6SXVmdEDN2i8iYp76eMf9kPFJK7zGscmSH` | `contracts/vault/res/aruna_vault-v3.wasm` | 285,648 bytes | 28.567 NEAR |
 | v2 | `4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam` | `contracts/vault/res/aruna_vault-v2.wasm` | 236,478 bytes | 23.649 NEAR |
 | v1 | `5s1ggttSbdcSxSCjRyxqKmWUC7sCR6MLB26z7eMLhPhq` | `contracts/vault/res/aruna_vault-v1.wasm` | 191,619 bytes | 19.163 NEAR |
 
@@ -98,7 +98,7 @@ node packages/cli/dist/index.js classify demo3.factory2.arunafi.testnet --networ
 ```
 
 Expected `"class": "immutable_verified"` and `"upgradeImports": []`; the wasm passes the same import
-gate (`node packages/cli/dist/index.js imports contracts/vault/res/aruna_vault.wasm` shows
+gate (`node packages/cli/dist/index.js imports contracts/vault/res/aruna_vault-v3.wasm` shows
 `"scannedPresent": []`). As read on 11 November 2026, with the demo agent's function-call key:
 
 ```json

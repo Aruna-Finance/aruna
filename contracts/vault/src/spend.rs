@@ -96,61 +96,94 @@ impl Vault {
         SpendOutcome::Blocked { reason, class }
     }
 
-    /// Steps 0–8. Returns the outcome; on `Allowed` the reservation is already taken.
-    fn check_and_reserve(&mut self, key: &PublicKey, adapter: &str, token: &TokenId, target: &AccountId, amount: u128, min_amount_out: u128) -> SpendOutcome {
+    /// Steps 0–8, read-only: the one implementation of the spend checks, shared by `spend` and
+    /// `simulate` so the two can never disagree. Authorization failures still panic.
+    fn evaluate(&self, key: &PublicKey, adapter: &str, token: &TokenId, target: &AccountId, amount: u128, min_amount_out: u128) -> Result<RiskClass, (Reason, Option<RiskClass>)> {
         // 0. a registered key, and the agent may act
-        let agent = self.agents.get(key).unwrap_or_else(|| env::panic_str(panics::UNKNOWN_AGENT)).clone();
+        let agent = self.agents.get(key).unwrap_or_else(|| env::panic_str(panics::UNKNOWN_AGENT));
         require!(ADAPTERS.contains(&adapter), "ARUNA_UNKNOWN_ADAPTER");
-        let cached = self.classes.get(target).cloned();
-        let class = cached.as_ref().map(|c| c.class);
+        let cached = self.classes.get(target);
+        let class = cached.map(|c| c.class);
         match agent.status {
             AgentStatus::Active => {}
-            _ if agent.auto_disabled => return self.refuse(key, target, Reason::AgentAutoDisabled, class),
-            _ => return self.refuse(key, target, Reason::AgentNotActive, class),
+            _ if agent.auto_disabled => return Err((Reason::AgentAutoDisabled, class)),
+            _ => return Err((Reason::AgentNotActive, class)),
         }
         let p = &agent.policy;
         // 1. target in policy
         if !p.allowed_targets.contains(target) {
-            return self.refuse(key, target, Reason::TargetNotAllowed, class);
+            return Err((Reason::TargetNotAllowed, class));
         }
         // 2–3. a recorded class, not frozen, fetched recently enough
         let Some(cached) = cached else {
-            return self.refuse(key, target, Reason::ClassStale, None);
+            return Err((Reason::ClassStale, None));
         };
         if cached.frozen {
-            return self.refuse(key, target, Reason::TargetFrozen, class);
+            return Err((Reason::TargetFrozen, class));
         }
         if env::block_height().saturating_sub(cached.fetched_at_block) > MAX_CLASS_AGE_BLOCKS {
-            return self.refuse(key, target, Reason::ClassStale, class);
+            return Err((Reason::ClassStale, class));
         }
         // 4. re-validated now, against the last recorded class (D-17)
         if cached.class > p.max_risk_class {
-            return self.refuse(key, target, Reason::RiskClassNotAllowed, class);
+            return Err((Reason::RiskClassNotAllowed, class));
         }
         // 5. per transaction, in this token (a token missing from the policy has limits of zero)
         let (max_per_tx, daily_cap) = limits_for(p, token);
         if amount > max_per_tx {
-            return self.refuse(key, target, Reason::MaxPerTxExceeded, class);
+            return Err((Reason::MaxPerTxExceeded, class));
         }
         // 6. balance (NEAR only; see available_near)
         if *token == TokenId::Near && amount > self.available_near() {
-            return self.refuse(key, target, Reason::InsufficientBalance, class);
+            return Err((Reason::InsufficientBalance, class));
         }
         // 7. reservation accounting, per token
-        let mut budget = Self::budget_of(&agent.budgets, token);
+        let budget = Self::budget_of(&agent.budgets, token);
         if budget.spent_today.0 + budget.reserved.0 + amount > daily_cap {
-            return self.refuse(key, target, Reason::DailyCapExceeded, class);
+            return Err((Reason::DailyCapExceeded, class));
         }
-        // 8. the adapter's own check: slippage against a 1:1 NEAR swap
+        // 8. the adapter's own check: slippage against a 1:1 swap
         let floor = amount - amount * p.max_slippage_bps as u128 / 10_000;
         if min_amount_out < floor {
-            return self.refuse(key, target, Reason::SlippageTooHigh, class);
+            return Err((Reason::SlippageTooHigh, class));
         }
-        budget.reserved = U128(budget.reserved.0 + amount);
-        Self::put_budget(&mut self.agent_mut(key).budgets, budget);
-        self.add_reserved(token, amount as i128);
-        SpendOutcome::Allowed { amount: U128(amount), class: cached.class }
+        Ok(cached.class)
     }
+
+    /// `evaluate`, then on a refusal record it (event, counter); on success reserve the amount.
+    fn check_and_reserve(&mut self, key: &PublicKey, adapter: &str, token: &TokenId, target: &AccountId, amount: u128, min_amount_out: u128) -> SpendOutcome {
+        match self.evaluate(key, adapter, token, target, amount, min_amount_out) {
+            Err((reason, class)) => self.refuse(key, target, reason, class),
+            Ok(class) => {
+                let agent = self.agents.get(key).unwrap();
+                let mut budget = Self::budget_of(&agent.budgets, token);
+                budget.reserved = U128(budget.reserved.0 + amount);
+                Self::put_budget(&mut self.agent_mut(key).budgets, budget);
+                self.add_reserved(token, amount as i128);
+                SpendOutcome::Allowed { amount: U128(amount), class }
+            }
+        }
+    }
+
+    fn resolve_token(adapter: &str, token: Option<AccountId>) -> TokenId {
+        match (adapter, token) {
+            ("swap", None) => TokenId::Near,
+            ("ft_swap", Some(t)) => TokenId::Ft(t),
+            ("swap", Some(_)) | ("ft_swap", None) => env::panic_str("ARUNA_ADAPTER_TOKEN_MISMATCH"),
+            _ => env::panic_str("ARUNA_UNKNOWN_ADAPTER"),
+        }
+    }
+}
+
+/// What `simulate` returns. Not binding: state can change before a spend lands (docs/MCP.md).
+#[near(serializers = [json])]
+#[derive(Debug, PartialEq)]
+pub struct Simulation {
+    /// "allow" or "block". There is no third verdict: no approval queues.
+    pub verdict: String,
+    pub reason: Option<Reason>,
+    /// The target's class as this vault last recorded it, if any.
+    pub class: Option<RiskClass>,
 }
 
 #[near]
@@ -161,12 +194,7 @@ impl Vault {
     pub fn spend(&mut self, adapter: String, target: AccountId, amount: U128, min_amount_out: U128, token: Option<AccountId>) {
         require!(env::predecessor_account_id() == env::current_account_id(), panics::UNKNOWN_AGENT);
         let key = env::signer_account_pk();
-        let token = match (adapter.as_str(), token) {
-            ("swap", None) => TokenId::Near,
-            ("ft_swap", Some(t)) => TokenId::Ft(t),
-            ("swap", Some(_)) | ("ft_swap", None) => env::panic_str("ARUNA_ADAPTER_TOKEN_MISMATCH"),
-            _ => env::panic_str("ARUNA_UNKNOWN_ADAPTER"),
-        };
+        let token = Self::resolve_token(&adapter, token);
         require!(self.accepts_token(&token), "ARUNA_TOKEN_NOT_IN_CEILING");
         let outcome = self.check_and_reserve(&key, &adapter, &token, &target, amount.0, min_amount_out.0);
         let SpendOutcome::Allowed { class, .. } = outcome else {
@@ -188,6 +216,17 @@ impl Vault {
         let cb_args = json!({ "agent": key, "target": target, "amount": amount, "class": class, "token": token }).to_string();
         let cb = env::promise_then(p, env::current_account_id(), "cb_settle", cb_args, NearToken::from_yoctonear(0), GAS_CB_SETTLE);
         env::promise_return(cb);
+    }
+
+    /// A free view running exactly the checks `spend` runs, for one agent key, without reserving,
+    /// counting or sending anything. NOT BINDING: state can change before the spend lands.
+    pub fn simulate(&self, public_key: PublicKey, adapter: String, target: AccountId, amount: U128, min_amount_out: U128, token: Option<AccountId>) -> Simulation {
+        let token = Self::resolve_token(&adapter, token);
+        require!(self.accepts_token(&token), "ARUNA_TOKEN_NOT_IN_CEILING");
+        match self.evaluate(&public_key, &adapter, &token, &target, amount.0, min_amount_out.0) {
+            Ok(class) => Simulation { verdict: "allow".into(), reason: None, class: Some(class) },
+            Err((reason, class)) => Simulation { verdict: "block".into(), reason: Some(reason), class },
+        }
     }
 
     /// Settles a reservation. Success: what was used is spent and recorded as exposure. Failure: the

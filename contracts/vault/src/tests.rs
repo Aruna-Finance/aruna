@@ -1,6 +1,6 @@
 //! Owner and operator, every action in docs/CONTRACTS.md's table from each role.
 use super::*;
-use aruna_common::TokenId;
+use aruna_common::{Reason, TokenId};
 use near_sdk::test_utils::{get_logs, VMContextBuilder};
 use near_sdk::{testing_env, NearToken};
 
@@ -500,4 +500,45 @@ fn the_owner_withdraws_tokens_to_themselves() {
     as_caller("client.testnet");
     v.withdraw_to_owner(U128(5), Some(usdc()));
     assert!(get_logs().iter().any(|l| l.contains("\"withdrawal\"") && l.contains("client.testnet") && l.contains("usdc.testnet")));
+}
+
+// ---- v4: simulate (docs/MCP.md aruna_simulate, docs/SDK.md vault.simulate) ----
+
+#[test]
+fn simulate_allows_what_spend_allows_without_reserving_anything() {
+    let mut v = vault();
+    as_caller("company.testnet");
+    v.add_agent(pk(1), "a".into(), usdc_policy(100));
+    with_cached_swap(&mut v, 100);
+    as_agent(1, 101);
+    let sim = v.simulate(pk(1), "ft_swap".into(), acc("swap.testnet"), U128(40), U128(40), Some(acc("usdc.testnet")));
+    assert_eq!(sim, Simulation { verdict: "allow".into(), reason: None, class: Some(RiskClass::LocalUpgradeable) });
+    assert!(v.get_agent(pk(1)).unwrap().budgets.is_empty(), "nothing reserved");
+    v.spend("ft_swap".into(), acc("swap.testnet"), U128(40), U128(40), Some(acc("usdc.testnet")));
+    assert!(get_logs().iter().any(|l| l.contains("execution_allowed")));
+}
+
+#[test]
+fn simulate_blocks_with_the_reason_spend_would_return_and_counts_nothing() {
+    let mut v = vault();
+    as_caller("company.testnet");
+    v.add_agent(pk(1), "a".into(), usdc_policy(30));
+    with_cached_swap(&mut v, 100);
+    as_agent(1, 101);
+    let sim = v.simulate(pk(1), "ft_swap".into(), acc("swap.testnet"), U128(40), U128(40), Some(acc("usdc.testnet")));
+    assert_eq!((sim.verdict.as_str(), sim.reason), ("block", Some(Reason::DailyCapExceeded)));
+    assert!(v.get_agent(pk(1)).unwrap().refusals.is_empty(), "a simulation is not a refusal");
+    v.spend("ft_swap".into(), acc("swap.testnet"), U128(40), U128(40), Some(acc("usdc.testnet")));
+    assert_eq!(last_reason().as_deref(), Some("ARUNA_DAILY_CAP_EXCEEDED"), "spend agrees");
+    for (target, reason) in [("elsewhere.testnet", Reason::TargetNotAllowed)] {
+        let sim = v.simulate(pk(1), "swap".into(), acc(target), U128(1), U128(1), None);
+        assert_eq!(sim.reason, Some(reason));
+    }
+}
+
+#[test]
+#[should_panic(expected = "ARUNA_UNKNOWN_AGENT")]
+fn simulate_for_an_unknown_key_panics_like_spend() {
+    let v = vault();
+    v.simulate(pk(9), "swap".into(), acc("swap.testnet"), U128(1), U128(1), None);
 }

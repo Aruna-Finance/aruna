@@ -15,7 +15,7 @@ mod roles;
 mod spend;
 mod tokens;
 
-pub use spend::SpendOutcome;
+pub use spend::{Simulation, SpendOutcome};
 
 use aruna_common::{RiskClass, TokenId};
 use near_sdk::json_types::U128;
