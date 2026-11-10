@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/Button";
 import { Drawer } from "@/shared/Drawer";
 import { toast } from "@/shared/Toaster";
 import type { RiskClass } from "@/landing/lib/classifier-types";
 import { mockTargets } from "../data/mock";
+import { BASIS } from "../classInfo";
 import { ClassTag } from "../ui/ClassTag";
-import { MAX_CLASS_AGE_BLOCKS, type TargetPreset, type TargetRecord } from "../data/types";
+import { Freshness, targetHref } from "../ui/Freshness";
+import type { TargetPreset, TargetRecord } from "../data/types";
 
 const INFO: Record<RiskClass, { title: string; certainty: string; premium: string }> = {
   immutable_verified: { title: "Immutable, proved", certainty: "No detected upgrade path", premium: "Lowest premium" },
@@ -16,33 +19,8 @@ const INFO: Record<RiskClass, { title: string; certainty: string; premium: strin
   unknown: { title: "Unknown", certainty: "Not known", premium: "Cannot be covered" },
 };
 
-const BASIS: Record<TargetRecord["classification"]["evidence"]["mutabilityBasis"], string> = {
-  no_detected_path: "No detected upgrade path under the checks listed",
-  full_access_key: "A full-access key can change the code",
-  upgrade_imports: "Upgrade imports present. They may have no reachable route",
-  own_code: "The account's own code, with no full-access key and clean imports",
-  global_owner: "Another account can redeploy the code",
-  undetermined: "Could not be determined",
-};
-
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
-
-function Freshness({ age }: { age: number }) {
-  const stale = age > MAX_CLASS_AGE_BLOCKS;
-  return (
-    <span
-      className={`mono inline-block whitespace-nowrap border px-2 py-0.5 text-xs ${stale ? "border-dawn-ink bg-dawn-wash text-dawn-ink" : "border-line-2"}`}
-      title={
-        stale
-          ? "Older than the vault's staleness bound. A spend returns ARUNA_CLASS_STALE until it is refreshed."
-          : `Within the staleness bound of ${MAX_CLASS_AGE_BLOCKS.toLocaleString("en-US")} blocks.`
-      }
-    >
-      {stale ? "stale" : "fresh"} · {age.toLocaleString("en-US")} blocks
-    </span>
-  );
-}
 
 export function Targets() {
   const [rows, setRows] = useState<TargetRecord[] | null>(null);
@@ -126,7 +104,9 @@ export function Targets() {
                 return (
                   <tr key={t.id}>
                     <td className={td}>
-                      <span className="mono block">{t.id}</span>
+                      <Link href={targetHref(t.id)} className="mono block underline-offset-4 hover:underline">
+                        {t.id}
+                      </Link>
                       <span className="text-sm text-muted">{t.label}</span>
                       {t.frozen && <span className="mono ml-2 text-xs text-dawn-ink">frozen</span>}
                     </td>

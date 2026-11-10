@@ -1,4 +1,4 @@
-import type { RiskClass } from "@/landing/lib/classifier-types";
+import type { ClassEvidence, RiskClass } from "@/landing/lib/classifier-types";
 
 /** What each class means for a policy and its price, from the prototype's class table. */
 export const CLASS_INFO: Record<RiskClass, { title: string; basis: string; certainty: string; premium: string }> = {
@@ -29,3 +29,14 @@ export const CLASS_INFO: Record<RiskClass, { title: string; basis: string; certa
 };
 
 export const CLASS_ORDER: RiskClass[] = ["immutable_verified", "local_upgradeable", "global_by_account", "unknown"];
+
+/** Plain-language reading of the stored mutability basis. */
+export const BASIS: Record<ClassEvidence["mutabilityBasis"], string> = {
+  no_detected_path: "No detected upgrade path under the checks listed",
+  full_access_key: "A full-access key can change the code",
+  upgrade_imports: "Upgrade imports present. They may have no reachable route",
+  own_code: "The account's own code, with no full-access key and clean imports",
+  global_owner: "Another account can redeploy the code",
+  undetermined: "Could not be determined",
+};
+
