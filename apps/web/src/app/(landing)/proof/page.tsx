@@ -13,6 +13,7 @@ import {
   NEP141_PANIC,
   TOCTOU_ROWS,
 } from "@/landing/lib/facts";
+import { MEASUREMENT, basisCallsShare, basisRows, callsShare, classRows, int, pct } from "@/landing/lib/measurement";
 
 export const metadata: Metadata = {
   title: "Lab results | Aruna",
@@ -28,6 +29,7 @@ const TOC = [
   { id: "global", label: "Global contracts" },
   { id: "introspection", label: "Self-introspection" },
   { id: "gas-keys", label: "Gas keys" },
+  { id: "mainnet", label: "Mainnet measurement" },
 ];
 
 export default function ProofPage() {
@@ -36,7 +38,7 @@ export default function ProofPage() {
       title="Lab results"
       intro={
         <p>
-          Everything on this page was run in our own lab. The error strings are what the node returned, copied
+          The lab sections below were run in our own sandbox; the last section is a read of mainnet. The error strings are what the node returned, copied
           verbatim from <span className="mono">docs/NEAR-FACTS.md</span>. Anything not listed here is not assumed.
         </p>
       }
@@ -202,6 +204,46 @@ export default function ProofPage() {
             />
           </div>
         </Disclosure>
+      </Section>
+
+      <Section
+        id="mainnet"
+        title="Mainnet measurement"
+        lead={`The ${int(MEASUREMENT.total)} mainnet accounts that received the most function calls between ${MEASUREMENT.window.from} and ${MEASUREMENT.window.to}, classified from public RPC on ${MEASUREMENT.readAt}. A state read at one point in time: it says which contracts can change, not how often they did.`}
+      >
+        <DocTable
+          caption={`Class distribution, ${int(MEASUREMENT.classified)} classified accounts`}
+          head={["Class", "Accounts", "Share", "Calls received", "Share of calls"]}
+          rows={classRows()}
+          mono={[0]}
+        />
+        <p className="max-w-[66ch] leading-[1.6] text-slate">
+          {callsShare("local_upgradeable")} of the calls went to <span className="mono">local_upgradeable</span> contracts.{" "}
+          {basisCallsShare("full_access_key")} went to contracts where a full-access key exists, so its holder can replace the code at
+          any moment. {basisCallsShare("upgrade_imports")} went to contracts with no full-access key whose code still imports a deploy,
+          full-access-key or delete-account host function: an upgrade path cannot be ruled out, though it may have no reachable route.
+        </p>
+        <DocTable
+          caption="Why each class holds"
+          head={["Basis", "Class", "Accounts", "Share", "Share of calls"]}
+          rows={basisRows()}
+          mono={[0, 1]}
+        />
+        <Callout>
+          <strong className="font-medium">The invisible class exists on mainnet and is rare here.</strong> {MEASUREMENT.invisible.length}{" "}
+          of {int(MEASUREMENT.classified)} accounts ({pct(MEASUREMENT.invisible.length, MEASUREMENT.classified)}) are{" "}
+          <span className="mono">global_by_account</span>: {MEASUREMENT.invisible.join(", ")}. A monitor keyed on{" "}
+          <span className="mono">view_account.code_hash</span> sees the zero hash for them and misses a redeploy by the publisher. The
+          finding is about monitoring correctness, not frequency. Accounts outside this list were not measured.
+        </Callout>
+        <p className="max-w-[66ch] leading-[1.6] text-slate">
+          {int(MEASUREMENT.failed.length)} accounts could not be classified because the read failed ({MEASUREMENT.failed.join(", ")}); a
+          failed read is never counted as <span className="mono">unknown</span>. Source:{" "}
+          <span className="mono">{MEASUREMENT.generatedFrom}</span>, blocks {int(MEASUREMENT.blockRange.min)} to{" "}
+          {int(MEASUREMENT.blockRange.max)}. Method and limits: <span className="mono">measurement/REPORT.md</span>. Reproduce:{" "}
+          <span className="mono">pnpm measure</span>, then{" "}
+          <span className="mono">node apps/web/scripts/sync-measurement.mjs {MEASUREMENT.generatedFrom}</span>.
+        </p>
       </Section>
     </DocShell>
   );
