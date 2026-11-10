@@ -26,7 +26,7 @@ describe("console boundary", () => {
   });
 
   it("keeps wallet and signing libraries out of the landing and classifier code", () => {
-    const banned = /(from|import)\s*\(?\s*["'](near-api-js|@near-wallet-selector[^"']*|@near-js\/[^"']*|@aruna\/sdk)["']/;
+    const banned = /(from|import)\s*\(?\s*["'](near-api-js|@hot-labs\/[^"']*|@near-wallet-selector[^"']*|@near-js\/[^"']*|@aruna\/sdk)["']/;
     const offenders = files(SRC)
       .filter((f) => {
         const rel = relative(SRC, f).split(sep).join("/");

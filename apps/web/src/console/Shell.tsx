@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ROLES, SCREEN_IDS, roleById, roleFor, type ScreenId } from "./nav";
 import { useRole } from "./RoleContext";
+import { WalletButton } from "./ui/WalletButton";
 
 const screenOf = (path: string): ScreenId | null => {
   const seg = path.split("/").filter(Boolean)[1]; // /console/<screen>/
@@ -48,9 +49,12 @@ export function Shell({ children }: { children: ReactNode }) {
               </Link>
             ))}
           </nav>
-          <div className="hidden items-center gap-3 sm:flex">
-            <span className="label border border-line-2 px-2 py-0.5 text-xs">testnet</span>
-            <span className="mono text-[13px] text-muted">{current.signer}</span>
+          <div className="flex items-center gap-3">
+            <span className="label hidden border border-line-2 px-2 py-0.5 text-xs sm:inline">testnet</span>
+            <span className="mono hidden text-[13px] text-muted lg:inline" title="Screens still run on mock data, acting as this account">
+              {current.signer}
+            </span>
+            <WalletButton />
           </div>
         </div>
       </header>
