@@ -8,12 +8,29 @@ U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
 
 ## How it reads the chain
 
-- **Source.** Block by block from `testnet.neardata.xyz`, starting at block 276952600, just before
-  `registry.arunafi.testnet` was created. Each block carries every receipt outcome, with its logs and
-  its transaction hash.
-- **A key is required.** Without a key, neardata serves 30 blocks a minute (measured 11 November
-  2026), which is below testnet's block rate. Set `FASTNEAR_API_KEY` to a FastNear key. It is sent as
-  `Authorization: Bearer` and never logged.
+- **Source.** Block by block, starting at block 276952600, just before `registry.arunafi.testnet` was
+  created. Set `QUICKNODE_RPC_URL` to a QuickNode testnet endpoint (archive, no pruning), and the indexer
+  reads over JSON-RPC:
+  1. `EXPERIMENTAL_changes_in_block` lists every account a block touched. A block that touches no
+     watched account costs this one call.
+  2. For the watched accounts it asks for the receipts that changed them (`EXPERIMENTAL_changes`), the
+     transaction of each (`EXPERIMENTAL_receipt_to_tx`) and its outcomes with their logs
+     (`EXPERIMENTAL_tx_status`).
+
+  An event is seen when the receipt that logged it changed the account's state. Every Aruna contract
+  emits from a method that writes its state, and the tests replay recorded testnet blocks to check that
+  the records equal what a full block read gives.
+- **The endpoint URL is a secret.** A QuickNode URL carries its token in the path. It is read from the
+  environment, never logged, and removed from every error message. The indexer refuses an endpoint whose
+  `status` reports a chain other than testnet.
+- **Cost.** At least one call per block, so a full backfill is about 260,000 calls as of 11 November
+  2026, plus a handful for each block that touches an Aruna account. The per-method credit cost is not in
+  the QuickNode documentation I read, so check your plan's credits and request rate; lower
+  `--concurrency` if the endpoint rate-limits (it retries with backoff).
+- **Without a QuickNode URL** the indexer falls back to `testnet.neardata.xyz`. Without a key, that
+  serves 30 blocks a minute (measured 11 November 2026), below testnet's block rate. Set
+  `FASTNEAR_API_KEY` to a FastNear key to speed it up; it is sent as `Authorization: Bearer` and never
+  logged.
 - **Which events count.** Only receipts that succeeded and were executed by a watched account. The
   watched set starts from the registries, factories and pools in `config/testnet.json`. A vault joins
   it when one of those factories emits `vault_created` for it. A look-alike event from any other
@@ -32,7 +49,8 @@ Requires Node 22.13 or later, for `node:sqlite`.
 
 ```bash
 pnpm --filter @aruna/indexer build
-FASTNEAR_API_KEY=... node packages/indexer/dist/cli.js serve --db aruna-indexer.sqlite --port 8080
+QUICKNODE_RPC_URL=https://<your endpoint>.quiknode.pro/<token>/ \
+  node packages/indexer/dist/cli.js serve --db aruna-indexer.sqlite --port 8080
 curl -s localhost:8080/health
 ```
 
@@ -44,7 +62,7 @@ As a container, built from the repository root:
 
 ```bash
 docker build -f packages/indexer/Dockerfile -t aruna-indexer .
-docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data -e FASTNEAR_API_KEY=... aruna-indexer
+docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data -e QUICKNODE_RPC_URL=... aruna-indexer
 ```
 
 The image's health check calls `/health`. It fails while the indexer is more than 60 blocks behind, which includes the first backfill, so do not let an orchestrator restart the container on an unhealthy status. And it fails when ingest has stopped reading the head.
@@ -52,7 +70,7 @@ The image's health check calls `/health`. It fails while the indexer is more tha
 ## Rebuild from nothing
 
 ```bash
-FASTNEAR_API_KEY=... node packages/indexer/dist/cli.js rebuild --db a.sqlite
+QUICKNODE_RPC_URL=... node packages/indexer/dist/cli.js rebuild --db a.sqlite
 node packages/indexer/dist/cli.js export --db a.sqlite --out a.json
 ```
 

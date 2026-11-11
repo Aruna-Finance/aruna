@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { runIndexer, type IndexerOptions } from "./indexer.js";
-import { neardataSource } from "./ingest/neardata.js";
+import { neardataSource, type BlockSource } from "./ingest/neardata.js";
+import { rpcSource } from "./ingest/rpc.js";
 import { startServer } from "./server.js";
 import { sleep } from "./sleep.js";
 import { openStore } from "./store.js";
@@ -25,8 +26,12 @@ Usage:
   aruna-indexer export  [--db <file>] [--out <file>]
       Write every derived table as canonical JSON. Two stores built from the same blocks export the same bytes.
 
-Environment: ARUNA_INDEXER_DB (default ./aruna-indexer.sqlite), ARUNA_INDEXER_CONFIG, and FASTNEAR_API_KEY.
-Without FASTNEAR_API_KEY, neardata serves 30 blocks a minute, too slow to backfill or to follow the head.`;
+Environment: ARUNA_INDEXER_DB (default ./aruna-indexer.sqlite) and ARUNA_INDEXER_CONFIG.
+Block source, in this order:
+  QUICKNODE_RPC_URL   a testnet JSON-RPC archive endpoint (the URL carries the token, so it is a secret).
+                      One call per block, plus a few for a block that touches an Aruna account.
+  otherwise neardata  testnet.neardata.xyz, with FASTNEAR_API_KEY when set. Without a key it serves 30 blocks a
+                      minute, too slow to backfill or to follow the head.`;
 
 export interface IndexerConfig {
   network: string;
@@ -43,10 +48,18 @@ export function loadConfig(path?: string): IndexerConfig {
   return c;
 }
 
+export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = process.env): { source: BlockSource<unknown>; label: string } {
+  if (env.QUICKNODE_RPC_URL) return { source: rpcSource({ url: env.QUICKNODE_RPC_URL }), label: "RPC endpoint (QUICKNODE_RPC_URL)" };
+  const apiKey = env.FASTNEAR_API_KEY || undefined;
+  return { source: neardataSource({ baseUrl: config.neardata, apiKey }), label: apiKey ? "neardata with a FastNear key" : "neardata without a key (30 blocks a minute)" };
+}
+
 function ingestOptions(config: IndexerConfig, store: IndexerOptions["store"], concurrency: string | undefined): IndexerOptions {
+  const { source, label } = chooseSource(config);
+  console.error(`block source: ${label}`);
   return {
     store,
-    source: neardataSource({ baseUrl: config.neardata, apiKey: process.env.FASTNEAR_API_KEY || undefined }),
+    source,
     seeds: { factories: config.factories, contracts: config.contracts },
     startBlock: config.start_block,
     concurrency: concurrency ? Number(concurrency) : undefined,
