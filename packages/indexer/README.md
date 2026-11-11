@@ -63,7 +63,7 @@ itself, so pass it with `--env-file`. Expected: JSON with `last_indexed_block` r
 the lag is 60 blocks or less, and only while the indexer has read the chain's head in the last two
 minutes (`head_seen_ms_ago`). An indexer that stopped reading is never reported as caught up.
 
-As a container. The build context is this folder, and nothing outside it is read:
+As a container. The build context is this folder, and nothing outside it is read. The image has no `VOLUME` instruction (Railway rejects one), so mount the volume at `/data` yourself:
 
 ```bash
 docker build -t aruna-indexer packages/indexer
