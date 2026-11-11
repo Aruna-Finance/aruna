@@ -220,13 +220,16 @@ export function CreateVault() {
               </li>
             ))}
           </ul>
-          <div className="mt-5 flex flex-wrap items-end gap-3 sm:max-w-xl">
-            <div className="min-w-0 flex-1">
-              <TextField label="Add a classified target" value={extra} onChange={setExtra} mono hint={extraNote ?? "Checked against the registry, not classified here."} />
+          <div className="mt-5 sm:max-w-xl">
+            <div className="flex items-end gap-3">
+              <div className="min-w-0 flex-1">
+                <TextField label="Add a classified target" value={extra} onChange={setExtra} mono />
+              </div>
+              <Button type="button" variant="outline" className="inline-flex h-[51px] items-center py-0!" onClick={addExtra} disabled={!info || !extra.trim()}>
+                Check
+              </Button>
             </div>
-            <Button type="button" variant="outline" onClick={addExtra} disabled={!info || !extra.trim()}>
-              Check
-            </Button>
+            <p className="mt-1.5 text-sm text-muted">{extraNote ?? "Checked against the registry, not classified here."}</p>
           </div>
           <p className="mt-4 max-w-[70ch] text-sm leading-[1.6] text-muted">
             The ceiling limits every agent to 0.5 NEAR per transaction and 2 NEAR per day, and admits the riskiest class you pick here. You can
@@ -389,6 +392,9 @@ function CreatedVault({
         </Button>
         <Link href={`/console/lookup/?vault=${encodeURIComponent(vault)}`} className="pb-3 text-sm underline underline-offset-4">
           Open in Lookup
+        </Link>
+        <Link href={`/console/agents/?vault=${encodeURIComponent(vault)}`} className="pb-3 text-sm underline underline-offset-4">
+          Manage agents
         </Link>
       </div>
       {next && next.id === "agent" && <p className="mt-4 text-sm text-muted">Next: add an agent. The Agents screen still runs on sample data until the agent step lands.</p>}

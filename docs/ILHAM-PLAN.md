@@ -89,15 +89,18 @@ Done when: a fresh testnet wallet creates a vault, sets a ceiling containing `sw
 
 Requirements: R18, R20, R21, R23; AE1, AE5.
 
-- [ ] `agent-keys.ts`: generate an ed25519 keypair in the tab, store under network + vault + public key in `localStorage` (try/catch every access), label "testnet agent key, limited to this vault", export as a download
-- [ ] `AgentWizard.tsx`: register the public key through `OperatorVault.createAgent`; default policy that makes the shared injected attempts return their recorded reason codes; refuse a policy outside the ceiling before signing, naming the field
-- [ ] `AgentDetail.tsx`, `AgentsList.tsx`, `useActions.tsx`: pause, revoke, tighten for the operator; resume, loosen, set or remove the operator, change the ceiling, withdraw for the owner (`OwnerVault`); a disabled action carries its reason
-- [ ] When one wallet is both owner and operator, `RoleContext` lets the visitor view as the operator and see "resume" disabled with "only the owner can resume an auto-disabled agent"
-- [ ] An agent whose key is not in this browser is marked "key not in this browser" (revoke stays available)
-- [ ] Remove the agent part of `data/mock.ts`
-- [ ] Tests: key stored per vault and network, not leaked across networks; AE1 operator vs owner resume; operator cannot loosen, withdraw or change the owner; AE5
+- [x] `agent-keys.ts`: generate an ed25519 keypair in the tab, store under network + vault + public key in `localStorage` (try/catch every access), label "testnet agent key, limited to this vault", export as a download
+- [x] `AgentWizard.tsx`: register the public key through `OperatorVault.createAgent`; default policy that makes the shared injected attempts return their recorded reason codes; refuse a policy outside the ceiling before signing, naming the field
+- [~] `AgentDetail.tsx`, `AgentsList.tsx`, `useActions.tsx`: built as `useLiveActions.tsx` and live screens, including set or remove operator and change ceiling (`LiveVaultSettings.tsx`); old `useActions.tsx` stays for the mock screens. Browser-checked: list, wizard, key tab. Not yet checked on chain from the screens: policy, funds, operator, ceiling: pause, revoke, tighten for the operator; resume, loosen, set or remove the operator, change the ceiling, withdraw for the owner (`OwnerVault`); a disabled action carries its reason
+- [~] When one wallet is both owner and operator, `RoleContext` lets the visitor view as the operator and see "resume" disabled with "only the owner can resume an auto-disabled agent"
+- [x] An agent whose key is not in this browser is marked "key not in this browser" (revoke stays available)
+- [ ] Remove the agent part of `data/mock.ts`: NOT done. The mock vault still feeds Overview, Migration, Story, TargetDetail and Coverage, so it goes with those screens
+- [~] Tests: key stored per vault and network, not leaked across networks; AE1 operator vs owner resume; operator cannot loosen, withdraw or change the owner; AE5
 
 Done when: on a self-serve vault an agent is added with a browser key, paused, resumed by the owner and revoked, and each change shows on chain.
+
+**Status (11 November 2026).** Built, closed with open verification. Every feature in this phase is in: browser keys, the live Agents list, the Create an agent wizard, agent detail (overview, policy, activity, funds, key and proof) and owner settings (operator, ceiling). Proven on testnet, read back from the RPC: add agent from the wizard (`arunaTest#1`, function-call key limited to `spend` and `refresh_class`, no full-access key); add, pause, resume (owner) and revoke through the local test page (txs `26pTkpwesbRzVbM1mLMtrcfszdYXV7pRjtRHHsTs9Aa9`, `EuFbgd9DSgx73N8DKL3JWNuvtvhfP3hAUCs2yJmcNwHT`, `5EeCP3hTVJyQrFY5b8EzJFVjvTCUq7JNS1NzXeiFgxeb`, `3L5WAm1RhWCo67237sQoC3Senycnooxaxz11bsyjdTch`, `AhdTr93Jibpjo2M8fFmC2pYq3Ai1pbnfBaC66ZJAmUEG`). Checked by eye only, no transaction hash: role switch with reasons on disabled buttons, the key and proof tab. **Not proven on chain from the screens:** pause, resume and revoke from the list; tighten and loosen policy (all agents still show policy version 1); deposit and withdraw; set or remove the operator; change the ceiling; the wizard export-key download; the "Not in this browser" view in a private window. These pass unit tests and the build only. The sample agent list, wizard and detail were removed; the mock vault store stays because Overview, Migration, Story, TargetDetail and Coverage still read it, so "remove the agent part of data/mock.ts" is not done. The gas allowance of an existing key cannot be changed from the console: the SDK has no method for it.
+
 
 ### L4. Playground, live (U7)
 

@@ -3,35 +3,40 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { AgentView } from "@aruna/sdk";
 import { Button } from "@/shared/Button";
 import { ACCESS_KEY_ROWS, REFUSALS } from "@/landing/lib/facts";
 import { curlFor } from "@/landing/lib/verify-commands";
-import { vaultStore } from "../data/vault-mock";
-import { ceilingProblem, isTightening, type AgentRecord } from "../data/vault";
-import { block, n0, n2 } from "../fmt";
-import { policyPrice } from "../pricing";
-import { useActions } from "../useActions";
-import { useCoverage } from "../useCoverage";
-import { useTargets } from "../useTargets";
-import { BudgetBar, BudgetLegend } from "../ui/BudgetBar";
+import { availability, isTighter, policyProblem, type ActorRole } from "../agent-actions";
+import { createTestnetReads } from "../chain-reads";
+import { draftFromPolicy, draftToPolicy } from "../data/agent-draft";
+import { classifiedTargets, readFactory, type TargetOption } from "../data/factory";
+import { block, nearToYocto, yoctoToNear } from "../fmt";
+import { defaultHistory, type HistoryState } from "../history";
+import { actorFor, noActorReason } from "../live-vault";
+import { useLiveActions } from "../useLiveActions";
+import { useLiveVault, type LiveVault } from "../useLiveVault";
+import { useRole } from "../RoleContext";
+import { useWallet } from "../WalletContext";
+import { relationOf } from "../walletRole";
 import { ClassTag } from "../ui/ClassTag";
 import { CopyBlock } from "../ui/CopyBlock";
-import { CoverageTable } from "../ui/CoverageTable";
-import { HeartbeatAlert } from "../ui/CoverageNotes";
 import { NumberField } from "../ui/Field";
+import { historyNotice } from "../ui/Freshness";
+import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
-import { ClassPicker, draftFrom, LimitFields, TargetPicker, toPolicy, type PolicyDraft } from "../ui/PolicyFields";
+import { ClassPicker } from "../ui/PolicyFields";
 import { StatusChip } from "../ui/StatusChip";
 import { Tabs } from "../ui/Tabs";
 import { TokenIcon } from "../ui/Token";
+import type { ActivityItem } from "@aruna/indexer/client";
 
-type Tab = "overview" | "policy" | "activity" | "funding" | "coverage" | "access";
+type Tab = "overview" | "policy" | "activity" | "funding" | "access";
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "policy", label: "Policy" },
   { id: "activity", label: "Activity" },
   { id: "funding", label: "Funds and allowance" },
-  { id: "coverage", label: "Coverage" },
   { id: "access", label: "Key and proof" },
 ];
 
@@ -39,14 +44,14 @@ const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-me
 const td = "border-b border-line px-3 py-3 align-top";
 
 /** Counted refusals: the reasons that feed the auto-disable score (docs/CONTRACTS.md). */
-const COUNTED = new Set(REFUSALS.filter((r) => r.counts).map((r) => r.reason.replace(/^ARUNA_/, "")));
+const COUNTED = new Set(REFUSALS.filter((r) => r.counts).map((r) => r.reason));
 
 function NotFound({ id }: { id: string | null }) {
   return (
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Agent not found</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        {id ? <>No agent called <span className="mono">{id}</span> exists on this vault.</> : "No agent was named in the link."}{" "}
+        {id ? <>No agent with key <span className="mono break-all">{id}</span> exists on this vault.</> : "No agent was named in the link."}{" "}
         <Link href="/console/agents/" className="underline underline-offset-4">
           Back to the agent list
         </Link>
@@ -57,16 +62,39 @@ function NotFound({ id }: { id: string | null }) {
 }
 
 export function AgentDetail() {
-  const id = useSearchParams().get("id");
-  const { vault } = useActions();
-  const agent = vault.agents.find((a) => a.id === id);
-  return agent ? <Detail key={agent.id} agent={agent} /> : <NotFound id={id} />;
+  const id = useSearchParams().get("agent");
+  const live = useLiveVault();
+  if (live.status !== "ok") return <NoVault live={live} title="Agent" />;
+  const agent = live.view.agents.find((a) => a.publicKey === id);
+  return agent ? <Detail key={agent.publicKey} live={live} agent={agent} /> : <NotFound id={id} />;
 }
 
-function Detail({ agent: a }: { agent: AgentRecord }) {
+function useRoleOn(live: Extract<LiveVault, { status: "ok" }>) {
+  const { accountId } = useWallet();
+  const { role } = useRole();
+  const relation = relationOf(accountId, live.view);
+  return { relation, actor: actorFor(relation, role) };
+}
+
+function Detail({ live, agent: a }: { live: Extract<LiveVault, { status: "ok" }>; agent: AgentView }) {
   const [tab, setTab] = useState<Tab>("overview");
-  const { vault, isOperator, freeze, resume, revoke } = useActions();
-  const counted = vault.events.filter((e) => e.agent === a.id && e.code && COUNTED.has(e.code)).length;
+  const acts = useLiveActions(live.vault, live.refresh);
+  const { relation, actor } = useRoleOn(live);
+  const can = (action: Parameters<typeof availability>[1]) => (actor ? availability(actor, action, a) : ({ enabled: false, reason: noActorReason(relation) } as const));
+  const history = useMemo(() => defaultHistory(), []);
+  const [counted, setCounted] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    history.activity(live.vault, { agent: a.publicKey }).then((h) => alive && setCounted(h.state === "unavailable" ? null : h.items.filter((i) => i.reason !== null && COUNTED.has(i.reason)).length));
+    return () => {
+      alive = false;
+    };
+  }, [history, live.vault, a.publicKey, live.view]);
+
+  const pause = can("pause");
+  const resume = can("resume");
+  const revoke = can("revoke");
 
   return (
     <article>
@@ -74,64 +102,102 @@ function Detail({ agent: a }: { agent: AgentRecord }) {
         <Link href="/console/agents/" className="underline underline-offset-4">
           Agents
         </Link>{" "}
-        / <span className="mono">{a.publicKey}</span>
+        / <span className="mono break-all">{a.publicKey}</span>
       </p>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-6">
         <div>
           <h1 className="text-[clamp(28px,4vw,44px)]">{a.label}</h1>
           <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
             <StatusChip a={a} />
-            <span className="text-sm text-muted">
-              Counted refusals {counted} · Added {block(a.addedBlock)}
-            </span>
+            <span className="text-sm text-muted">Counted refusals {counted === null ? "unavailable" : counted}</span>
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          {a.status === "Active" && (
-            <Button type="button" variant="dark" onClick={() => freeze(a)}>
-              Freeze agent
-            </Button>
-          )}
-          {a.status === "Paused" && !isOperator && (
-            <Button type="button" onClick={() => resume(a)}>
-              Resume agent
-            </Button>
-          )}
-          {a.status === "Paused" && (
-            <Button type="button" variant="dark" onClick={() => revoke(a)}>
-              Revoke agent
-            </Button>
-          )}
+        <div className="flex flex-wrap items-start gap-3">
+          {a.status === "Active" && <ActionButton v={pause} variant="dark" onClick={() => acts.pause(a.publicKey, a.label)}>Freeze agent</ActionButton>}
+          {a.status === "Paused" && <ActionButton v={resume} onClick={() => acts.resume(a.publicKey, a.label)}>Resume agent</ActionButton>}
+          {a.status !== "Revoked" && <ActionButton v={revoke} variant="dark" onClick={() => acts.revoke(a.publicKey, a.label)}>Revoke agent</ActionButton>}
         </div>
       </div>
 
       <div className="mt-8">
         <Tabs tabs={TABS} value={tab} onChange={setTab}>
-          {tab === "overview" && <OverviewTab a={a} />}
-          {tab === "policy" && <PolicyTab a={a} />}
-          {tab === "activity" && <ActivityTab a={a} />}
-          {tab === "funding" && <FundingTab a={a} />}
-          {tab === "coverage" && <CoverageTab a={a} />}
-          {tab === "access" && <AccessTab a={a} />}
+          {tab === "overview" && <OverviewTab live={live} a={a} />}
+          {tab === "policy" && <PolicyTab live={live} a={a} actor={actor} reason={noActorReason(relation)} />}
+          {tab === "activity" && <ActivityTab live={live} a={a} />}
+          {tab === "funding" && <FundingTab live={live} a={a} actor={actor} reason={noActorReason(relation)} />}
+          {tab === "access" && <AccessTab live={live} a={a} />}
         </Tabs>
       </div>
     </article>
   );
 }
 
-function OverviewTab({ a }: { a: AgentRecord }) {
-  const { classes } = useTargets();
-  const rows = Object.entries(a.exposure);
+function ActionButton({ v, variant, onClick, children }: { v: ReturnType<typeof availability>; variant?: "dark"; onClick: () => void; children: string }) {
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Button type="button" variant={variant} disabled={!v.enabled} onClick={onClick}>
+        {children}
+      </Button>
+      {!v.enabled && <span className="max-w-[28ch] text-right text-xs leading-[1.4] text-muted">{v.reason}</span>}
+    </div>
+  );
+}
+
+function useBalance(vault: string, refreshKey: unknown) {
+  const reads = useMemo(() => createTestnetReads(), []);
+  const [b, setB] = useState<bigint | null>(null);
+  useEffect(() => {
+    let alive = true;
+    reads.balance(vault).then((v) => alive && setB(v)).catch(() => alive && setB(null));
+    return () => {
+      alive = false;
+    };
+  }, [reads, vault, refreshKey]);
+  return b;
+}
+
+function OverviewTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView }) {
+  const balance = useBalance(live.vault, live.view);
+  const near = a.policy.limits?.find((l) => l.token === "near");
+  const usage = a.usageByToken?.find((u) => u.token === "near");
+  const spent = usage ? BigInt(usage.spentToday) : 0n;
+  const reserved = usage ? BigInt(usage.reserved) : 0n;
+  const cap = near ? BigInt(near.dailyCap) : 0n;
+  const left = cap > spent + reserved ? cap - spent - reserved : 0n;
+  const pct = (x: bigint) => (cap > 0n ? `${Math.min(100, Number((x * 10_000n) / cap) / 100)}%` : "0%");
+  const rows = live.view.exposureByToken ?? live.view.exposure ?? [];
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
-      <Panel title="Today's budget" aside={<span className="mono text-sm text-muted">Vault balance {n0(a.balance)} USDC</span>}>
-        <BudgetBar a={a} wide />
-        <BudgetLegend a={a} />
+      <Panel title="Today's budget" aside={<span className="mono text-sm text-muted">Vault balance {balance === null ? "unknown" : `${yoctoToNear(balance.toString())} NEAR`}</span>}>
+        {near ? (
+          <>
+            <div role="img" aria-label={`${yoctoToNear(spent.toString())} NEAR spent, ${yoctoToNear(reserved.toString())} reserved, of ${yoctoToNear(near.dailyCap)} NEAR daily cap`} className="flex h-2 w-full bg-fog">
+              <i className="bg-ink" style={{ width: pct(spent) }} />
+              <i className="bg-dawn" style={{ width: pct(reserved) }} />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
+              <span>
+                <i className="mr-2 inline-block size-2 bg-ink" aria-hidden />
+                Spent {yoctoToNear(spent.toString())}
+              </span>
+              <span>
+                <i className="mr-2 inline-block size-2 bg-dawn" aria-hidden />
+                Reserved {yoctoToNear(reserved.toString())}
+              </span>
+              <span>
+                <i className="mr-2 inline-block size-2 bg-fog" aria-hidden />
+                Left {yoctoToNear(left.toString())} of {yoctoToNear(near.dailyCap)} NEAR
+              </span>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted">This agent has no NEAR limit.</p>
+        )}
       </Panel>
-      <Panel title="Recorded exposure">
+      <Panel title="Recorded exposure on this vault">
         <p className="-mt-2 mb-4 max-w-[70ch] text-sm text-muted">
-          This is what passed through the vault, not the position&apos;s current value. The vault cannot read the target&apos;s state,
-          and payouts use this figure.
+          This is what passed through the vault, not the position&apos;s current value. The vault cannot read the target&apos;s state, and payouts use this
+          figure. It is counted per vault and target, not per agent.
         </p>
         {rows.length ? (
           <div className="overflow-x-auto">
@@ -139,16 +205,18 @@ function OverviewTab({ a }: { a: AgentRecord }) {
               <thead>
                 <tr>
                   <th className={th}>Target</th>
-                  <th className={th}>Class</th>
+                  <th className={th}>Class when recorded</th>
                   <th className={`${th} text-right`}>Sent</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map(([t, amount]) => (
-                  <tr key={t}>
-                    <td className={`${td} mono`}>{t}</td>
-                    <td className={td}>{classes[t] ? <ClassTag c={classes[t]} target={t} /> : <span className="text-muted">Loading</span>}</td>
-                    <td className={`${td} mono whitespace-nowrap text-right`}>{n0(amount)} USDC</td>
+                {rows.map((r) => (
+                  <tr key={`${r.target}-${r.token ?? "near"}`}>
+                    <td className={`${td} mono break-all`}>{r.target}</td>
+                    <td className={td}>{["immutable_verified", "local_upgradeable", "global_by_account", "unknown"].includes(r.classAtRecord) ? <ClassTag c={r.classAtRecord as "unknown"} target={r.target} /> : r.classAtRecord}</td>
+                    <td className={`${td} mono whitespace-nowrap text-right`}>
+                      {yoctoToNear(r.amount)} {r.token && r.token !== "near" ? r.token : "NEAR"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -162,78 +230,111 @@ function OverviewTab({ a }: { a: AgentRecord }) {
   );
 }
 
-function PolicyTab({ a }: { a: AgentRecord }) {
-  const { vault, actor, isOperator, ask, run } = useActions();
-  const { list, classes, classOf } = useTargets();
-  const [d, setD] = useState<PolicyDraft>(() => draftFrom(a.policy));
-  const next = useMemo(() => toPolicy(d, classOf), [d, classes]); // eslint-disable-line react-hooks/exhaustive-deps
-  const before = policyPrice(a.policy, classOf);
-  const after = policyPrice(next, classOf);
-  const diff = before.priced && after.priced ? after.total - before.total : null;
-  const ceiling = ceilingProblem(vault, next, a.id);
-  const loosens = isOperator && !isTightening(a.policy, next);
-  const invalid = !(d.maxTx > 0) || !(d.cap > 0) || d.maxTx > d.cap || !!ceiling || loosens || a.status === "Revoked";
-  const message = loosens
-    ? "An operator can only tighten a policy. Ask the client to loosen it."
-    : ceiling ?? (d.maxTx > d.cap ? "Max per transaction cannot exceed the daily cap." : null);
+function PolicyTab({ live, a, actor, reason }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView; actor: ActorRole | null; reason: string }) {
+  const acts = useLiveActions(live.vault, live.refresh);
+  const ceiling = live.view.ceiling;
+  const current = useMemo(
+    () => draftToPolicy({ ...draftFromPolicy({ limits: a.policy.limits ?? [{ token: "near", maxPerTx: a.policy.maxPerTx, dailyCap: a.policy.dailyCap }], maxSlippageBps: a.policy.maxSlippageBps, allowedTargets: a.policy.allowedTargets, maxRiskClass: a.policy.maxRiskClass as "unknown" }) }),
+    [a],
+  );
+  const [d, setD] = useState(() => draftFromPolicy(current));
+  const [options, setOptions] = useState<TargetOption[]>([]);
+  const reads = useMemo(() => createTestnetReads(), []);
 
-  function save() {
-    ask({
-      title: "Update this policy?",
-      actions: ["update policy"],
-      note: "The vault applies new limits from the next call. Existing exposure records do not change.",
-      onOk: () => run(() => vaultStore.applyPolicy(a.id, next, actor), "Policy updated. Event policy_updated was emitted."),
-    });
-  }
+  useEffect(() => {
+    if (!ceiling) return;
+    let alive = true;
+    readFactory(reads)
+      .then((f) => classifiedTargets(reads, f.registry, ceiling.allowedTargets))
+      .then((t) => alive && setOptions(t))
+      .catch(() => alive && setOptions([]));
+    return () => {
+      alive = false;
+    };
+  }, [ceiling, reads]);
+
+  if (!ceiling) return <p className="text-sm text-muted">This vault version does not expose a ceiling, so a policy cannot be checked against it. Nothing is signed.</p>;
+
+  const next = draftToPolicy(d);
+  const problem = policyProblem(next, ceiling);
+  const tighter = isTighter(current, next);
+  const changed = JSON.stringify(next) !== JSON.stringify(current);
+  const operatorLoosens = actor === "operator" && !tighter;
+  const revoked = a.status === "Revoked";
+  const message = revoked ? "This agent is revoked; its policy can no longer change." : !actor ? reason : operatorLoosens ? "An operator can only tighten a policy. Ask the client to loosen it." : problem?.message ?? null;
+  const invalid = revoked || !actor || !changed || !!problem || operatorLoosens;
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
-      <Panel title="Premium with these limits" aside={<span className="text-sm text-muted">Mock model, assumptions apply</span>}>
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            {after.priced ? (
-              <p className="text-[28px] leading-[1.1]">
-                {n2(after.total)}
-                <small className="ml-1 text-base text-muted">USDC per 30 days</small>
-              </p>
-            ) : (
-              <p className="text-[28px] leading-[1.1]">Not priced</p>
-            )}
-            <p className="mt-2 text-sm text-slate">
-              {diff == null
-                ? after.priced
-                  ? "Becomes priced with this change."
-                  : "An unknown target is allowed, so no premium exists."
-                : diff === 0
-                  ? "No change from the current policy."
-                  : `${diff < 0 ? "-" : "+"}${n2(Math.abs(diff))} USDC against the current ${before.priced ? n2(before.total) : ""}.`}{" "}
-              30-day maximum {n0((d.cap || 0) * 30)} USDC.
-            </p>
-          </div>
-          <Button type="button" disabled={invalid} onClick={save}>
-            Save the policy
+      <Panel
+        title="Save a policy change"
+        aside={
+          <Button type="button" disabled={invalid} onClick={() => acts.setPolicy(a.publicKey, a.label, next, tighter)}>
+            {changed && !tighter ? "Loosen the policy" : "Save the policy"}
           </Button>
-        </div>
+        }
+      >
+        <p className="text-sm text-slate">
+          {!changed ? "No change from the current policy." : tighter ? "This change only tightens the policy." : "This change loosens the policy, which only the owner can do."}
+        </p>
         {message && <p className="mt-3 text-sm text-dawn-ink">{message}</p>}
       </Panel>
 
       <Panel title="Economic limits">
         <div className="grid gap-6">
-          <LimitFields d={d} set={setD} />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <NumberField label="Max per transaction" suffix={<TokenIcon t="NEAR" />} step={0.05} value={d.maxTx} onChange={(v) => setD({ ...d, maxTx: v })} />
+            <NumberField label="Daily cap" suffix={<TokenIcon t="NEAR" />} step={0.1} value={d.cap} onChange={(v) => setD({ ...d, cap: v })} />
+            <NumberField label="Max slippage" suffix="%" step={0.05} value={d.slipPct} onChange={(v) => setD({ ...d, slipPct: v })} />
+          </div>
           <ClassPicker value={d.maxClass} onChange={(maxClass) => setD({ ...d, maxClass })} />
-          <TargetPicker targets={list} classes={classes} d={d} set={setD} frozen={list.filter((t) => t.frozen).map((t) => t.id)} />
+          <fieldset>
+            <legend className="text-sm font-medium">Allowed targets</legend>
+            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+              {ceiling.allowedTargets.map((t) => {
+                const o = options.find((x) => x.target === t);
+                const on = d.targets.includes(t);
+                return (
+                  <li key={t}>
+                    <label className="flex cursor-pointer items-start gap-3 border border-line p-3 has-[:checked]:border-ink">
+                      <input type="checkbox" className="mt-1 accent-ink" checked={on} onChange={() => setD({ ...d, targets: on ? d.targets.filter((x) => x !== t) : [...d.targets, t] })} />
+                      <span>
+                        <span className="mono block break-all text-sm">{t}</span>
+                        {o && <ClassTag c={o.class} target={t} />}
+                        {o?.frozen && <span className="mono ml-2 text-xs text-dawn-ink">frozen</span>}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </fieldset>
         </div>
       </Panel>
     </div>
   );
 }
 
-function ActivityTab({ a }: { a: AgentRecord }) {
-  const { vault } = useActions();
+const kindLabel = (i: ActivityItem) => i.event || i.kind;
+
+function ActivityTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView }) {
+  const history = useMemo(() => defaultHistory(), []);
+  const [h, setH] = useState<HistoryState<ActivityItem> | null>(null);
   const [f, setF] = useState<"all" | "refused" | "other">("all");
-  const list = vault.events.filter(
-    (e) => e.agent === a.id && (f === "all" || (f === "refused" ? e.type === "execution_rejected" : e.type !== "execution_rejected")),
-  );
+
+  useEffect(() => {
+    let alive = true;
+    history.activity(live.vault, { agent: a.publicKey }).then((r) => alive && setH(r));
+    return () => {
+      alive = false;
+    };
+  }, [history, live.vault, a.publicKey, live.view]);
+
+  const items = h && h.state !== "unavailable" ? h.items : [];
+  const list = items.filter((e) => f === "all" || (f === "refused" ? e.kind === "refused" : e.kind !== "refused")).slice().reverse();
+  const notice = h ? historyNotice(h, history.source) : null;
+  const pending = h?.pending ?? [];
+
   return (
     <Panel
       title="On-chain events"
@@ -262,155 +363,86 @@ function ActivityTab({ a }: { a: AgentRecord }) {
       <p className="-mt-2 mb-4 max-w-[70ch] text-sm text-muted">
         NEP-297 events with standard &quot;aruna&quot;. A refusal is the product working, so it is recorded like any other event.
       </p>
-      {list.length ? (
+      {notice && <p className="mb-4 border-l-[3px] border-line-2 bg-fog px-4 py-3 text-sm leading-[1.6]">{notice}</p>}
+      {pending.map((p) => (
+        <p key={p.hash} className="mb-2 text-sm text-muted">
+          Pending: {p.label} <span className="mono">{p.hash}</span>
+        </p>
+      ))}
+      {h === null ? (
+        <p className="text-sm text-muted">Reading history.</p>
+      ) : list.length ? (
         <ul className="grid gap-3 text-sm">
           {list.map((e) => (
-            <li key={e.id} className="grid gap-0.5 border-t border-line pt-3">
+            <li key={e.seq} className="grid gap-0.5 border-t border-line pt-3">
               <span className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className={`mono text-xs ${e.type === "execution_rejected" ? "text-dawn-ink" : "text-muted"}`}>{e.type}</span>
+                <span className={`mono text-xs ${e.kind === "refused" ? "text-dawn-ink" : "text-muted"}`}>{kindLabel(e)}</span>
                 <span className="mono text-xs text-muted">{block(e.block)}</span>
               </span>
               <span>
-                {e.target && <span className="mono text-muted">to {e.target} </span>}
-                {e.code && <span className="mono text-dawn-ink">ARUNA_{e.code} </span>}
-                {e.detail && <span className="text-muted">{e.detail}</span>}
+                {e.target && <span className="mono break-all text-muted">to {e.target} </span>}
+                {e.reason && <span className="mono text-dawn-ink">{e.reason} </span>}
+                {e.amount && <span className="text-muted">{yoctoToNear(e.amount)} {e.token && e.token !== "near" ? e.token : "NEAR"}</span>}
               </span>
             </li>
           ))}
         </ul>
-      ) : (
+      ) : h.state === "unavailable" ? null : (
         <p className="text-sm text-muted">No events match this filter.</p>
       )}
     </Panel>
   );
 }
 
-function FundingTab({ a }: { a: AgentRecord }) {
-  const { vault, actor, isOperator, ask, run } = useActions();
+function FundingTab({ live, a, actor, reason }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView; actor: ActorRole | null; reason: string }) {
+  const acts = useLiveActions(live.vault, live.refresh);
+  const balance = useBalance(live.vault, live.view);
   const [dep, setDep] = useState(0);
   const [wd, setWd] = useState(0);
-  const [gas, setGas] = useState(a.allowanceNear);
-  useEffect(() => setGas(a.allowanceNear), [a.allowanceNear]);
+  const allowance = a.key?.allowance ?? null;
+  const owner = live.view.owner;
+  const wdOk = availability(actor ?? "operator", "withdraw", a);
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
-      <Panel title="Balance in the vault" aside={<span className="text-[28px] leading-none">{n0(a.balance)} <small className="text-base text-muted">USDC</small></span>}>
-        <p className="-mt-2 mb-5 text-sm text-muted">The vault holds the funds. The agent holds none.</p>
+      <Panel title="Balance in the vault" aside={<span className="text-[28px] leading-none">{balance === null ? "unknown" : yoctoToNear(balance.toString())} <small className="text-base text-muted">NEAR</small></span>}>
+        <p className="-mt-2 mb-5 text-sm text-muted">The vault holds the funds, for all of its agents. The agent holds none.</p>
         <div className="grid gap-5">
           <div className="grid gap-3">
-            <NumberField label="Deposit" suffix={<TokenIcon t="USDC" />} value={dep} onChange={setDep} />
+            <NumberField label="Deposit" suffix={<TokenIcon t="NEAR" />} step={0.5} value={dep} onChange={setDep} />
             <div>
-              <Button
-                type="button"
-                disabled={!(dep > 0)}
-                onClick={() =>
-                  ask({
-                    title: `Deposit ${n0(dep)} USDC?`,
-                    receiver: "usdc.testnet",
-                    actions: [`ft_transfer_call to ${vault.vault}, 1 yoctoNEAR`],
-                    onOk: () => run(() => vaultStore.deposit(a.id, dep), "Deposit credited to this agent in the vault."),
-                  })
-                }
-              >
-                Deposit USDC
+              <Button type="button" disabled={!acts.accountId || !(dep > 0)} onClick={() => acts.deposit(nearToYocto(dep))}>
+                Deposit NEAR
               </Button>
+              {!acts.accountId && <p className="mt-1 text-xs text-muted">Connect a wallet to deposit.</p>}
             </div>
           </div>
-          {isOperator ? (
-            <p className="text-sm text-muted">Only the client can withdraw, and only to its own account.</p>
-          ) : (
+          {actor === "owner" ? (
             <div className="grid gap-3">
-              <NumberField
-                label={`Withdraw to ${vault.owner}`}
-                suffix={<TokenIcon t="USDC" />}
-                value={wd}
-                onChange={setWd}
-                hint="Only the owner can do this, in any state, and only to the owner's account."
-              />
+              <NumberField label={`Withdraw to ${owner}`} suffix={<TokenIcon t="NEAR" />} step={0.5} value={wd} onChange={setWd} hint="Only the owner can do this, in any state, and only to the owner's account." />
               <div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!(wd > 0)}
-                  onClick={() =>
-                    ask({
-                      title: `Withdraw ${n0(wd)} USDC?`,
-                      actions: [`withdraw_to_owner: ${vault.owner}`],
-                      note: "Owner-only, never an agent action. Funds can only go to the registered owner.",
-                      onOk: () => run(() => vaultStore.withdraw(a.id, wd, actor), "Withdrawn to the owner."),
-                    })
-                  }
-                >
+                <Button type="button" variant="outline" disabled={!wdOk.enabled || !(wd > 0)} onClick={() => acts.withdraw(nearToYocto(wd).toString(), owner)}>
                   Withdraw to owner
                 </Button>
               </div>
             </div>
+          ) : (
+            <p className="text-sm text-muted">{actor === "operator" ? "Only the client can withdraw, and only to its own account." : `Withdrawing: ${reason}.`}</p>
           )}
         </div>
       </Panel>
 
-      <Panel title="Gas allowance" aside={<span className="text-[28px] leading-none">{a.allowanceNear} <small className="text-base text-muted">NEAR</small></span>}>
-        <p className="-mt-2 mb-5 text-sm text-muted">A classic allowance on the key, paid from the vault&apos;s balance.</p>
-        <div className="grid gap-3">
-          <NumberField
-            label="New allowance"
-            suffix={<TokenIcon t="NEAR" />}
-            step={0.01}
-            value={gas}
-            onChange={setGas}
-            hint="Behaviour when an allowance runs out is test T6, still pending."
-          />
-          {isOperator ? (
-            <p className="text-sm text-muted">Only the client can raise an allowance.</p>
-          ) : (
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!(gas > 0)}
-                onClick={() =>
-                  ask({
-                    title: `Set the gas allowance to ${gas} NEAR?`,
-                    actions: ["delete key, then add it with the new allowance, in one batch from the contract"],
-                    onOk: () => run(() => vaultStore.setAllowance(a.id, gas, actor), "Gas allowance replaced."),
-                  })
-                }
-              >
-                Replace the allowance
-              </Button>
-            </div>
-          )}
-        </div>
+      <Panel title="Gas allowance" aside={<span className="text-[28px] leading-none">{allowance === null ? "none" : yoctoToNear(allowance)} <small className="text-base text-muted">NEAR</small></span>}>
+        <p className="-mt-2 mb-5 text-sm leading-[1.6] text-muted">
+          A classic allowance on the key, paid from the vault&apos;s balance. The owner&apos;s ceiling sets it when an agent is added. This console cannot change it
+          on an existing key.
+        </p>
       </Panel>
     </div>
   );
 }
 
-function CoverageTab({ a }: { a: AgentRecord }) {
-  const { isOperator } = useActions();
-  const { policies, attestors } = useCoverage();
-  const mine = policies.filter((p) => p.agent === a.id);
-  return (
-    <Panel
-      title="Coverage policies"
-      aside={
-        !isOperator && (
-          <Link href={`/console/coverage/buy/?agent=${encodeURIComponent(a.id)}`} tabIndex={-1}>
-            <Button type="button" className="px-4! py-2! text-sm!">
-              Buy coverage
-            </Button>
-          </Link>
-        )
-      }
-    >
-      <HeartbeatAlert attestors={attestors} />
-      {mine.length ? <CoverageTable policies={mine} /> : <p className="text-sm text-muted">No coverage on this agent. It still runs under its limits.</p>}
-    </Panel>
-  );
-}
-
-function AccessTab({ a }: { a: AgentRecord }) {
-  const { vault } = useActions();
+function AccessTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView }) {
   const refused = ACCESS_KEY_ROWS.filter((r) => !r.action.startsWith("Parent"));
   const note =
     a.status === "Revoked"
@@ -424,9 +456,8 @@ function AccessTab({ a }: { a: AgentRecord }) {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <Panel title="What the protocol refuses this key">
         <p className="-mt-2 mb-4 max-w-[80ch] text-sm leading-[1.6] text-muted">
-          Results from our lab on nearcore 2.14, protocol 88, single-shard sandbox, using gas keys on sub-accounts. This design uses
-          classic keys on a contract, so T5 to T9 must re-test it. These are refused before a block, so a script prints the proof
-          rather than an explorer link.
+          Results from our lab on nearcore 2.14, protocol 88, single-shard sandbox, using gas keys on sub-accounts. This design uses classic keys on a contract,
+          so T5 to T9 must re-test it. These are refused before a block, so a script prints the proof rather than an explorer link.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-[15px]">
@@ -451,24 +482,26 @@ function AccessTab({ a }: { a: AgentRecord }) {
         <dl className="grid gap-3 text-sm sm:grid-cols-[160px_1fr]">
           <dt className="text-muted">Public key</dt>
           <dd>
-            <span className="mono">{a.publicKey}</span>
+            <span className="mono break-all">{a.publicKey}</span>
             <span className="mt-1 block text-muted">Migrating to a new vault issues a new key. The label and policy carry over.</span>
           </dd>
           <dt className="text-muted">Label</dt>
           <dd>{a.label}</dd>
           <dt className="text-muted">Type</dt>
-          <dd className="mono">FunctionCall, with allowance</dd>
+          <dd className="mono">{a.key ? "FunctionCall, with allowance" : "Deleted"}</dd>
           <dt className="text-muted">Receiver</dt>
-          <dd className="mono">{vault.vault}</dd>
+          <dd className="mono break-all">{a.key?.receiver ?? live.vault}</dd>
+          <dt className="text-muted">Methods</dt>
+          <dd className="mono">{a.key ? a.key.methods.join(", ") : "none"}</dd>
           <dt className="text-muted">Method list</dt>
           <dd>
-            <ClassTag c={a.policy.maxRiskClass} /> tier
+            <ClassTag c={a.policy.maxRiskClass as "unknown"} /> tier
             <span className="mt-1 block text-muted">Set by the riskiest class allowed, so the protocol enforces part of the policy.</span>
           </dd>
         </dl>
         <p className="mt-5 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]">{note}</p>
         <p className="label mt-6 mb-2 text-xs text-muted">One call lists the whole fleet</p>
-        <CopyBlock text={curlFor("view_access_key_list", vault.vault, "testnet")} />
+        <CopyBlock text={curlFor("view_access_key_list", live.vault, "testnet")} />
       </Panel>
     </div>
   );
