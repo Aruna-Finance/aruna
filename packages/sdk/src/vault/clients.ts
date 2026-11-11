@@ -2,6 +2,7 @@
 // methods, so they are not on the agent's client. There is no method taking a free-form
 // (target, method, args): the vault is never a generic executor (CLAUDE.md rule 5).
 import { parseReason, type Reason } from "../reasons.js";
+import type { VaultMethods } from "../generated/vault.js";
 import { readVault, type VaultView } from "../vault-view.js";
 import { ArunaAuthError, VaultVersionError, type VaultTransport } from "./transport.js";
 import { CAPABILITIES, KNOWN_VAULT_VERSIONS, type VaultVersion } from "./versions.js";
@@ -58,6 +59,9 @@ interface Options {
   network?: Network;
 }
 
+/** A method the vault contract really has: the generated ABI types make a renamed or removed one a compile error. */
+type VaultMethod = keyof VaultMethods & string;
+
 class VaultBase {
   readonly vaultId: string;
   protected readonly t: VaultTransport;
@@ -86,7 +90,7 @@ class VaultBase {
     return v;
   }
 
-  protected call(method: string, args: Record<string, unknown>, depositYocto = 0n, tgas = TGAS_ADMIN) {
+  protected call(method: VaultMethod, args: Record<string, unknown>, depositYocto = 0n, tgas = TGAS_ADMIN) {
     return this.t.call(this.vaultId, method, args, { depositYocto, tgas });
   }
 
@@ -135,7 +139,7 @@ export class AgentVault extends VaultBase {
   async simulate(a: SpendAction): Promise<Simulation> {
     await this.needs("simulate", "simulate");
     const pk = await this.publicKey();
-    const s = await this.t.view<{ verdict: "allow" | "block"; reason: string | null; class: string | null }>(this.vaultId, "simulate", { public_key: pk, ...this.actionArgs(a) });
+    const s = await this.t.view<{ verdict: "allow" | "block"; reason: string | null; class: string | null }>(this.vaultId, "simulate" satisfies VaultMethod, { public_key: pk, ...this.actionArgs(a) });
     return { verdict: s.verdict, reason: s.reason ? parseReason(s.reason) : null, targetClass: s.class };
   }
 

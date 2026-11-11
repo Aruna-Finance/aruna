@@ -24,7 +24,9 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "gen:types": "node ../../scripts/gen-abi-types.mjs",
+    "check:types": "node ../../scripts/gen-abi-types.mjs --check"
   },
   "dependencies": {
     "@aruna/classifier-core": "workspace:*",
