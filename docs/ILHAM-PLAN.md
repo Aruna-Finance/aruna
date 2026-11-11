@@ -8,7 +8,7 @@ The plan file is the authority for requirements (R-numbers), decisions (KTD-numb
 
 **Rules that bind every phase:** testnet only and no signing on mainnet (R12); the console never reimplements a classification check (CLAUDE.md rule 10); a policy refusal is shown as an outcome with its reason code, an authorization failure as a failure (R14); no agent key and no console path gives a free-form call (rule 5); never write "trustless"; no keys or `.env` in the repo; no em dash in copy.
 
-**Working method:** one branch and one PR per phase, branch named `ilham/<phase>`. Each phase ends with typecheck, tests and `pnpm build` green, the README step for it written as "do X, see Y", and a line in the change log of `docs/UI-PLAN.md`. A mock adapter is deleted in the phase that makes its screen live (KTD12).
+**Working method:** one branch and one PR per phase, branch named `feat/console-<topic>` (for example `feat/console-wallet-transport`), the same style as `feat/indexer`. Each phase ends with typecheck, tests and `pnpm build` green, the README step for it written as "do X, see Y", and a line in the change log of `docs/UI-PLAN.md`. A mock adapter is deleted in the phase that makes its screen live (KTD12).
 
 ---
 
