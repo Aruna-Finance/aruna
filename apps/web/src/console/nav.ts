@@ -13,6 +13,7 @@ export type ScreenId =
   | "simulation"
   | "attestor"
   | "lookup"
+  | "create"
   | "developers"
   | "playground"
   | "story";
@@ -33,6 +34,7 @@ export const ROLES: Role[] = [
     signer: "budi.testnet",
     items: [
       { id: "dashboard", label: "Overview" },
+      { id: "create", label: "Create a vault" },
       { id: "agents", label: "Agents" },
       { id: "targets", label: "Targets" },
       { id: "coverage", label: "Coverage" },
@@ -159,6 +161,12 @@ export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: str
     phase: "F6",
     role: "attestor",
     plan: "Heartbeat, monitored targets and report drift. Built only after ownership is confirmed with the engine team.",
+  },
+  create: {
+    title: "Create a vault",
+    phase: "L2",
+    role: "owner",
+    plan: "Create your own vault on testnet, pick classified targets, fund it and see the setup checklist.",
   },
   lookup: {
     title: "Look up an agent",

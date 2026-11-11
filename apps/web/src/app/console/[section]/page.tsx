@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Attestor } from "@/console/screens/Attestor";
+import { CreateVault } from "@/console/screens/CreateVault";
 import { Developers } from "@/console/screens/Developers";
 import { Migration } from "@/console/screens/Migration";
 import { Overview } from "@/console/screens/Overview";
@@ -28,6 +29,7 @@ export default async function Page({ params }: { params: Promise<{ section: stri
   const { section } = await params;
   if (!(section in SCREENS)) notFound();
   if (section === "dashboard") return <Overview />;
+  if (section === "create") return <CreateVault />;
   if (section === "migrate") return <Migration />;
   if (section === "developers") return <Developers />;
   if (section === "pool") return <Pool />;

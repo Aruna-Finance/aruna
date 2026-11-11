@@ -92,3 +92,30 @@ describe("createWalletTransport", () => {
     await expect(net.call("v.testnet", "x", {}, { depositYocto: 0n, tgas: 30n })).rejects.toBeInstanceOf(ArunaRpcError);
   });
 });
+
+describe("sendNear", () => {
+  it("sends one Transfer action and previews the amount first", async () => {
+    const { sendNear } = await import("./wallet-transport");
+    const order: string[] = [];
+    const sign = vi.fn(async () => (order.push("wallet"), outcome()));
+    const r = await sendNear({
+      wallet: wallet(sign),
+      signerId: "owner.testnet",
+      receiver: "vault.testnet",
+      depositYocto: 10n ** 24n,
+      confirm: (p) => (order.push(`preview ${p.method} ${p.depositYocto}`), true),
+    });
+    expect(order).toEqual([`preview transfer ${10n ** 24n}`, "wallet"]);
+    expect(sign).toHaveBeenCalledWith({ receiverId: "vault.testnet", actions: [{ type: "Transfer", params: { deposit: (10n ** 24n).toString() } }] });
+    expect(r.tx).toBe("TXHASH");
+  });
+  it("sends nothing for a declined preview, a zero amount or another network", async () => {
+    const { sendNear } = await import("./wallet-transport");
+    const sign = vi.fn();
+    const base = { wallet: wallet(sign), signerId: "o.testnet", receiver: "v.testnet", depositYocto: 1n };
+    await expect(sendNear({ ...base, confirm: () => false })).rejects.toBeInstanceOf(WalletCancelledError);
+    await expect(sendNear({ ...base, depositYocto: 0n })).rejects.toThrow(/above zero/);
+    await expect(sendNear({ ...base, network: "mainnet" })).rejects.toThrow(/testnet only/);
+    expect(sign).not.toHaveBeenCalled();
+  });
+});
