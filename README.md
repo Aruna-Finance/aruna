@@ -32,7 +32,7 @@ pnpm -r test
 ```
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
-skipped), `cli` (8), `attestor` (13), `sdk` (70), `mcp` (22), `indexer` (70) and `apps/web` (206).
+skipped), `cli` (8), `attestor` (13), `sdk` (79), `mcp` (22), `indexer` (70), `examples` (9) and `apps/web` (206).
 
 ### 2. Classify any NEAR contract
 

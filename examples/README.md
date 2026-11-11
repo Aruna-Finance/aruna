@@ -11,6 +11,7 @@ only. Node ≥ 22.18 runs the `.ts` files directly.
 | `honest-agent.ts` | the vault, with the `honest` key | reads its budget, simulates (vault v4), swaps 0.1 NEAR, through `@aruna/sdk/vault` |
 | `injected-agent.ts` | the vault, with the `injected` key | follows a poisoned tool result until auto-disabled, through `@aruna/sdk/vault` |
 | `resume-agent.ts` | the owner, `demo-client` | resumes an agent; the operator cannot |
+| `scenarios.ts` | nothing | the injected attempts and the honest swap, defined once; the console's playground runs the same list (`@aruna/examples/scenarios`) |
 
 The policy both agents get: `max_per_tx` 0.2 NEAR, `daily_cap` 1 NEAR, `max_slippage_bps` 100,
 `allowed_targets` `[swap.arunafi.testnet]`, `max_risk_class` `local_upgradeable`. The swap fixture
