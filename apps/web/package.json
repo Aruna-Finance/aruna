@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aruna/classifier-core": "workspace:*",
+    "@aruna/indexer": "workspace:*",
     "@aruna/rpc": "workspace:*",
     "@aruna/sdk": "workspace:*",
     "@fontsource/ibm-plex-mono": "5.3.0",
