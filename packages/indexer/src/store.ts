@@ -68,7 +68,7 @@ function canonical(x: unknown): unknown {
 
 export function openStore(path: string): Store {
   const db = new DatabaseSync(path);
-  db.exec("PRAGMA journal_mode = WAL;");
+  db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
   db.exec(SCHEMA);
   const getMeta = (k: string) => (db.prepare("SELECT value FROM meta WHERE key = ?").get(k) as { value: string } | undefined)?.value ?? null;
   const setMeta = (k: string, v: string) => db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)").run(k, v);
@@ -155,10 +155,13 @@ export function openStore(path: string): Store {
       }
     },
     knownVaults: () => (db.prepare("SELECT vault, factory FROM vaults ORDER BY seq").all() as Row[]).map((r) => ({ vault: String(r.vault), factory: String(r.factory) })),
-    setHead: (h) => setMeta("head", String(h)),
+    setHead(h) {
+      if (getMeta("head") !== String(h)) setMeta("head", String(h));
+    },
     health(head) {
       const last = cursor() ?? 0;
-      const knownHead = head ?? (getMeta("head") === null ? null : Number(getMeta("head")));
+      const stored = getMeta("head");
+      const knownHead = head ?? (stored === null ? null : Number(stored));
       const lag = knownHead === null ? null : Math.max(0, knownHead - last);
       const unparsed = Number((db.prepare("SELECT COUNT(*) AS n FROM raw WHERE kind = 'unparsed'").get() as Row).n);
       return { last_indexed_block: last, head_block: knownHead, lag_blocks: lag, unparsed_events: unparsed, healthy: lag !== null && lag <= HEALTHY_LAG_BLOCKS };

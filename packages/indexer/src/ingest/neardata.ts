@@ -1,5 +1,7 @@
 // Blocks from the public NEAR Data archive (plan KTD1). Each block carries every receipt outcome with
-// its logs and tx hash; no key is needed. Verified on block 277069040 (demo2's class_refreshed).
+// its logs and tx hash.
+
+import { sleep } from "../sleep.js";
 
 export interface ReceiptOutcome {
   tx_hash: string | null;
@@ -30,6 +32,9 @@ export interface BlockSource {
 
 export const NEARDATA_TESTNET = "https://testnet.neardata.xyz";
 
+/** A rejected key (403) or a bad path does not get better with a retry; a rate limit or a 5xx might. */
+const isPermanentClientError = (status: number) => status !== 429 && status < 500;
+
 /**
  * Without a key, neardata serves 30 blocks a minute (measured 11 November 2026), below testnet's block
  * rate, so a real backfill needs `apiKey`: a FastNear key, sent as `Authorization: Bearer`
@@ -45,20 +50,19 @@ export function neardataSource(o: { baseUrl?: string; apiKey?: string; fetch?: t
   async function getJson(path: string): Promise<unknown> {
     let last: unknown;
     for (let attempt = 0; attempt <= retries; attempt++) {
-      let res: Response;
+      let res: Response | undefined;
       try {
         res = await doFetch(`${base}${path}`, { redirect: "follow", headers });
       } catch (e) {
         last = e;
-        res = null as unknown as Response;
       }
       if (res) {
         if (res.ok) return await res.json();
+        await res.body?.cancel();
         last = new Error(`neardata ${path} answered ${res.status}`);
-        // 4xx other than rate limiting, such as a rejected key (403), will not get better with a retry.
-        if (res.status !== 429 && res.status < 500) throw last;
+        if (isPermanentClientError(res.status)) throw last;
       }
-      if (attempt < retries) await new Promise((r) => setTimeout(r, backoff * 2 ** attempt));
+      if (attempt < retries) await sleep(backoff * 2 ** attempt);
     }
     throw last instanceof Error ? last : new Error(String(last));
   }

@@ -1,6 +1,6 @@
 // Maps the read contract's routes onto the store (plan U3, KTD4). GET only, open CORS, no auth.
 
-import type { ActivityKind } from "./api.js";
+import { ROUTES, type ActivityKind } from "./api.js";
 import type { Store } from "./store.js";
 
 export interface Reply {
@@ -24,6 +24,9 @@ const json = (status: number, value: unknown): Reply => ({
 
 class BadQuery extends Error {}
 
+/** `/v1/vaults/:vault/activity` and `/v1/vaults/:vault/exposure`, as ROUTES builds them. */
+const VAULT_SUBROUTE = new RegExp(`^${ROUTES.vaults}/([^/]+)/(activity|exposure)$`);
+
 function int(params: URLSearchParams, key: string): number | undefined {
   const v = params.get(key);
   if (v === null || v === "") return undefined;
@@ -41,14 +44,14 @@ export function handle(store: Store, method: string, rawUrl: string): Reply {
   const p = url.searchParams;
   try {
     const page = { after: int(p, "after"), limit: int(p, "limit") };
-    if (url.pathname === "/health") return json(200, store.health());
-    if (url.pathname === "/v1/vaults") return json(200, store.vaults({ ...page, owner: text(p, "owner"), operator: text(p, "operator"), code_hash: text(p, "code_hash") }));
-    if (url.pathname === "/v1/events")
+    if (url.pathname === ROUTES.health) return json(200, store.health());
+    if (url.pathname === ROUTES.vaults) return json(200, store.vaults({ ...page, owner: text(p, "owner"), operator: text(p, "operator"), code_hash: text(p, "code_hash") }));
+    if (url.pathname === ROUTES.events)
       return json(
         200,
         store.events({ ...page, contract: text(p, "contract"), event: text(p, "event"), vault: text(p, "vault"), target: text(p, "target"), attestor: text(p, "attestor"), coverage: int(p, "coverage") }),
       );
-    const m = /^\/v1\/vaults\/([^/]+)\/(activity|exposure)$/.exec(url.pathname);
+    const m = VAULT_SUBROUTE.exec(url.pathname);
     if (m) {
       const vault = decodeURIComponent(m[1]);
       if (m[2] === "activity") return json(200, store.activity(vault, { ...page, agent: text(p, "agent"), kind: text(p, "kind") as ActivityKind | undefined }));

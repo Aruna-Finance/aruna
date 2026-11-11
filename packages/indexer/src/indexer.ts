@@ -5,6 +5,7 @@
 import type { BlockSource } from "./ingest/neardata.js";
 import { extractRecords } from "./ingest/parse.js";
 import { WatchSet, type Seeds } from "./ingest/watch.js";
+import { sleep } from "./sleep.js";
 import type { Store } from "./store.js";
 
 export interface IndexerOptions {
@@ -21,15 +22,6 @@ export interface IndexerOptions {
   signal?: AbortSignal;
   onProgress?: (p: { block: number; head: number }) => void;
 }
-
-const sleep = (ms: number, signal?: AbortSignal) =>
-  new Promise<void>((resolve) => {
-    const t = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => {
-      clearTimeout(t);
-      resolve();
-    });
-  });
 
 export async function runIndexer(o: IndexerOptions): Promise<void> {
   const concurrency = Math.max(1, o.concurrency ?? 16);
@@ -48,7 +40,6 @@ export async function runIndexer(o: IndexerOptions): Promise<void> {
       const fetched = await Promise.allSettled(heights.map((h) => o.source.block(h)));
       for (let i = 0; i < heights.length; i++) {
         const r = fetched[i];
-        // Commit the contiguous prefix that arrived; anything after a failure is fetched again.
         if (r.status === "rejected") throw r.reason;
         o.store.commitBlock(heights[i], r.value === null ? [] : extractRecords(r.value, watch));
         next = heights[i] + 1;

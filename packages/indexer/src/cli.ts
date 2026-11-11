@@ -5,9 +5,10 @@
 import { readFileSync, rmSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import { runIndexer } from "./indexer.js";
+import { runIndexer, type IndexerOptions } from "./indexer.js";
 import { neardataSource } from "./ingest/neardata.js";
 import { startServer } from "./server.js";
+import { sleep } from "./sleep.js";
 import { openStore } from "./store.js";
 
 const USAGE = `aruna-indexer — Aruna's testnet history, rebuilt from chain data alone.
@@ -39,6 +40,16 @@ export function loadConfig(path?: string): IndexerConfig {
   const c = JSON.parse(readFileSync(file, "utf8")) as IndexerConfig;
   if (c.network !== "testnet") throw new Error(`the indexer runs on testnet only, config says ${c.network}`);
   return c;
+}
+
+function ingestOptions(config: IndexerConfig, store: IndexerOptions["store"], concurrency: string | undefined): IndexerOptions {
+  return {
+    store,
+    source: neardataSource({ baseUrl: config.neardata, apiKey: process.env.FASTNEAR_API_KEY || undefined }),
+    seeds: { factories: config.factories, contracts: config.contracts },
+    startBlock: config.start_block,
+    concurrency: concurrency ? Number(concurrency) : undefined,
+  };
 }
 
 function removeStore(db: string) {
@@ -81,20 +92,12 @@ async function main(argv: string[]): Promise<number> {
     const port = Number(values.port ?? process.env.PORT ?? 8080);
     await startServer({ store, port, host: values.host });
     console.error(`serving on :${port}, store ${dbPath}`);
-    // Ingest runs beside the server; a failed read (network, rate limit) waits and resumes from the cursor.
     for (;;) {
       try {
-        await runIndexer({
-          store,
-          source: neardataSource({ baseUrl: config.neardata, apiKey: process.env.FASTNEAR_API_KEY || undefined }),
-          seeds: { factories: config.factories, contracts: config.contracts },
-          startBlock: config.start_block,
-          follow: true,
-          concurrency: values.concurrency ? Number(values.concurrency) : undefined,
-        });
+        await runIndexer({ ...ingestOptions(config, store, values.concurrency), follow: true });
       } catch (e) {
         console.error(`ingest stopped: ${e instanceof Error ? e.message : String(e)}; resuming in 10 s`);
-        await new Promise((r) => setTimeout(r, 10_000));
+        await sleep(10_000);
       }
     }
   }
@@ -109,13 +112,9 @@ async function main(argv: string[]): Promise<number> {
   const started = Date.now();
   let lastLog = 0;
   await runIndexer({
-    store,
-    source: neardataSource({ baseUrl: config.neardata, apiKey: process.env.FASTNEAR_API_KEY || undefined }),
-    seeds: { factories: config.factories, contracts: config.contracts },
-    startBlock: config.start_block,
+    ...ingestOptions(config, store, values.concurrency),
     stopAt: values["stop-at"] ? Number(values["stop-at"]) : undefined,
     follow: values.follow,
-    concurrency: values.concurrency ? Number(values.concurrency) : undefined,
     onProgress: ({ block, head }) => {
       if (Date.now() - lastLog < 10_000 && block < head) return;
       lastLog = Date.now();
