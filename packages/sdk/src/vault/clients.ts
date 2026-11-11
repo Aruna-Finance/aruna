@@ -174,7 +174,7 @@ export class AgentVault extends VaultBase {
 
   private pk: string | undefined;
   /** The agent key's public key, taken from the transport's signer. */
-  private async publicKey(): Promise<string> {
+  async publicKey(): Promise<string> {
     if (this.pk) return this.pk;
     const t = this.t as VaultTransport & { publicKey?: () => Promise<string> };
     if (!t.publicKey) throw new Error("this transport does not expose the agent's public key");
