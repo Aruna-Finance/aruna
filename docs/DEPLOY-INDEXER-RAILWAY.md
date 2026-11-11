@@ -17,7 +17,9 @@ builder, the healthcheck and the restart policy.
 
 1. **New project, deploy from GitHub.** Pick `Aruna-Finance/aruna`, branch `main`.
 2. **Root Directory.** Service Settings, Source: `/packages/indexer`. The Dockerfile reads nothing outside that
-   folder, so this is all the build needs.
+   folder, so this is all the build needs. This must be set: a service left at the repository root builds with the
+   whole repository as its context, and the `COPY` lines find nothing. The Dockerfile path is `Dockerfile`, which
+   `railway.json` sets and which is also Railway's default for the root of a source directory.
 3. **Config file.** Railway's docs say the config file does not follow the Root Directory and takes an absolute
    path. Set it to `/packages/indexer/railway.json`.
 4. **Watch Paths.** Set `/packages/indexer/**` (the form Railway's monorepo docs use). A push that changes no
@@ -31,7 +33,8 @@ builder, the healthcheck and the restart policy.
    | `PORT` | `8080` | the port the API listens on. Set it so the domain's target port is unambiguous |
 
    `ARUNA_INDEXER_DB` is already `/data/aruna-indexer.sqlite` in the image, so the volume must mount at `/data`.
-6. **Volume.** Add a volume to the service with mount path `/data`. A service can have one volume, and Railway's
+6. **Volume.** Add a volume to the service with mount path `/data`. Do this in the dashboard: the Dockerfile has no
+   `VOLUME` instruction, because Railway rejects one when it validates the file. A service can have one volume, and Railway's
    docs say replicas cannot be used with volumes, so this is a single instance by design.
 7. **Networking.** Generate a public domain, target port `8080`. CORS is open, so the console can call it from
    another origin.
@@ -81,6 +84,8 @@ backfill again (about six hours). `aruna-indexer rebuild` does the same on purpo
 |---|---|
 | `cannot write to /data` | `RAILWAY_RUN_UID=0` is not set |
 | `QUICKNODE_RPC_URL is not a URL` | the value is only the token; paste the full HTTP Provider URL |
+| build fails with "The Dockerfile failed validation" | the Dockerfile has a `VOLUME` instruction; it must not (a test guards this) |
+| build cannot find `package.json` or `src` | Root Directory is not `/packages/indexer`, so the build runs from the repository root |
 | deploy fails its healthcheck | the app is not on the port Railway expects; set `PORT=8080` |
 | `last_indexed_block` barely moves | the endpoint is rate-limiting; check QuickNode's dashboard, and keep `--concurrency` at its default of 8 unless you measured better |
 | a rebuild starts from block 276952600 again | the volume is not mounted at `/data`, so the store is in the container's own filesystem |
