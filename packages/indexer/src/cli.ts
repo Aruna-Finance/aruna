@@ -7,6 +7,7 @@ import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { runIndexer } from "./indexer.js";
 import { neardataSource } from "./ingest/neardata.js";
+import { startServer } from "./server.js";
 import { openStore } from "./store.js";
 
 const USAGE = `aruna-indexer — Aruna's testnet history, rebuilt from chain data alone.
@@ -17,6 +18,8 @@ Usage:
       --follow keeps reading new blocks as they become final.
   aruna-indexer rebuild [--db <file>] [--config <file>] [--stop-at <block>] [--concurrency 16]
       Delete the store and read everything again from the start block. Takes hours from scratch.
+  aruna-indexer serve   [--db <file>] [--config <file>] [--port 8080] [--concurrency 16]
+      Serve the read API and keep indexing new blocks in the same process. A failed read is retried.
   aruna-indexer export  [--db <file>] [--out <file>]
       Write every derived table as canonical JSON. Two stores built from the same blocks export the same bytes.
 
@@ -57,6 +60,8 @@ async function main(argv: string[]): Promise<number> {
       follow: { type: "boolean", default: false },
       concurrency: { type: "string" },
       out: { type: "string" },
+      port: { type: "string" },
+      host: { type: "string" },
     },
   });
   const dbPath = values.db ?? process.env.ARUNA_INDEXER_DB ?? "aruna-indexer.sqlite";
@@ -68,6 +73,30 @@ async function main(argv: string[]): Promise<number> {
     if (values.out) await writeFile(values.out, json + "\n");
     else process.stdout.write(json + "\n");
     return 0;
+  }
+
+  if (cmd === "serve") {
+    const config = loadConfig(values.config);
+    const store = openStore(dbPath);
+    const port = Number(values.port ?? process.env.PORT ?? 8080);
+    await startServer({ store, port, host: values.host });
+    console.error(`serving on :${port}, store ${dbPath}`);
+    // Ingest runs beside the server; a failed read (network, rate limit) waits and resumes from the cursor.
+    for (;;) {
+      try {
+        await runIndexer({
+          store,
+          source: neardataSource({ baseUrl: config.neardata, apiKey: process.env.FASTNEAR_API_KEY || undefined }),
+          seeds: { factories: config.factories, contracts: config.contracts },
+          startBlock: config.start_block,
+          follow: true,
+          concurrency: values.concurrency ? Number(values.concurrency) : undefined,
+        });
+      } catch (e) {
+        console.error(`ingest stopped: ${e instanceof Error ? e.message : String(e)}; resuming in 10 s`);
+        await new Promise((r) => setTimeout(r, 10_000));
+      }
+    }
   }
 
   if (cmd !== "index" && cmd !== "rebuild") {

@@ -3,9 +3,61 @@
 Every `aruna` NEP-297 event on testnet, read from the public block archive, served over a read-only
 HTTP API. The indexer holds no keys and sends no transactions.
 
-This package ships the read contract and a typed client first (plan
-`docs/plans/2026-11-11-1645-feat-live-console-indexer-migration-sim-plan.md`, U1). Ingest (U2) and the
-server (U3) build against the same types in `src/api.ts`.
+Plan: `docs/plans/2026-11-11-1645-feat-live-console-indexer-migration-sim-plan.md` (U1 read contract,
+U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
+
+## How it reads the chain
+
+- **Source.** Block by block from `testnet.neardata.xyz`, starting at block 276952600, just before
+  `registry.arunafi.testnet` was created. Each block carries every receipt outcome, with its logs and
+  its transaction hash.
+- **A key is required.** Without a key, neardata serves 30 blocks a minute (measured 11 November
+  2026), which is below testnet's block rate. Set `FASTNEAR_API_KEY` to a FastNear key. It is sent as
+  `Authorization: Bearer` and never logged.
+- **Which events count.** Only receipts that succeeded and were executed by a watched account. The
+  watched set starts from the registries, factories and pools in `config/testnet.json`. A vault joins
+  it when one of those factories emits `vault_created` for it. A look-alike event from any other
+  account is ignored.
+- **Unrecognised events.** An unknown event name, a malformed `EVENT_JSON` line, or a known event
+  missing a field it needs is kept raw and counted in `/health` as `unparsed_events`. It is never
+  dropped silently.
+- **Initial operator.** A vault's initial operator comes from the factory's `create_vault`
+  arguments, because no event names it.
+- **Storage.** One SQLite file holds the raw records and the tables derived from them, and each block
+  is committed with the cursor. A restart resumes from the cursor without duplicating anything.
+
+## Run it
+
+Requires Node 22.13 or later, for `node:sqlite`.
+
+```bash
+pnpm --filter @aruna/indexer build
+FASTNEAR_API_KEY=... node packages/indexer/dist/cli.js serve --db aruna-indexer.sqlite --port 8080
+curl -s localhost:8080/health
+```
+
+Expected: JSON with `last_indexed_block` rising toward `head_block`, and `"healthy": true` once the
+lag is 60 blocks or less.
+
+As a container, built from the repository root:
+
+```bash
+docker build -f packages/indexer/Dockerfile -t aruna-indexer .
+docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data -e FASTNEAR_API_KEY=... aruna-indexer
+```
+
+The image's health check calls `/health` and fails while the indexer is more than 60 blocks behind.
+
+## Rebuild from nothing
+
+```bash
+FASTNEAR_API_KEY=... node packages/indexer/dist/cli.js rebuild --db a.sqlite
+node packages/indexer/dist/cli.js export --db a.sqlite --out a.json
+```
+
+`rebuild` deletes the store and reads every block again from the start block. That is about 260,000
+blocks as of 11 November 2026, so it takes hours. Two stores rebuilt from the same blocks export
+byte-identical JSON.
 
 ## Read contract
 
