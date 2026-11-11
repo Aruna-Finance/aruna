@@ -41,13 +41,15 @@ L1 to L4 are a chain. The UI parts of L5 (activity list, exposure history, the d
 
 Why first: L1 to L5 assume things the docs do not prove. If either fails, the plan changes, so find out before building screens.
 
-- [ ] Read `packages/sdk/src/vault/near-transport.ts` and `transport.ts` (`CallResult`, `ArunaAuthError`, `ArunaRpcError`) so the wallet transport maps outcomes the same way
-- [ ] Add a throwaway page (not committed) that imports `@aruna/sdk/vault` and `near-api-js`, and confirm `pnpm build` of `apps/web` succeeds and the bundle loads in the browser
-- [ ] Ilham sends one real 1 yoctoNEAR call from a testnet wallet through `signAndSendTransaction` (for example `set_ceiling` with the current ceiling on a test vault). `pause_agent` attaches no deposit and proves nothing here
-- [ ] Record the transaction link, the wallet used, and whether the deposit was attached
+- [x] Read `packages/sdk/src/vault/near-transport.ts` and `transport.ts` (`CallResult`, `ArunaAuthError`, `ArunaRpcError`) so the wallet transport maps outcomes the same way
+- [x] (build and prerender pass; `nearApiTransport` was not run in a browser, only built. `near-api-js` is not a dependency of `apps/web` yet: add 7.4.0 in L3 when browser key generation lands) Add a throwaway page (not committed) that imports `@aruna/sdk/vault` and `near-api-js`, and confirm `pnpm build` of `apps/web` succeeds and the bundle loads in the browser
+- [ ] (not yet: the test attached a 0.5 NEAR deposit, not 1 yocto; see Result below) Ilham sends one real 1 yoctoNEAR call from a testnet wallet through `signAndSendTransaction` (for example `set_ceiling` with the current ceiling on a test vault). `pause_agent` attaches no deposit and proves nothing here
+- [ ] (partly: transaction recorded below; the wallet name was not recorded) Record the transaction link, the wallet used, and whether the deposit was attached
 - [ ] Agree with Aris who hosts the indexer and holds the FastNear key (never in the repo), and write the answer in the change log
 
 Done when: one explorer link shows the 1 yocto deposit, and the SDK vault entry builds in `apps/web`. If the deposit is not attached by the wallet, stop and report (plan stop condition).
+
+**Result (11 November 2026).** A local, uncommitted test page connected a testnet wallet through `@hot-labs/near-connect` and called `create_vault` on `factory2.arunafi.testnet` with a 0.5 NEAR deposit and 150 Tgas. Read back from the testnet RPC: transaction `EBfGA31yfoA5JWwEtADa4u5VL5AY1DtbLk1vFZAeaWjH`, final status `FINAL` with `SuccessValue`, attached deposit `500000000000000000000000`, events `vault_created` (factory) and `vault_deployed` (registry), and the vault account `tmlaqd5.factory2.arunafi.testnet` exists with 0.5 NEAR. Explorer: https://testnet.nearblocks.io/txns/EBfGA31yfoA5JWwEtADa4u5VL5AY1DtbLk1vFZAeaWjH. So the wallet attaches a deposit on testnet for one wallet. Still open: a call with exactly 1 yoctoNEAR (`set_ceiling` on that vault, owned by the wallet) and the name of the wallet used.
 
 ### L1. Wallet transport, transaction preview, history client (U4)
 
