@@ -1,0 +1,7 @@
+{
+  "network": "testnet",
+  "neardata": "https://testnet.neardata.xyz",
+  "start_block": 276952600,
+  "factories": ["factory.arunafi.testnet", "factory2.arunafi.testnet"],
+  "contracts": ["registry.arunafi.testnet", "registry2.arunafi.testnet", "pool.arunafi.testnet", "pool2.arunafi.testnet"]
+}
