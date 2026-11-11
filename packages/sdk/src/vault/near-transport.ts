@@ -39,7 +39,7 @@ export function nearApiTransport(o: { signerId: string; privateKey: string; netw
       const status = res.status as { SuccessValue?: string; Failure?: unknown };
       if (status.Failure !== undefined) throw new ArunaAuthError(JSON.stringify(status.Failure));
       const raw = new TextDecoder().decode(Uint8Array.from(atob(status.SuccessValue ?? ""), (c) => c.charCodeAt(0)));
-      return { value: raw ? JSON.parse(raw) : null, tx: res.transaction.hash as string, logs: res.receipts_outcome.flatMap((r) => r.outcome.logs) };
+      return { value: raw ? JSON.parse(raw) : null, tx: res.transaction.hash as string, logs: res.receipts_outcome.flatMap((r) => r.outcome.logs), receipts: res.receipts_outcome.map((r) => ({ executor: r.outcome.executor_id as string, logs: r.outcome.logs })) };
     },
     async account(id: string) {
       const a = (await provider.viewAccount({ accountId: id })) as unknown as { amount: string; global_contract_hash?: string | null };

@@ -10,6 +10,11 @@ import { ArunaRpcError, type VaultTransport } from "../vault/transport.js";
 import { parseEvents } from "./events.js";
 import type { Coverage, TokenName } from "./pool.js";
 
+/** Events from the pool only. An FT purchase runs through the token's contract, which is chosen by the caller and could print an event of its own. */
+function poolEvents(pool: string, r: { logs?: readonly string[]; receipts?: readonly { executor: string; logs: readonly string[] }[] }) {
+  return parseEvents(r.receipts ? r.receipts.filter((x) => x.executor === pool).flatMap((x) => x.logs) : r.logs);
+}
+
 /** Mirrors aruna_common::params::MIN_CLAIM_GAS_TGAS; a test keeps the two equal. */
 export const MIN_CLAIM_GAS_TGAS = 150n;
 const TGAS_BUY = 200n;
@@ -44,7 +49,7 @@ export class OwnerCoverage {
       o.token === "near"
         ? await this.o.transport.call(this.o.pool, "buy_coverage", { request: req }, { depositYocto: BigInt(o.maxPremium), tgas: TGAS_BUY })
         : await this.o.transport.call(o.token, "ft_transfer_call", { receiver_id: this.o.pool, amount: o.maxPremium, msg: JSON.stringify({ action: "buy", ...req }) }, { depositYocto: 1n, tgas: TGAS_BUY_FT });
-    const events = parseEvents(r.logs);
+    const events = poolEvents(this.o.pool, r);
     const bought = events.find((e) => e.event === "coverage_purchased");
     if (bought) {
       const coverage = bought.data.coverage as Coverage;
@@ -64,7 +69,7 @@ export class OwnerCoverage {
     const tgas = o.tgas ?? TGAS_CLAIM;
     if (tgas < MIN_CLAIM_GAS_TGAS) throw new RangeError(`a claim needs at least ${MIN_CLAIM_GAS_TGAS} Tgas for its callbacks; got ${tgas}`);
     const r = await this.o.transport.call(this.o.pool, "claim", { coverage_id: o.coverageId, report_id: o.reportId }, { depositYocto: 0n, tgas });
-    const events = parseEvents(r.logs);
+    const events = poolEvents(this.o.pool, r);
     const paid = events.find((e) => e.event === "claim_paid");
     if (paid) return { ok: true, paid: typeof r.value === "string" ? r.value : String(r.value ?? "0"), tx: r.tx };
     const rejected = events.find((e) => e.event === "claim_rejected");

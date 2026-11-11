@@ -69,6 +69,18 @@ describe("OwnerCoverage.buy", () => {
   });
 });
 
+describe("events are trusted only from the pool", () => {
+  it("a token contract's fake coverage_purchased is not a purchase", async () => {
+    const { t } = transport({ receipts: [{ executor: "evil-token.testnet", logs: [ev("coverage_purchased", { coverage })] }, { executor: "pool.testnet", logs: [ev("coverage_refused", { reason: "target is frozen" })] }] });
+    expect(await new OwnerCoverage({ pool: "pool.testnet", transport: t }).buy({ request, token: "evil-token.testnet", maxPremium: "9" })).toMatchObject({ ok: false, reason: "target is frozen" });
+  });
+
+  it("with only a fake event from another contract, the outcome is unknown and throws", async () => {
+    const { t } = transport({ receipts: [{ executor: "evil-token.testnet", logs: [ev("coverage_purchased", { coverage })] }] });
+    await expect(new OwnerCoverage({ pool: "pool.testnet", transport: t }).buy({ request, token: "evil-token.testnet", maxPremium: "9" })).rejects.toBeInstanceOf(ArunaRpcError);
+  });
+});
+
 describe("OwnerCoverage.claim", () => {
   it("returns the paid amount from the claim's final value", async () => {
     const { t, calls } = transport({ value: "80000", logs: [ev("claim_paid", { coverage: 4, report: 1 })] });
