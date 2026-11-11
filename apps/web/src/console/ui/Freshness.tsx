@@ -18,3 +18,17 @@ export function Freshness({ age }: { age: number }) {
     </span>
   );
 }
+
+/** What a history panel says when it is not simply live (R10). Never an empty list in place of "unavailable". */
+export function historyNotice(h: { state: "live" } | { state: "behind"; pending: { label: string }[] } | { state: "unavailable"; lastKnownBlock: number | null }, source: "live" | "fixture"): string | null {
+  if (h.state === "unavailable") {
+    return h.lastKnownBlock === null
+      ? "History is unavailable: the indexer could not be reached. Balances, agents and actions still work."
+      : `History is unavailable since block ${h.lastKnownBlock.toLocaleString("en-US")}. Balances, agents and actions still work.`;
+  }
+  if (h.state === "behind") {
+    const n = h.pending.length;
+    return `The indexer has not caught up with ${n} ${n === 1 ? "transaction" : "transactions"} you just sent. They show as pending until it does.`;
+  }
+  return source === "fixture" ? "Recorded sample history, not read from the live indexer." : null;
+}

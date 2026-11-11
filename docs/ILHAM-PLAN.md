@@ -43,7 +43,7 @@ Why first: L1 to L5 assume things the docs do not prove. If either fails, the pl
 
 - [x] Read `packages/sdk/src/vault/near-transport.ts` and `transport.ts` (`CallResult`, `ArunaAuthError`, `ArunaRpcError`) so the wallet transport maps outcomes the same way
 - [x] (build and prerender pass; `nearApiTransport` was not run in a browser, only built. `near-api-js` is not a dependency of `apps/web` yet: add 7.4.0 in L3 when browser key generation lands) Add a throwaway page (not committed) that imports `@aruna/sdk/vault` and `near-api-js`, and confirm `pnpm build` of `apps/web` succeeds and the bundle loads in the browser
-- [ ] (not yet: the test attached a 0.5 NEAR deposit, not 1 yocto; see Result below) Ilham sends one real 1 yoctoNEAR call from a testnet wallet through `signAndSendTransaction` (for example `set_ceiling` with the current ceiling on a test vault). `pause_agent` attaches no deposit and proves nothing here
+- [x] (done in L1 with `set_ceiling`, see the L1 status) Ilham sends one real 1 yoctoNEAR call from a testnet wallet through `signAndSendTransaction` (for example `set_ceiling` with the current ceiling on a test vault). `pause_agent` attaches no deposit and proves nothing here
 - [ ] (partly: transaction recorded below; the wallet name was not recorded) Record the transaction link, the wallet used, and whether the deposit was attached
 - [ ] Agree with Aris who hosts the indexer and holds the FastNear key (never in the repo), and write the answer in the change log
 
@@ -55,15 +55,17 @@ Done when: one explorer link shows the 1 yocto deposit, and the SDK vault entry 
 
 Requirements: R9 to R14. Files under `apps/web/src/console/`.
 
-- [ ] `wallet-transport.ts`: `VaultTransport` over `@hot-labs/near-connect`: `call` as one function-call action, `view` and `account` over `@aruna/rpc`, outcome mapped to `CallResult` with receipts keyed by executor, `Failure` to `ArunaAuthError`, a rejected wallet promise to a cancel, mainnet throws before any prompt
-- [ ] `WalletContext.tsx`: expose the connector for signing
-- [ ] `ui/TxDialog.tsx`: show method, receiver, deposit, gas before the wallet opens; pending, confirmed (explorer link) and failed after signing; keep the cancel case
-- [ ] `history.ts`: the `@aruna/indexer/client` plus three states: live, behind (poll until the tab's own transaction is indexed, keep it as a pending row), unavailable since block N
-- [ ] `ui/Freshness.tsx`: show the state and the last indexed block
-- [ ] Add `@aruna/indexer` client to `apps/web` and widen the boundary test only as far as needed (client entry, never server code)
-- [ ] Tests: two-receipt outcome mapping; failure vs cancel; mainnet refusal; `withdraw_to_owner` preview shows 1 yocto and the vault as receiver; network error gives "unavailable" with the last known block (AE2); refusal rendered as outcome not toast; behind state keeps the pending row
+- [x] `wallet-transport.ts`: `VaultTransport` over `@hot-labs/near-connect`: `call` as one function-call action, `view` and `account` over `@aruna/rpc`, outcome mapped to `CallResult` with receipts keyed by executor, `Failure` to `ArunaAuthError`, a rejected wallet promise to a cancel, mainnet throws before any prompt
+- [x] (exposes `getWallet()`; the connector itself stays private) `WalletContext.tsx`: expose the connector for signing
+- [x] `ui/TxDialog.tsx`: show method, receiver, deposit, gas before the wallet opens; pending, confirmed (explorer link) and failed after signing; keep the cancel case
+- [x] (default is the recorded fixture, labelled "fixture", until `NEXT_PUBLIC_INDEXER_URL` is set) `history.ts`: the `@aruna/indexer/client` plus three states: live, behind (poll until the tab's own transaction is indexed, keep it as a pending row), unavailable since block N
+- [x] (as `historyNotice` text; no screen uses it yet) `ui/Freshness.tsx`: show the state and the last indexed block
+- [x] (`@aruna/indexer` was already a dependency; the boundary test needed no change) Add `@aruna/indexer` client to `apps/web` and widen the boundary test only as far as needed (client entry, never server code)
+- [x] Tests: two-receipt outcome mapping; failure vs cancel; mainnet refusal; `withdraw_to_owner` preview shows 1 yocto and the vault as receiver; network error gives "unavailable" with the last known block (AE2); refusal rendered as outcome not toast; behind state keeps the pending row
 
 Done when: a connected testnet wallet pauses an agent on a test vault from the console and the transaction is on the explorer.
+
+**Status (11 November 2026).** Done. The modules and their tests are in (`wallet-transport.ts`, `tx-status.ts`, `history.ts`, `TxDialog.tsx`). A local, uncommitted test page sent `set_ceiling` through `createWalletTransport` and `OwnerVault` from a connected testnet wallet. Read back from the testnet RPC: transaction `Axf3JmvfU2R3B1HqEerbR6UnMrbxJXaFoR41zeiEeqzJ`, final status `FINAL` with `SuccessValue`, signer the wallet, receiver `tmlaqd5.factory2.arunafi.testnet`, method `set_ceiling`, deposit `1` yoctoNEAR, gas 30 Tgas, event `ceiling_updated` (before equal to after). The preview showed `deposit=1 yoctoNEAR` before the wallet opened. Declining at the preview was tried three times: `WalletCancelledError`, nothing sent. Explorer: https://testnet.nearblocks.io/txns/Axf3JmvfU2R3B1HqEerbR6UnMrbxJXaFoR41zeiEeqzJ. The plan said "pauses an agent", but the vault has no agent yet, so `set_ceiling` was used; it also needs exactly 1 yoctoNEAR and owner rights. Not yet done: no screen uses the transport (L2 onward), the wallet name was not recorded, and only one wallet was tried.
 
 ### L2. Create your own vault (U5)
 

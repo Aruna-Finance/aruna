@@ -1,10 +1,12 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { NearConnector } from "@hot-labs/near-connect";
+import type { WalletLike } from "./wallet-transport";
 
-// Wallet login only: connect, show the account, disconnect. Nothing here signs or sends a transaction, and the
-// network is testnet (CLAUDE.md rule 3). The connector touches the browser, so it is imported inside an effect and
-// never during the static build. API as documented at docs.near.org/web3-apps/tutorials/wallet-login.
+// Connect, show the account, disconnect, and hand out the connected wallet for signing. This file never signs by
+// itself: signing happens in wallet-transport.ts, after the user has confirmed a preview. Testnet only (CLAUDE.md
+// rule 3). The connector touches the browser, so it is imported inside an effect and never during the static build.
+// API as documented at docs.near.org/web3-apps/tutorials/wallet-login.
 
 type Status = "idle" | "connecting" | "error";
 interface WalletState {
@@ -13,6 +15,8 @@ interface WalletState {
   error: string | null;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
+  /** The connected wallet, ready to sign, or null when none is connected. Used to build the signing transport. */
+  getWallet(): Promise<WalletLike | null>;
 }
 
 const Ctx = createContext<WalletState>({
@@ -21,6 +25,7 @@ const Ctx = createContext<WalletState>({
   error: null,
   connect: async () => {},
   disconnect: async () => {},
+  getWallet: async () => null,
 });
 
 /** Closing the wallet modal rejects the promise. That is a cancel, not a failure worth showing: returns null for it. */
@@ -102,7 +107,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return <Ctx.Provider value={{ accountId, status, error, connect, disconnect }}>{children}</Ctx.Provider>;
+  const getWallet = useCallback(async (): Promise<WalletLike | null> => {
+    const c = connector.current;
+    if (!c || !accountId) return null;
+    return (await c.wallet()) as unknown as WalletLike;
+  }, [accountId]);
+
+  return <Ctx.Provider value={{ accountId, status, error, connect, disconnect, getWallet }}>{children}</Ctx.Provider>;
 }
 
 export const useWallet = () => useContext(Ctx);
