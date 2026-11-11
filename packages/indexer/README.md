@@ -63,14 +63,16 @@ itself, so pass it with `--env-file`. Expected: JSON with `last_indexed_block` r
 the lag is 60 blocks or less, and only while the indexer has read the chain's head in the last two
 minutes (`head_seen_ms_ago`). An indexer that stopped reading is never reported as caught up.
 
-As a container, built from the repository root:
+As a container. The build context is this folder, and nothing outside it is read:
 
 ```bash
-docker build -f packages/indexer/Dockerfile -t aruna-indexer .
+docker build -t aruna-indexer packages/indexer
 docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data --env-file packages/indexer/.env aruna-indexer
 ```
 
-The image's health check calls `/health`. It fails while the indexer is more than 60 blocks behind, which includes the first backfill, so do not let an orchestrator restart the container on an unhealthy status. And it fails when ingest has stopped reading the head.
+The image's health check is liveness only: it passes while the API answers. `/health` answers 200 even while `"healthy"` is `false`, so a restart policy never fires during the first backfill. To catch a stalled indexer, monitor the response text `"healthy":true`.
+
+To run it on Railway, follow [`docs/DEPLOY-INDEXER-RAILWAY.md`](../../docs/DEPLOY-INDEXER-RAILWAY.md).
 
 ## Rebuild from nothing
 

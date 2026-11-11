@@ -1,7 +1,0 @@
-*
-!tsconfig.base.json
-!packages/indexer/package.json
-!packages/indexer/tsconfig.json
-!packages/indexer/tsconfig.build.json
-!packages/indexer/src
-!packages/indexer/config
