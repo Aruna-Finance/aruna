@@ -30,23 +30,33 @@ export interface BlockSource {
 
 export const NEARDATA_TESTNET = "https://testnet.neardata.xyz";
 
-export function neardataSource(o: { baseUrl?: string; fetch?: typeof globalThis.fetch; retries?: number; backoffMs?: number } = {}): BlockSource {
+/**
+ * Without a key, neardata serves 30 blocks a minute (measured 11 November 2026), below testnet's block
+ * rate, so a real backfill needs `apiKey`: a FastNear key, sent as `Authorization: Bearer`
+ * (docs.fastnear.com/neardata). The key is never logged.
+ */
+export function neardataSource(o: { baseUrl?: string; apiKey?: string; fetch?: typeof globalThis.fetch; retries?: number; backoffMs?: number } = {}): BlockSource {
   const base = (o.baseUrl ?? NEARDATA_TESTNET).replace(/\/+$/, "");
   const doFetch = o.fetch ?? globalThis.fetch.bind(globalThis);
   const retries = o.retries ?? 8;
   const backoff = o.backoffMs ?? 500;
+  const headers: Record<string, string> = o.apiKey ? { authorization: `Bearer ${o.apiKey}` } : {};
 
   async function getJson(path: string): Promise<unknown> {
     let last: unknown;
     for (let attempt = 0; attempt <= retries; attempt++) {
+      let res: Response;
       try {
-        const res = await doFetch(`${base}${path}`, { redirect: "follow" });
-        if (res.ok) return await res.json();
-        last = new Error(`neardata ${path} answered ${res.status}`);
-        // 4xx other than rate limiting will not get better with a retry.
-        if (res.status !== 429 && res.status < 500) throw last;
+        res = await doFetch(`${base}${path}`, { redirect: "follow", headers });
       } catch (e) {
         last = e;
+        res = null as unknown as Response;
+      }
+      if (res) {
+        if (res.ok) return await res.json();
+        last = new Error(`neardata ${path} answered ${res.status}`);
+        // 4xx other than rate limiting, such as a rejected key (403), will not get better with a retry.
+        if (res.status !== 429 && res.status < 500) throw last;
       }
       if (attempt < retries) await new Promise((r) => setTimeout(r, backoff * 2 ** attempt));
     }

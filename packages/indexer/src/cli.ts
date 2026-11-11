@@ -20,7 +20,8 @@ Usage:
   aruna-indexer export  [--db <file>] [--out <file>]
       Write every derived table as canonical JSON. Two stores built from the same blocks export the same bytes.
 
-Environment: ARUNA_INDEXER_DB (default ./aruna-indexer.sqlite), ARUNA_INDEXER_CONFIG.`;
+Environment: ARUNA_INDEXER_DB (default ./aruna-indexer.sqlite), ARUNA_INDEXER_CONFIG, and FASTNEAR_API_KEY.
+Without FASTNEAR_API_KEY, neardata serves 30 blocks a minute, too slow to backfill or to follow the head.`;
 
 export interface IndexerConfig {
   network: string;
@@ -80,7 +81,7 @@ async function main(argv: string[]): Promise<number> {
   let lastLog = 0;
   await runIndexer({
     store,
-    source: neardataSource({ baseUrl: config.neardata }),
+    source: neardataSource({ baseUrl: config.neardata, apiKey: process.env.FASTNEAR_API_KEY || undefined }),
     seeds: { factories: config.factories, contracts: config.contracts },
     startBlock: config.start_block,
     stopAt: values["stop-at"] ? Number(values["stop-at"]) : undefined,
