@@ -2,7 +2,8 @@
 // aruna-indexer — reads Aruna's testnet events from the public block archive into one SQLite file.
 // Holds no keys and sends no transactions (R5).
 
-import { readFileSync, realpathSync, rmSync } from "node:fs";
+import { accessSync, constants, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
@@ -76,6 +77,19 @@ function ingestOptions(config: IndexerConfig, store: IndexerOptions["store"], co
   };
 }
 
+/** A volume is often mounted root-owned, and the container runs as an unprivileged user: fail with the way out, not with SQLite's "unable to open database file". */
+export function assertWritable(dbPath: string): void {
+  const dir = dirname(resolve(dbPath));
+  try {
+    mkdirSync(dir, { recursive: true });
+    accessSync(dir, constants.W_OK);
+  } catch {
+    throw new Error(
+      `cannot write to ${dir}, where the indexer keeps its database. A volume is often mounted root-owned: on Railway set RAILWAY_RUN_UID=0 on the service; elsewhere make the directory writable for the user the process runs as.`,
+    );
+  }
+}
+
 function removeStore(db: string) {
   for (const suffix of ["", "-wal", "-shm"]) rmSync(db + suffix, { force: true });
 }
@@ -112,6 +126,7 @@ async function main(argv: string[]): Promise<number> {
 
   if (cmd === "serve") {
     const config = loadConfig(values.config);
+    assertWritable(dbPath);
     const store = openStore(dbPath);
     const port = Number(values.port ?? process.env.PORT ?? 8080);
     await startServer({ store, port, host: values.host });
@@ -132,6 +147,7 @@ async function main(argv: string[]): Promise<number> {
   }
   const config = loadConfig(values.config);
   if (cmd === "rebuild") removeStore(dbPath);
+  assertWritable(dbPath);
   const store = openStore(dbPath);
   const started = Date.now();
   let lastLog = 0;

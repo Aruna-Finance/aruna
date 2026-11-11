@@ -1,0 +1,6 @@
+# Allowlist: only what the Dockerfile copies reaches the build, so .env (the QuickNode URL) and any *.sqlite never do.
+*
+!package.json
+!tsconfig.build.json
+!src
+!config
