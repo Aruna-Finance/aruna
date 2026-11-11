@@ -15,6 +15,11 @@ describe("which block source the CLI uses", () => {
     expect(chooseSource(config, {}).label).toContain("without a key");
   });
 
+  it("reads 8 blocks at a time from an RPC endpoint, where throughput peaked, and 16 from neardata", () => {
+    expect(chooseSource(config, { QUICKNODE_RPC_URL: "https://x.quiknode.pro/secrettoken123/" }).defaultConcurrency).toBe(8);
+    expect(chooseSource(config, { FASTNEAR_API_KEY: "k" }).defaultConcurrency).toBe(16);
+  });
+
   it("treats an empty QUICKNODE_RPC_URL as unset", () => {
     expect(chooseSource(config, { QUICKNODE_RPC_URL: "" }).label).toContain("neardata");
   });

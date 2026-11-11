@@ -25,8 +25,11 @@ U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
   `status` reports a chain other than testnet.
 - **Cost.** At least one call per block, so a full backfill is about 260,000 calls as of 11 November
   2026, plus a handful for each block that touches an Aruna account. The per-method credit cost is not in
-  the QuickNode documentation I read, so check your plan's credits and request rate; lower
-  `--concurrency` if the endpoint rate-limits (it retries with backoff).
+  the QuickNode documentation I read, so check your plan's credits and request rate. The default
+  `--concurrency` for an RPC endpoint is 8, where throughput peaked in a measurement on 11 November 2026
+  (12.5 blocks/s on blocks with no Aruna activity, about 6 hours for the whole backfill). Higher values were
+  slower, 10.6 at 16 and 5.5 at 48, because the endpoint rate-limits and the retries cost more than the
+  parallelism gains. Another plan may peak elsewhere, so pass `--concurrency` to change it.
 - **Without a QuickNode URL** the indexer falls back to `testnet.neardata.xyz`. Without a key, that
   serves 30 blocks a minute (measured 11 November 2026), below testnet's block rate. Set
   `FASTNEAR_API_KEY` to a FastNear key to speed it up; it is sent as `Authorization: Bearer` and never
