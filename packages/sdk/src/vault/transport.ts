@@ -5,6 +5,8 @@ export interface CallResult {
   /** The decoded JSON return value; null for none. */
   value: unknown;
   tx: string;
+  /** Logs of every receipt in the outcome, in order: NEP-297 events from callbacks appear here, not in `value`. */
+  logs?: readonly string[];
 }
 
 export interface VaultTransport {
