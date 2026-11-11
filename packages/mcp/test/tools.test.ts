@@ -4,6 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Classifier, type VaultView } from "@aruna/sdk";
 import type { RpcReader } from "@aruna/classifier-core";
+import { Registry, type ReadTransport } from "@aruna/sdk/coverage";
 import { registerTools } from "../src/tools.js";
 
 const ZERO = "11111111111111111111111111111111";
@@ -42,9 +43,9 @@ const VAULT: VaultView = {
   operatorCannot: ["resume a paused or auto-disabled agent"],
 };
 
-async function connect(reader: RpcReader, read: (vault: string) => Promise<VaultView> = async () => VAULT) {
+async function connect(reader: RpcReader, read: (vault: string) => Promise<VaultView> = async () => VAULT, registry?: Registry) {
   const server = new McpServer({ name: "aruna-test", version: "0" });
-  registerTools(server, () => new Classifier({ reader }), read);
+  registerTools(server, () => new Classifier({ reader }), read, registry);
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test", version: "0" });
   await Promise.all([server.connect(a), client.connect(b)]);
@@ -52,10 +53,10 @@ async function connect(reader: RpcReader, read: (vault: string) => Promise<Vault
 }
 
 describe("MCP tools", () => {
-  it("lists the three keyless tools, all read-only", async () => {
+  it("lists the four keyless tools, all read-only", async () => {
     const client = await connect(byAccount);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["aruna_check_target", "aruna_explain_class", "aruna_read_vault"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["aruna_check_target", "aruna_explain_class", "aruna_read_vault", "aruna_watch_target"]);
     expect(tools.every((t) => t.annotations?.readOnlyHint === true)).toBe(true);
   });
 
@@ -92,6 +93,31 @@ describe("MCP tools", () => {
     const r = await client.callTool({ name: "aruna_check_target", arguments: { account_id: "u.testnet" } });
     expect(r.isError).toBe(true);
     expect((r.content as { text: string }[])[0].text).toMatch(/do not treat this as safe/);
+  });
+
+  it("aruna_watch_target shows the two hashes and that the monitored field is blind here", async () => {
+    const client = await connect(byAccount);
+    const r = await client.callTool({ name: "aruna_watch_target", arguments: { account_id: "u.testnet", network: "testnet" } });
+    expect(r.isError).toBeFalsy();
+    const text = (r.content as { text: string }[])[0].text;
+    expect(text).toMatch(/runs R, monitored field 1111/);
+    expect(text).toMatch(/owner\.testnet/);
+    expect(text).toMatch(/cannot show a change/);
+    expect(text).toMatch(/registry: not consulted/);
+  });
+
+  it("aruna_watch_target compares with the registry on testnet", async () => {
+    const t: ReadTransport = { view: async <T>(_c: string, m: string) => (m === "get_class" ? { class: "global_by_account", resolved_code_hash: "OLD", frozen: true } : null) as T };
+    const client = await connect(byAccount, undefined, new Registry({ registry: "reg", transport: t }));
+    const r = await client.callTool({ name: "aruna_watch_target", arguments: { account_id: "u.testnet", network: "testnet" } });
+    expect((r.content as { text: string }[])[0].text).toMatch(/CHANGED since the registry recorded it/);
+  });
+
+  it("aruna_watch_target says nothing was determined when the read fails", async () => {
+    const client = await connect(failing);
+    const r = await client.callTool({ name: "aruna_watch_target", arguments: { account_id: "u.testnet" } });
+    expect(r.isError).toBe(true);
+    expect((r.content as { text: string }[])[0].text).toMatch(/do not treat this as unchanged/);
   });
 
   it("aruna_explain_class explains a class", async () => {

@@ -1,0 +1,853 @@
+{
+  "schema_version": "0.4.0",
+  "metadata": {
+    "name": "aruna-pool",
+    "version": "0.1.0"
+  },
+  "body": {
+    "functions": [
+      {
+        "name": "buy_coverage",
+        "doc": " NEAR coverage. Attach at least the quoted premium; the excess, or everything on a refusal, is\n returned. Only the vault's registered owner can buy.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "request",
+              "type_schema": {
+                "$ref": "#/definitions/BuyRequest"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "cb_buy",
+        "doc": " Finishes a purchase. Returns the token amount to hand back (always 0 for NEAR, refunded here).",
+        "kind": "call",
+        "modifiers": [
+          "private"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "buyer",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            },
+            {
+              "name": "token",
+              "type_schema": {
+                "$ref": "#/definitions/TokenId"
+              }
+            },
+            {
+              "name": "paid",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "request",
+              "type_schema": {
+                "$ref": "#/definitions/BuyRequest"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "cb_claim_pay",
+        "kind": "call",
+        "modifiers": [
+          "private"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "coverage_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "report_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "changed_at_block",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "cb_claim_report",
+        "kind": "call",
+        "modifiers": [
+          "private"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "coverage_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "report_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/PromiseOrValueString"
+          }
+        }
+      },
+      {
+        "name": "claim",
+        "doc": " Anyone may start a claim; the payout always goes to the coverage's owner. Re-validated now, not\n at report time (plan R23).",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "coverage_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "report_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "contract_source_metadata",
+        "kind": "view"
+      },
+      {
+        "name": "coverage_count",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
+          }
+        }
+      },
+      {
+        "name": "deposit",
+        "doc": " NEAR capital. Token capital arrives through `ft_transfer_call` with `{\"action\":\"deposit\"}`.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ]
+      },
+      {
+        "name": "ft_on_transfer",
+        "doc": " NEP-141 receiver: `{\"action\":\"deposit\"}` adds capital; `{\"action\":\"buy\", ...BuyRequest}` buys\n coverage in this token, paying the premium from the transferred amount.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "sender_id",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            },
+            {
+              "name": "amount",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "msg",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/PromiseOrValueString"
+          }
+        }
+      },
+      {
+        "name": "get_book",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "token",
+              "type_schema": {
+                "$ref": "#/definitions/TokenId"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Book"
+          }
+        }
+      },
+      {
+        "name": "get_coverage",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Coverage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "get_shares",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "underwriter",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            },
+            {
+              "name": "token",
+              "type_schema": {
+                "$ref": "#/definitions/TokenId"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "new",
+        "kind": "call",
+        "modifiers": [
+          "init"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "owner",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            },
+            {
+              "name": "registry",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "quote",
+        "doc": " The premium for these inputs, with every input and declared assumption (plan R9). Free.",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "class",
+              "type_schema": {
+                "$ref": "#/definitions/RiskClass"
+              }
+            },
+            {
+              "name": "limit",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "payout_ratio_bps",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint16",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "window_blocks",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "daily_cap",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Quote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "receive_slash",
+        "doc": " The registry sends a slashed attestor bond here; it becomes NEAR capital (plan KTD9).",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "attestor",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "registry",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "release_expired",
+        "doc": " Anyone may call. For each coverage past its end and its claim reporting period, with no claim in\n flight, its remaining limit leaves the book's total and the concentration totals, so expired\n coverage stops holding capacity. Returns how many were released.",
+        "kind": "call",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "ids",
+              "type_schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0.0
+          }
+        }
+      },
+      {
+        "name": "withdraw",
+        "doc": " Burns shares for their pro-rata part of the book's capital. Refused while capital is locked.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "token",
+              "type_schema": {
+                "$ref": "#/definitions/TokenId"
+              }
+            },
+            {
+              "name": "shares",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "root_schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "String",
+      "type": "string",
+      "definitions": {
+        "Assumptions": {
+          "type": "object",
+          "required": [
+            "blocks_per_day",
+            "capital_cost_bps_30d",
+            "label",
+            "p_event_bps_30d",
+            "risk_margin_bps"
+          ],
+          "properties": {
+            "blocks_per_day": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "capital_cost_bps_30d": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "label": {
+              "type": "string"
+            },
+            "p_event_bps_30d": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "risk_margin_bps": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        },
+        "Book": {
+          "type": "object",
+          "required": [
+            "capital",
+            "locked_until",
+            "total_limits",
+            "total_shares"
+          ],
+          "properties": {
+            "capital": {
+              "description": "Underwriter deposits, premiums and slashed bonds, less payouts and withdrawals.",
+              "type": "string"
+            },
+            "locked_until": {
+              "description": "No withdrawal before this block: the latest coverage end plus its reporting period (plan R24).",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "total_limits": {
+              "description": "Sum of the remaining limits of coverage not yet past its reporting period.",
+              "type": "string"
+            },
+            "total_shares": {
+              "type": "string"
+            }
+          }
+        },
+        "BuyRequest": {
+          "description": "What the buyer asks for. Sent as call args (NEAR) or as the `ft_transfer_call` message (token).",
+          "type": "object",
+          "required": [
+            "agent",
+            "limit",
+            "payout_ratio_bps",
+            "target",
+            "vault",
+            "window_blocks"
+          ],
+          "properties": {
+            "agent": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "string"
+            },
+            "payout_ratio_bps": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0.0
+            },
+            "target": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "vault": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "window_blocks": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        },
+        "ClaimRecord": {
+          "type": "object",
+          "required": [
+            "block",
+            "outcome",
+            "paid",
+            "report_id"
+          ],
+          "properties": {
+            "block": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "outcome": {
+              "description": "\"paid\", or why the claim was rejected.",
+              "type": "string"
+            },
+            "paid": {
+              "type": "string"
+            },
+            "report_id": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        },
+        "Coverage": {
+          "type": "object",
+          "required": [
+            "agent",
+            "claim_in_flight",
+            "claim_started_at",
+            "claims",
+            "class",
+            "code_hash",
+            "daily_cap_priced",
+            "end_block",
+            "id",
+            "limit",
+            "owner",
+            "paid_out",
+            "paid_through_block",
+            "payout_ratio_bps",
+            "policy_version",
+            "premium_paid",
+            "start_block",
+            "target",
+            "token",
+            "upgrade_authority",
+            "vault",
+            "waiting_period_ends"
+          ],
+          "properties": {
+            "agent": {
+              "type": "string"
+            },
+            "claim_in_flight": {
+              "type": "boolean"
+            },
+            "claim_started_at": {
+              "description": "When the claim in flight started; a claim whose callbacks never arrive may be retried after CLAIM_TIMEOUT_BLOCKS.",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "claims": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ClaimRecord"
+              }
+            },
+            "class": {
+              "$ref": "#/definitions/RiskClass"
+            },
+            "code_hash": {
+              "type": "string"
+            },
+            "daily_cap_priced": {
+              "type": "string"
+            },
+            "end_block": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "id": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "limit": {
+              "description": "Sum insured `C`.",
+              "type": "string"
+            },
+            "owner": {
+              "description": "Payouts go here: the vault's owner at purchase.",
+              "type": "string"
+            },
+            "paid_out": {
+              "type": "string"
+            },
+            "paid_through_block": {
+              "description": "Exposure up to this block has been paid for or was recorded before the purchase: the next payout counts only what was recorded after it. Starts at the purchase block, moves to each paid change's block, so one change is never paid twice (found in review).",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "payout_ratio_bps": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0.0
+            },
+            "policy_version": {
+              "description": "The policy it was priced on (plan R10).",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "premium_paid": {
+              "type": "string"
+            },
+            "released": {
+              "description": "Set once its remaining limit has left the book's totals (`release_expired`).",
+              "default": false,
+              "type": "boolean"
+            },
+            "start_block": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "target": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "token": {
+              "$ref": "#/definitions/TokenId"
+            },
+            "upgrade_authority": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "vault": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "waiting_period_ends": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        },
+        "Promise": true,
+        "PromiseOrValueString": {
+          "type": "string"
+        },
+        "Quote": {
+          "type": "object",
+          "required": [
+            "assumptions",
+            "class",
+            "daily_cap",
+            "days",
+            "expected_loss",
+            "limit",
+            "payout_ratio_bps",
+            "premium",
+            "reachable_payout",
+            "window_blocks"
+          ],
+          "properties": {
+            "assumptions": {
+              "description": "Declared underwriting assumptions, labelled as such.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Assumptions"
+                }
+              ]
+            },
+            "class": {
+              "$ref": "#/definitions/RiskClass"
+            },
+            "daily_cap": {
+              "type": "string"
+            },
+            "days": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "expected_loss": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "string"
+            },
+            "payout_ratio_bps": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0.0
+            },
+            "premium": {
+              "type": "string"
+            },
+            "reachable_payout": {
+              "type": "string"
+            },
+            "window_blocks": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        },
+        "RiskClass": {
+          "description": "The four classes of docs/CLASSIFIER.md, ordered from least to most risky, so that `class <= policy.max_risk_class` is the policy check.",
+          "type": "string",
+          "enum": [
+            "immutable_verified",
+            "local_upgradeable",
+            "global_by_account",
+            "unknown"
+          ]
+        },
+        "TokenId": {
+          "description": "The token an amount is denominated in (docs/plans/2026-11-10-2106-feat-coverage-loop-testnet-plan.md R1): NEAR itself, or a NEP-141 fungible token contract. Coverage, premiums, capital, payouts and exposure are always in one token; nothing converts between them.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "near"
+              ]
+            },
+            {
+              "type": "object",
+              "required": [
+                "ft"
+              ],
+              "properties": {
+                "ft": {
+                  "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

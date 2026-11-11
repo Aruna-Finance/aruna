@@ -20,6 +20,15 @@ pub const CLAIM_REPORTING_BLOCKS: u64 = 600;
 /// Report expiry: a signed report must be submitted within this many blocks of observation.
 pub const REPORT_TTL_BLOCKS: u64 = 600;
 
+/// Longest coverage window accepted (30 days at BLOCKS_PER_DAY). An unbounded window would lock the
+/// book's capital for as long as the buyer likes.
+pub const MAX_COVERAGE_WINDOW_BLOCKS: u64 = 30 * BLOCKS_PER_DAY;
+/// A claim whose callbacks never arrive (too little gas) blocks its coverage for this long, then
+/// may be retried.
+pub const CLAIM_TIMEOUT_BLOCKS: u64 = 100;
+/// Prepaid gas `claim` requires, so its callback chain can finish.
+pub const MIN_CLAIM_GAS_TGAS: u64 = 150;
+
 /// ASSUMPTION. Blocks per day used to turn a coverage window into days for pricing (plan KTD3). Set
 /// low on purpose (two-second blocks): fewer blocks per day means more days, so the price errs high.
 pub const BLOCKS_PER_DAY: u64 = 43_200;

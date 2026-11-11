@@ -15,6 +15,10 @@
     "./vault": {
       "types": "./dist/vault/index.d.ts",
       "import": "./dist/vault/index.js"
+    },
+    "./coverage": {
+      "types": "./dist/coverage/index.d.ts",
+      "import": "./dist/coverage/index.js"
     }
   },
   "files": [
@@ -24,7 +28,9 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "gen:types": "node ../../scripts/gen-abi-types.mjs",
+    "check:types": "node ../../scripts/gen-abi-types.mjs --check"
   },
   "dependencies": {
     "@aruna/classifier-core": "workspace:*",

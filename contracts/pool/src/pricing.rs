@@ -49,7 +49,9 @@ pub fn days_touched(window_blocks: u64) -> u64 {
 pub fn quote(class: RiskClass, limit: u128, payout_ratio_bps: u16, window_blocks: u64, daily_cap: u128) -> Option<Quote> {
     let p = p_event_bps_30d(class)?;
     let days = days_touched(window_blocks);
-    let reachable = (daily_cap * days as u128 * payout_ratio_bps as u128 / 10_000).min(limit);
+    // Saturating: a cap near u128::MAX must give "the whole limit", not an overflow panic that would
+    // strand the buyer's premium in the callback.
+    let reachable = (daily_cap.saturating_mul(days as u128).saturating_mul(payout_ratio_bps as u128) / 10_000).min(limit);
     let el = reachable * p as u128 * days as u128 / (30 * 10_000);
     let margin = el * RISK_MARGIN_BPS as u128 / 10_000;
     let capital = reachable * CAPITAL_COST_BPS_30D as u128 * days as u128 / (30 * 10_000);

@@ -5,6 +5,10 @@ export interface CallResult {
   /** The decoded JSON return value; null for none. */
   value: unknown;
   tx: string;
+  /** Logs of every receipt in the outcome, in order: NEP-297 events from callbacks appear here, not in `value`. */
+  logs?: readonly string[];
+  /** The same logs by the contract that executed the receipt. Events are only trusted from the contract they belong to. */
+  receipts?: readonly { executor: string; logs: readonly string[] }[];
 }
 
 export interface VaultTransport {

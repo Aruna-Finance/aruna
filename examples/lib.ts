@@ -51,11 +51,16 @@ export function agentKey(label: string, create = false): KeyPair {
   return kp;
 }
 
-/** An account signing with a key from the near-cli-rs legacy keychain (~/.near-credentials/testnet). */
-export function legacyAccount(accountId: string): Account {
+/** A key from the near-cli-rs legacy keychain (~/.near-credentials/testnet). Stays in this process. */
+export function legacyKey(accountId: string): string {
   const path = join(homedir(), ".near-credentials", "testnet", `${accountId}.json`);
   if (!existsSync(path)) throw new Error(`no legacy keychain entry for ${accountId} at ${path}`);
-  return new Account(accountId, provider, JSON.parse(readFileSync(path, "utf8")).private_key as KeyPairString);
+  return JSON.parse(readFileSync(path, "utf8")).private_key as string;
+}
+
+/** An account signing with a key from the near-cli-rs legacy keychain. */
+export function legacyAccount(accountId: string): Account {
+  return new Account(accountId, provider, legacyKey(accountId) as KeyPairString);
 }
 
 /** The vault account, signing with one agent's function-call key. */

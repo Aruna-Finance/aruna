@@ -3,14 +3,19 @@
 # (registry, factory, demo2) is left as it is.
 #   registry2.<you>     registry v2: classes, attestors, drift reports, freezes, disputes
 #   factory2.<you>      creates vaults (the current version, res/aruna_vault.wasm) by global hash, with no key
-#   pool.<you>          the pool, one book per token
+#   pool2.<you>         the pool, one book per token (pool.<you> predates the review fixes: its stored records differ)
 #   usdc.<you>          a TEST NEP-141 token (six decimals, no value), minted by <you>
 #   drift-owner.<you>   publishes the drift target BY ACCOUNT; its redeploy is the change in the demo
 #   drift-target.<you>  runs drift-owner's code; the covered target
 #   attestor-a.<you>, attestor-b.<you>   two bonded attestors (both Aruna's, stated openly)
-#   demo3.factory2.<you>  vault v3, owned by demo-client.<you>, operated by demo-company.<you>
+#   demo4.factory2.<you>  vault v4 (adds simulate), owned by demo-client.<you>, operated by demo-company.<you>
 #
 #   ARUNA_TESTNET_ACCOUNT=you.testnet bash scripts/testnet-coverage-setup.sh
+#
+# Upgrading an existing stack to the current contracts, once (each is idempotent on its own):
+#   ARUNA_UPGRADE_REGISTRY=1   redeploys registry2's code in place, keeping its state
+#   ARUNA_PUBLISH_VAULT=1      publishes the current vault wasm as a global contract by hash (about 29 NEAR),
+#                              points factory2 at it and allows it in the registry
 #
 # Testnet only. About 70 NEAR for a first run: the vault v3 publish (about 28.6 NEAR) and the drift
 # target's publish by account (about 12 NEAR, and again on every redeploy) are spent; the rest is
@@ -24,9 +29,9 @@ case "$P" in *.testnet) ;; *) echo "refusing: $P is not a .testnet account" >&2;
 PSIGN="${ARUNA_PARENT_SIGN:-sign-with-keychain}"
 NET=(network-config testnet)
 
-REGISTRY="registry2.$P"; FACTORY="factory2.$P"; POOL="pool.$P"; USDC="usdc.$P"
+REGISTRY="registry2.$P"; FACTORY="factory2.$P"; POOL="pool2.$P"; USDC="usdc.$P"
 DOWNER="drift-owner.$P"; TARGET="drift-target.$P"; AA="attestor-a.$P"; AB="attestor-b.$P"
-CLIENT="demo-client.$P"; COMPANY="demo-company.$P"; VAULT="demo3.$FACTORY"
+CLIENT="demo-client.$P"; COMPANY="demo-company.$P"; VAULT="demo4.$FACTORY"
 VAULT_WASM=contracts/vault/res/aruna_vault.wasm
 VAULT_HASH=$(node fixtures/tools.mjs hash "$VAULT_WASM")
 ATTESTOR="node packages/attestor/dist/index.js"
@@ -49,7 +54,7 @@ deploy() { # account, wasm, init json
 
 pnpm --filter @aruna/classifier-core --filter @aruna/rpc --filter @aruna/cli --filter @aruna/attestor build >/dev/null
 
-step "$REGISTRY, $FACTORY, $POOL; vault v3 by global hash $VAULT_HASH"
+step "$REGISTRY, $FACTORY, $POOL; vault v4 by global hash $VAULT_HASH"
 if create "$REGISTRY" "3.5 NEAR"; then
   deploy "$REGISTRY" contracts/registry/res/aruna_registry.wasm "{\"owner\":\"$P\"}"
   pcall "$REGISTRY" add_classifier "{\"account\":\"$P\"}" '0 NEAR'
@@ -58,6 +63,14 @@ if create "$FACTORY" "2 NEAR"; then
   near contract deploy-as-global use-file "$VAULT_WASM" as-global-hash "$P" "${NET[@]}" "$PSIGN" send
   deploy "$FACTORY" contracts/factory/res/aruna_factory.wasm "{\"owner\":\"$P\",\"registry\":\"$REGISTRY\",\"vault_code_hash\":\"$VAULT_HASH\"}"
   pcall "$REGISTRY" set_factory "{\"factory\":\"$FACTORY\"}" '0 NEAR'
+  pcall "$REGISTRY" allow_vault_code_hash "{\"code_hash\":\"$VAULT_HASH\",\"allowed\":true}" '0 NEAR'
+fi
+if [ "${ARUNA_UPGRADE_REGISTRY:-0}" = 1 ]; then
+  near contract deploy "$REGISTRY" use-file contracts/registry/res/aruna_registry.wasm without-init-call "${NET[@]}" sign-with-legacy-keychain send
+fi
+if [ "${ARUNA_PUBLISH_VAULT:-0}" = 1 ]; then
+  near contract deploy-as-global use-file "$VAULT_WASM" as-global-hash "$P" "${NET[@]}" "$PSIGN" send
+  pcall "$FACTORY" set_vault_code_hash "{\"vault_code_hash\":\"$VAULT_HASH\"}" '0 NEAR'
   pcall "$REGISTRY" allow_vault_code_hash "{\"code_hash\":\"$VAULT_HASH\",\"allowed\":true}" '0 NEAR'
 fi
 if create "$POOL" "3.5 NEAR"; then
@@ -99,7 +112,7 @@ if exists "$VAULT"; then echo "$VAULT exists"; else
   near tokens "$P" send-near "$COMPANY" '2.5 NEAR' "${NET[@]}" "$PSIGN" send
   near tokens "$P" send-near "$CLIENT" '1 NEAR' "${NET[@]}" "$PSIGN" send
   CEILING='{"tokens":[{"token":"near","max_per_tx":"500000000000000000000000","daily_total":"2000000000000000000000000"},{"token":{"ft":"'"$USDC"'"},"max_per_tx":"10000000","daily_total":"40000000"}],"max_risk_class":"global_by_account","allowed_targets":["'"$TARGET"'"],"agent_allowance":"1000000000000000000000000"}'
-  call "$FACTORY" create_vault "{\"name\":\"demo3\",\"owner\":\"$CLIENT\",\"operator\":\"$COMPANY\",\"ceiling\":$CEILING}" \
+  call "$FACTORY" create_vault "{\"name\":\"demo4\",\"owner\":\"$CLIENT\",\"operator\":\"$COMPANY\",\"ceiling\":$CEILING}" \
     '2 NEAR' "$COMPANY" sign-with-legacy-keychain '150 Tgas'
 fi
 
