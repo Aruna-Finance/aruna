@@ -315,8 +315,8 @@ Build order and release gates: [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
 packages/classifier-core   the engine: account id + RpcReader -> class + evidence, zero deps
 packages/rpc               fetch-based RpcReader with endpoint fallback, browser-safe
 packages/cli               aruna classify | measure | imports
-packages/sdk               keyless Classifier, readVault, refusal reason codes
-packages/mcp               MCP server: aruna_check_target, aruna_explain_class, aruna_read_vault
+packages/sdk               Classifier (check, watch), readVault, vault role clients, coverage clients and quote, ABI-generated types
+packages/mcp               MCP server: aruna_check_target, aruna_watch_target, aruna_explain_class, aruna_read_vault, coverage reads, agent tools
 packages/attestor          drift attestor: watches targets, files signed reports and heartbeats
 contracts/                 vault, registry, factory, pool, common; integration tests on a sandbox
 apps/web                   static classifier page, spec, proof and console shell

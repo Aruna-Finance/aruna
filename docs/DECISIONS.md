@@ -390,6 +390,17 @@ Pricing saturates instead of overflowing. The window bound and the non-zero prem
 from locking a book's capital or its capacity for free. A claim needs 150 Tgas up front and a stuck
 one expires after 100 blocks, so nobody can wedge a coverage by claiming with too little gas.
 
+### D-64 — SDK types come from the ABI; a quote is asked for with its shape; refusals come from logs
+Each contract's ABI (`cargo near abi`) is committed in `contracts/<name>/res/` and
+`scripts/gen-abi-types.mjs` turns it into `packages/sdk/src/generated/`; a test fails when the two
+drift, and the vault clients type their method names against it. Premium impact is not returned by
+every `aruna_simulate`: a price depends on a limit, ratio and window that a spend does not fix, so
+`aruna_simulate` returns a quote only when the caller names those three, and `aruna_coverage_quote`
+asks for one directly (this narrows the earlier text in `docs/MCP.md`). A purchase or claim finishes in
+callbacks, so `OwnerCoverage` reads its outcome from the aruna events in the receipts' logs and
+throws, rather than guessing, when they show none. Refusals from the pool are free text, so the SDK
+passes the reason through unchanged. A non-owner's purchase is a refusal that refunds, not a panic.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

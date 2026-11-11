@@ -18,7 +18,7 @@ including agents that will never touch our vault.
 | Tool | Input | Returns |
 |---|---|---|
 | `aruna_check_target` | `account_id`, optional `network` | class, evidence, one-line reason |
-| `aruna_watch_target` | `account_id` | resolved code hash now, state of all four drift channels, last observed change |
+| `aruna_watch_target` | `account_id`, optional `network` | the monitored field beside the hash of the code that runs, who can change it, and (testnet, when the server knows a registry) whether it differs from the registry's record |
 | `aruna_explain_class` | `class` | what the class means and what can still change |
 
 `aruna_check_target` is the most valuable tool in the project. It answers *"can this
@@ -32,7 +32,7 @@ able to call them.
 
 | Tool | Input | Returns |
 |---|---|---|
-| `aruna_simulate` | action params | verdict `allow` or `block`, reason, target class, premium impact |
+| `aruna_simulate` | action params, optional coverage shape | verdict `allow` or `block`, reason, target class, and the coverage premium when a shape is given |
 | `aruna_spend` | action params | execution result, or a refusal with its reason |
 | `aruna_budget` | — | balance, spent today, reserved, remaining |
 | `aruna_exposure` | — | exposure per target, each with its class |
@@ -43,19 +43,34 @@ policy, status, usage and key permissions as the network enforces them, what age
 cannot do, and exposure per target. It is what `aruna_budget` and `aruna_exposure` will read for the
 calling agent's own vault, available to anyone. Shipped in v0, over `@aruna/sdk` `readVault`.
 
+## Group C — coverage reads, keyless
+
+Registered when the server is started with `ARUNA_REGISTRY` and `ARUNA_POOL` (testnet). All read-only.
+
+| Tool | Input | Returns |
+|---|---|---|
+| `aruna_coverage_quote` | `target`, `vault_id`, `agent_public_key`, `token`, `limit`, `payout_ratio_bps`, `window_blocks` | the pool's premium, every input and its source, and the labelled assumptions; or a refusal with a reason (`no_class_record`, `not_coverable`, `agent_not_found`, `no_daily_cap`, `class_not_insurable`) |
+| `aruna_pool_book` | `token` | one token's capital, shares, limits sold, locked-until block |
+| `aruna_coverage` | `coverage_id` or `vault_id` | coverage held |
+| `aruna_drift_report` | `target` or `report_id` | the report and its state as of now |
+
+Each token is its own book with no conversion. There is no tool to buy or claim coverage.
+
 **As built.** The four Group B tools are registered when the server is started with
 `ARUNA_AGENT_VAULT` and `ARUNA_AGENT_KEY_FILE` (an existing agent key; the server creates none), over
 `@aruna/sdk/vault`. `aruna_simulate` needs vault v4, whose `simulate` view runs the same `evaluate`
-as `spend`. Its *premium impact* is not returned yet: it needs the coverage the agent holds, which
-the pool does not index by agent.
+as `spend`. Premium impact is returned only when the caller
+gives a coverage shape (`coverage: { limit, payout_ratio_bps, window_blocks }`) and the server knows the
+registry and pool: a price depends on those three, which a spend does not fix, and nothing is defaulted
+(D-64). Without a shape the result is the verdict alone.
 
 `aruna_simulate` is a free view running the same checks without a transaction, so a
 refusal costs no gas. **Its result is not binding** — state can change before the
 transaction lands.
 
 Two things it returns that the simulate calls of the five surveyed projects do not: the target's
-current recorded **class**, and the **premium impact** of the action. That is the
-policy-to-price chain surfaced at the moment of decision.
+current recorded **class**, and, when asked with a coverage shape, the **premium** for that
+target. That is the policy-to-price chain surfaced at the moment of decision.
 
 ---
 

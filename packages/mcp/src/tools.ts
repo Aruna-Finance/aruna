@@ -2,6 +2,7 @@
 // Handlers only shape arguments and results; the logic lives in @aruna/sdk.
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Classifier, readVault, type Network, type RiskClass, type VaultView } from "@aruna/sdk";
+import type { Registry } from "@aruna/sdk/coverage";
 import { z } from "zod";
 
 const CLASSES = ["immutable_verified", "local_upgradeable", "global_by_account", "unknown"] as const;
@@ -41,6 +42,8 @@ export function registerTools(
   server: McpServer,
   make: (network: Network) => Classifier = (network) => new Classifier({ network }),
   read: ReadVault = (vault, network) => readVault(vault, { network }),
+  /** The registry to compare against in aruna_watch_target; testnet only, set when the server knows one. */
+  registry?: Registry,
 ) {
   const classifiers = new Map<Network, Classifier>();
   const classifierFor = (n: Network) => {
@@ -69,6 +72,31 @@ export function registerTools(
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         return { isError: true, content: [{ type: "text", text: `Could not classify ${account_id} on ${network}: ${msg}. Nothing was classified; do not treat this as safe.` }] };
+      }
+    },
+  );
+
+  server.registerTool(
+    "aruna_watch_target",
+    {
+      title: "Has this contract's code changed?",
+      description:
+        "The live answer to whether a contract's executed code has changed: the field most monitors watch (view_account.code_hash) beside the hash of the code that actually runs, and who can change it. When the server knows a registry and the network is testnet, it also compares with the hash the registry recorded and returns the latest drift report. For global_by_account targets the first field never changes; only the second shows a redeploy. No account or key needed.",
+      inputSchema: {
+        account_id: z.string().describe("NEAR account id of the contract"),
+        network: z.enum(["mainnet", "testnet"]).default("mainnet").describe("Which network to read"),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ account_id, network }) => {
+      try {
+        const w = await classifierFor(network).watch(account_id, network === "testnet" && registry ? { registry } : {});
+        const cmp = w.changedSinceRecorded === null ? `registry: ${w.recorded.state}` : w.changedSinceRecorded ? "CHANGED since the registry recorded it" : "same as the registry recorded";
+        const blind = w.channels.changeInvisibleToCodeHash ? " The monitored field cannot show a change here." : "";
+        return { content: [{ type: "text", text: `${account_id} (${network}): ${w.class}; runs ${w.channels.resolvedCodeHash ?? "no code"}, monitored field ${w.channels.monitoredCodeHash ?? "none"}; can be changed by ${w.channels.upgradeAuthority}; ${cmp}.${blind}` }], structuredContent: { ...w } };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { isError: true, content: [{ type: "text", text: `Could not watch ${account_id} on ${network}: ${msg}. Nothing was determined; do not treat this as unchanged.` }] };
       }
     },
   );
