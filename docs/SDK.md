@@ -109,6 +109,8 @@ await pool.shares(underwriter, token);
 
 await quoteCoverage({ registry, pool }, { target, vault, agentPublicKey, token, limit, payoutRatioBps, windowBlocks });
 // → { ok: true, quote, inputs } | { ok: false, reason, detail }
+await quoteCoverage({ registry, pool }, { ...request, proposed: { dailyCap, maxRiskClass } });
+// a draft policy, priced before it is signed: inputs.proposed === true
 
 const owner = new OwnerCoverage({ pool: "pool.you.testnet", transport: ownerSigningTransport });
 await owner.buy({ request, token, maxPremium });   // OWNER action, never an agent key
@@ -119,6 +121,10 @@ await owner.claim({ coverageId, reportId });
 agent's daily cap for the token from the vault policy and the pool's own `quote` view; the SDK has no
 pricing arithmetic and never invents a limit, ratio or window. A target with no class, an agent with no
 cap for the token, or a class the pool will not insure is a refusal with a reason, never a zero premium.
+`proposed` prices a policy edit before it is signed: a proposed `dailyCap` goes to the pool's `quote` in
+place of the on-chain cap, labelled `proposed, not yet signed` in `inputs.dailyCapSource`, and a proposed
+`maxRiskClass` that the target's recorded class exceeds is the refusal `class_not_admitted`, by the
+vault's own order (`RISK_CLASS_ORDER`, `admitsClass`; a test checks it against the contract's enum).
 `buy` attaches (NEAR) or transfers (FT) `maxPremium`; the contract charges its own quote and returns the
 excess. A refusal, including a buyer who is not the vault's owner, resolves as `{ ok: false, reason }`
 with the contract's own text. Outcomes are read from the aruna events in the receipts' logs; an outcome

@@ -4,13 +4,14 @@
 // Expected: the spend settles, exposure is recorded. A stale class is refreshed by the SDK, once.
 import { AgentVault, nearApiTransport } from "@aruna/sdk/vault";
 import { agentKey, fmt, near, RPC, SWAP, VAULT } from "./lib.ts";
+import { honestSwap } from "./scenarios.ts";
 
-const amount = near(process.argv[2] ?? "0.1");
-// The swap target keeps a 0.5% fee; the policy allows 1% slippage. Ask for at least 99.5% back.
-const minOut = ((BigInt(amount) * 9_950n) / 10_000n).toString();
+// The same action the console's playground sends (scenarios.ts): the swap keeps a 0.5% fee and the
+// policy allows 1% slippage, so it asks for at least 99.5% back.
+const action = honestSwap({ swap: SWAP, amount: near(process.argv[2] ?? "0.1") });
+const { amount, minAmountOut: minOut } = action;
 const key = agentKey("honest");
 const vault = new AgentVault({ vaultId: VAULT, transport: nearApiTransport({ signerId: VAULT, privateKey: key.toString(), rpcUrl: RPC }) });
-const action = { adapter: "swap" as const, target: SWAP, amount, minAmountOut: minOut };
 
 console.log(`vault  ${VAULT} (${await vault.vaultVersion()})\nagent  honest  ${key.getPublicKey().toString()}\n`);
 
