@@ -31,7 +31,7 @@ pnpm -r test
 ```
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
-skipped), `cli` (8), `sdk` (12), `mcp` (6) and `apps/web` (97).
+skipped), `cli` (8), `attestor` (13), `sdk` (70), `mcp` (22) and `apps/web` (97).
 
 ### 2. Classify any NEAR contract
 
@@ -208,24 +208,38 @@ link, and how to run them against your own vault: [`examples/README.md`](example
 ### 12. Coverage: a code change, reported, frozen and paid
 
 ```bash
-node fixtures/tools.mjs view pool.arunafi.testnet get_coverage '{"id":6}'
-node fixtures/tools.mjs view registry2.arunafi.testnet get_report '{"id":1}'
-node fixtures/tools.mjs view pool.arunafi.testnet quote '{"class":"global_by_account","limit":"1000000000000000000000000","payout_ratio_bps":8000,"window_blocks":43200,"daily_cap":"200000000000000000000000"}'
+node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":2}'
+node fixtures/tools.mjs view registry2.arunafi.testnet get_report '{"id":2}'
+node fixtures/tools.mjs view pool2.arunafi.testnet quote '{"class":"global_by_account","limit":"1000000000000000000000000","payout_ratio_bps":8000,"window_blocks":43200,"daily_cap":"200000000000000000000000"}'
 ```
 
-No key needed. Expected: coverage 6 has one claim with `"outcome":"paid"` and `"paid":"80000000000000000000000"`
-(0.08 NEAR); report 1 is `"verified"`, `deploy_global_contract`, with two different resolved hashes
-and `changed_at_block` 277106450; the quote returns its premium next to every input and the declared
+No key needed. Expected: coverage 2 has one claim with `"outcome":"paid"` and `"paid":"80000000000000000000000"`
+(0.08 NEAR); report 2 is `"verified"`, `deploy_global_contract`, with two different resolved hashes
+and `changed_at_block` 277193145; the quote returns its premium next to every input and the declared
 assumptions. They come from one run of [`examples/coverage-demo.ts`](examples/coverage-demo.ts) on
-11 November 2026: two quotes that differ only in the agent's daily cap, purchase at the tighter
-price in NEAR and in a test USDC, swaps, the target's code republished by account while its
-`view_account.code_hash` stays the zero hash, a signed report from
-[`packages/attestor`](packages/attestor/README.md), the freeze refusing the next spend, a claim
-refused during the challenge window, then paid by `min(exposure in the window before the change ×
-80%, C)`. The recorded run, and how to run it against your own stack:
+11 November 2026, written against `@aruna/sdk/coverage`: two quotes that differ only in the agent's
+daily cap, the SDK's quote equal to the pool's, purchase at the tighter price in NEAR and in a test
+USDC, swaps, the target's code republished by account while its `view_account.code_hash` stays the
+zero hash, a signed report from [`packages/attestor`](packages/attestor/README.md), the freeze
+refusing the next spend, a claim refused during the challenge window, then paid by `min(exposure in
+the window before the change × 80%, C)`. The recorded run, and how to run it against your own stack:
 [`examples/README.md`](examples/README.md). On a sandbox, with no account:
 `cargo test -p aruna-integration --test coverage -- --nocapture` (after the builds in step 10,
 plus `pool`), which also runs a dispute upheld and rejected and a stale heartbeat.
+
+### 13. The same state through the SDK, and through MCP
+
+```bash
+node examples/read-coverage.mjs
+```
+
+No key needed. Expected: the target's class `global_by_account`, its latest drift report `verified`,
+the pool's NEAR book, and coverages 0 to 3 of vault `demo4.factory2.arunafi.testnet`, coverage 2 with
+`paid out 80000000000000000000000` and coverage 3 (the test USDC) with `paid out 800000`. It is the
+keyless half of `@aruna/sdk/coverage`. With an agent key, `node examples/mcp-smoke.mjs <agent label>`
+starts the MCP server as a client would and calls `aruna_watch_target`, `aruna_budget`,
+`aruna_simulate` (with a coverage shape: verdict `block: TARGET_FROZEN` and the coverage premium),
+`aruna_spend` (the same refusal), `aruna_pool_book` and `aruna_drift_report` against the real vault.
 
 ---
 

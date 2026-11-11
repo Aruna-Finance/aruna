@@ -21,14 +21,16 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Account } from "near-api-js";
+import { fetchViewTransport, OwnerCoverage, Pool, quoteCoverage, Registry } from "@aruna/sdk/coverage";
+import { nearApiTransport } from "@aruna/sdk/vault";
 
 const PARENT = process.env.ARUNA_TESTNET_ACCOUNT ?? "arunafi.testnet";
-const VAULT = `demo3.factory2.${PARENT}`;
+const VAULT = `demo4.factory2.${PARENT}`;
 process.env.ARUNA_VAULT = VAULT;
-const { agentAccount, agentKey, explorer, fmt, legacyAccount, near, provider, send, view } = await import("./lib.ts");
+const { agentAccount, agentKey, explorer, fmt, legacyAccount, legacyKey, near, provider, RPC, send, view } = await import("./lib.ts");
 
 const REGISTRY = `registry2.${PARENT}`;
-const POOL = `pool.${PARENT}`;
+const POOL = `pool2.${PARENT}`;
 const USDC = `usdc.${PARENT}`;
 const TARGET = `drift-target.${PARENT}`;
 const DOWNER = `drift-owner.${PARENT}`;
@@ -40,9 +42,16 @@ const WINDOW = 300;
 const COVER_WINDOW = 43_200; // blocks; touches 2 UTC days under BLOCKS_PER_DAY
 const root = fileURLToPath(new URL("..", import.meta.url));
 
+// Coverage goes through @aruna/sdk/coverage: reads are keyless, the purchase and the claim are the
+// owner's, signed here with the client's own key.
+const reads = fetchViewTransport({ network: "testnet" });
+const registry = new Registry({ registry: REGISTRY, transport: reads });
+const pool = new Pool({ pool: POOL, transport: reads });
+const ownerCoverage = new OwnerCoverage({ pool: POOL, transport: nearApiTransport({ signerId: CLIENT, privateKey: legacyKey(CLIENT), rpcUrl: RPC }) });
+
 let step = 0;
 const say = (s: string) => console.log(`\n${++step}. ${s}`);
-const fail = (s: string): never => {
+const fail: (s: string) => never = (s) => {
   console.error(`\nFAILED at step ${step}: ${s}`);
   process.exit(1);
 };
@@ -144,7 +153,7 @@ if (resume) {
   // 2 ---------------------------------------------------------------------------------------------
   say("two quotes, same coverage, differing only in the agent's daily cap");
   const C = near("1");
-  const quote = (cap: string) => viewOf<{ premium: string; reachable_payout: string; days: number; assumptions: { label: string } }>(POOL, "quote", { class: "global_by_account", limit: C, payout_ratio_bps: 8_000, window_blocks: COVER_WINDOW, daily_cap: cap });
+  const quote = async (cap: string) => (await pool.quote({ class: "global_by_account", limit: C, payoutRatioBps: 8_000, windowBlocks: COVER_WINDOW, dailyCap: cap })) ?? fail("the pool would not quote");
   const loose = await quote(near("1"));
   const tight = await quote(near("0.2"));
   console.log(`   C ${fmt(C)}, ratio 80%, window touching ${tight.days} UTC days; ${loose.assumptions.label}`);
@@ -159,15 +168,23 @@ if (resume) {
 
   // 4 ---------------------------------------------------------------------------------------------
   say("the client buys coverage at the tight price, in NEAR and in the test USDC");
-  const request = (limit: string) => ({ vault: VAULT, agent: agentPk, target: TARGET, limit, payout_ratio_bps: 8_000, window_blocks: COVER_WINDOW });
-  const nearBuy = await callAs(client, POOL, "buy_coverage", { request: request(C) }, BigInt(tight.premium), 200n);
-  nearCov = nearBuy.events.find((e) => e.event === "coverage_purchased")?.data[0].coverage;
-  expect(nearCov, `NEAR purchase refused: ${JSON.stringify(nearBuy.events.find((e) => e.event === "coverage_refused")?.data[0])}`);
+  const shape = (limit: string) => ({ limit, payoutRatioBps: 8_000, windowBlocks: COVER_WINDOW });
+  const request = (limit: string) => ({ vault: VAULT, agentPublicKey: agentPk, target: TARGET, ...shape(limit) });
+  // The price comes from the SDK's composition of the registry's class, this agent's daily cap in the
+  // vault policy and the pool's quote; it must equal the tight quote of step 2.
+  const nearQuote = await quoteCoverage({ registry, pool, network: "testnet" }, { target: TARGET, vault: VAULT, agentPublicKey: agentPk, token: "near", ...shape(C) });
+  if (!nearQuote.ok) fail(`NEAR quote refused: ${nearQuote.reason} - ${nearQuote.detail}`);
+  expect(nearQuote.quote.premium === tight.premium, "the SDK quote must equal the pool's quote at the agent's cap");
+  const nearBuy = await ownerCoverage.buy({ request: request(C), token: "near", maxPremium: nearQuote.quote.premium });
+  if (!nearBuy.ok) fail(`NEAR purchase refused: ${nearBuy.reason}`);
+  nearCov = nearBuy.coverage as unknown as typeof nearCov;
+  expect(nearBuy.premium === tight.premium, "the owner must be charged the quoted premium");
   console.log(`   NEAR coverage #${nearCov.id}: C ${fmt(nearCov.limit)}, premium ${fmt(nearCov.premium_paid)} paid by the owner, policy version ${nearCov.policy_version}  ${explorer(nearBuy.tx)}`);
-  const uq = await viewOf<{ premium: string }>(POOL, "quote", { class: "global_by_account", limit: "10000000", payout_ratio_bps: 8_000, window_blocks: COVER_WINDOW, daily_cap: "2000000" });
-  const usdcBuy = await callAs(client, USDC, "ft_transfer_call", { receiver_id: POOL, amount: (BigInt(uq.premium) + 1n).toString(), msg: JSON.stringify({ action: "buy", ...request("10000000") }) }, 1n, 300n);
-  usdcCov = usdcBuy.events.find((e) => e.event === "coverage_purchased")?.data[0].coverage;
-  expect(usdcCov, `USDC purchase refused: ${JSON.stringify(usdcBuy.events)}`);
+  const usdcQuote = await quoteCoverage({ registry, pool, network: "testnet" }, { target: TARGET, vault: VAULT, agentPublicKey: agentPk, token: USDC, ...shape("10000000") });
+  if (!usdcQuote.ok) fail(`USDC quote refused: ${usdcQuote.reason} - ${usdcQuote.detail}`);
+  const usdcBuy = await ownerCoverage.buy({ request: request("10000000"), token: USDC, maxPremium: usdcQuote.quote.premium });
+  if (!usdcBuy.ok) fail(`USDC purchase refused: ${usdcBuy.reason}`);
+  usdcCov = usdcBuy.coverage as unknown as typeof usdcCov;
   console.log(`   USDC coverage #${usdcCov.id}: C ${usdc(usdcCov.limit)}, premium ${usdc(usdcCov.premium_paid)}  ${explorer(usdcBuy.tx)}`);
 
   // 5 ---------------------------------------------------------------------------------------------
@@ -220,9 +237,9 @@ expect(reason === "ARUNA_TARGET_FROZEN", "the next spend must be refused as froz
 // 8 ---------------------------------------------------------------------------------------------
 say("claims: refused while the challenge window is open, paid after it");
 const claim = async (id: number) => {
-  await callAs(anyone, POOL, "claim", { coverage_id: id, report_id: reportId }, 0n, 300n);
-  const c = await viewOf<{ claims: { outcome: string; paid: string }[] }>(POOL, "get_coverage", { id });
-  return c.claims[c.claims.length - 1];
+  await ownerCoverage.claim({ coverageId: id, reportId });
+  const c = (await pool.coverage(id)) ?? fail(`coverage ${id} vanished`);
+  return c.claims[c.claims.length - 1]!;
 };
 const early = await claim(nearCov.id);
 console.log(`   claim on #${nearCov.id} now: ${early.outcome}`);

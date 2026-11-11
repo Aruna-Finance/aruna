@@ -9,11 +9,13 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "mcp-smoke": "node mcp-smoke.mjs"
   },
   "dependencies": {
     "@aruna/sdk": "workspace:*",
-    "near-api-js": "7.4.0"
+    "near-api-js": "7.4.0",
+    "@modelcontextprotocol/sdk": "1.32.2"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
