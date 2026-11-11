@@ -131,11 +131,20 @@ Then open `Manage agents` and `Create an agent`. Expected: the wizard generates 
 the browser, previews `add_agent`, and after you sign, the agent appears in the list. `view_access_key_list`
 on the vault then shows one function-call key whose `method_names` are `spend` and `refresh_class`.
 
-What is not proven in v0: the ceiling can only list targets `registry2.arunafi.testnet` has classified,
-and today that is only `drift-target.arunafi.testnet`, which is frozen (step 12). An agent created here
-therefore has nothing it may spend into yet; the spend path is shown on `demo2` and `demo4` in steps
-11 to 13. Pause, resume and revoke were sent on testnet from the console's modules; policy changes,
-deposit, withdraw and operator and ceiling changes from these screens pass unit tests only.
+The ceiling lists the targets `registry2.arunafi.testnet` has classified. `swap.arunafi.testnet` was
+classified there on 12 November 2026 (transaction `EFuXBSrLsKCWXaTpf1xt7Wkzu554URHroJDj5WwbnTaX`):
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"swap.arunafi.testnet"}'
+```
+
+Expected: `"class":"local_upgradeable"`, `"frozen":false`, `"classifier":"arunafi.testnet"`. So a vault
+created here can admit the swap target, at most `local_upgradeable`.
+
+What is not proven in v0: no agent of a console-created vault has spent into the swap yet; the spend
+path is shown on `demo2` and `demo4` in steps 11 to 13. Pause, resume and revoke were sent on testnet
+from the console's modules; policy changes, deposit, withdraw and operator and ceiling changes from
+these screens pass unit tests only.
 
 ### 6. Ask from an agent (MCP)
 

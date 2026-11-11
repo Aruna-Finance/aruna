@@ -36,10 +36,11 @@ on testnet, if time allows. Everything else follows v0.
 It runs on testnet only and holds no real value, so no gate is affected, but stage 5's
 remaining criteria and stage 6 are still owed before gate A.
 
-**Blocking the console's live spend.** `registry2.arunafi.testnet` has no class for
-`swap.arunafi.testnet`, so a vault created from the console can only list the frozen
-`drift-target.arunafi.testnet` in its ceiling, and its agents have nothing to spend into. L4
-depends on it.
+**Console live spend: unblocked 12 November.** `registry2.arunafi.testnet` had no class for
+`swap.arunafi.testnet`, so a console-created vault could list only the frozen
+`drift-target.arunafi.testnet`. It was classified `local_upgradeable` on 12 November 2026 (tx
+`EFuXBSrLsKCWXaTpf1xt7Wkzu554URHroJDj5WwbnTaX`, `target_classified` event), which unblocks L4.
+A vault's agent still pulls it with `refresh_class` before its first spend.
 
 ## Stage 0 — Lab debt
 
