@@ -25,6 +25,8 @@ Thumbs.db
 
 # test
 coverage/
+!packages/sdk/src/coverage/
+!packages/mcp/src/coverage/
 
 # near
 neardev/
