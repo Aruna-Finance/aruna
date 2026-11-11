@@ -5,4 +5,6 @@ export type { ReadTransport } from "./transport.js";
 export { Registry } from "./registry.js";
 export type { ClassRecord, DriftReport } from "./registry.js";
 export { Pool, tokenId } from "./pool.js";
-export type { Book, Coverage, TokenName } from "./pool.js";
+export type { Book, Coverage, Quote, TokenName } from "./pool.js";
+export { quoteCoverage } from "./quote.js";
+export type { QuoteDeps, QuoteRefusal, QuoteRequest, QuoteResult } from "./quote.js";
