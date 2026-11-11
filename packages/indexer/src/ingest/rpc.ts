@@ -61,8 +61,16 @@ export function rpcSource(o: RpcSourceOptions): BlockSource<RpcScan> {
   const retries = o.retries ?? 6;
   const backoff = o.backoffMs ?? 500;
 
+  let endpoint: URL;
+  try {
+    endpoint = new URL(o.url);
+  } catch {
+    // The value is not echoed: if it is only a token, printing it would leak it.
+    throw new Error("QUICKNODE_RPC_URL is not a URL. It needs the full endpoint URL from the QuickNode dashboard (HTTP Provider), https://<name>.<network>.quiknode.pro/<token>/, not only the token.");
+  }
+
   // Every message that leaves this file goes through redact, so the token in the URL cannot reach a log.
-  const secrets = [o.url, ...new URL(o.url).pathname.split("/").filter((s) => s.length >= 6), new URL(o.url).search].filter(Boolean);
+  const secrets = [o.url, ...endpoint.pathname.split("/").filter((s) => s.length >= 6), endpoint.search].filter(Boolean);
   const redact = (text: string) => secrets.reduce((t, s) => t.split(s).join("<rpc>"), text);
 
   async function rpc<T>(method: string, params: unknown): Promise<T> {

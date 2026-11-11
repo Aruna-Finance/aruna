@@ -49,12 +49,14 @@ Requires Node 22.13 or later, for `node:sqlite`.
 
 ```bash
 pnpm --filter @aruna/indexer build
-QUICKNODE_RPC_URL=https://<your endpoint>.quiknode.pro/<token>/ \
-  node packages/indexer/dist/cli.js serve --db aruna-indexer.sqlite --port 8080
+cp packages/indexer/.env.example packages/indexer/.env   # then fill in QUICKNODE_RPC_URL
+node --env-file=packages/indexer/.env packages/indexer/dist/cli.js serve --db aruna-indexer.sqlite --port 8080
 curl -s localhost:8080/health
 ```
 
-Expected: JSON with `last_indexed_block` rising toward `head_block`. `"healthy"` becomes `true` once
+`QUICKNODE_RPC_URL` is the full "HTTP Provider" URL from the QuickNode dashboard,
+`https://<name>.<network>.quiknode.pro/<token>/`, not only the token. The CLI does not read `.env` by
+itself, so pass it with `--env-file`. Expected: JSON with `last_indexed_block` rising toward `head_block`. `"healthy"` becomes `true` once
 the lag is 60 blocks or less, and only while the indexer has read the chain's head in the last two
 minutes (`head_seen_ms_ago`). An indexer that stopped reading is never reported as caught up.
 
@@ -62,7 +64,7 @@ As a container, built from the repository root:
 
 ```bash
 docker build -f packages/indexer/Dockerfile -t aruna-indexer .
-docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data -e QUICKNODE_RPC_URL=... aruna-indexer
+docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data --env-file packages/indexer/.env aruna-indexer
 ```
 
 The image's health check calls `/health`. It fails while the indexer is more than 60 blocks behind, which includes the first backfill, so do not let an orchestrator restart the container on an unhealthy status. And it fails when ingest has stopped reading the head.

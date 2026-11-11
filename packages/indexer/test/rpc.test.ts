@@ -128,6 +128,18 @@ describe("rpc source cost and safety", () => {
     expect(n).toBe(1);
   });
 
+  it("explains a value that is only a token, without printing it", () => {
+    const token = "abcdef1234567890tokenonly";
+    let message = "";
+    try {
+      rpcSource({ url: token });
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message).toMatch(/full endpoint URL/);
+    expect(message).not.toContain(token);
+  });
+
   it("never lets the endpoint token reach an error message", async () => {
     const fetch = (async () => {
       throw new TypeError(`fetch failed: connect ECONNREFUSED ${URL_} (token abcdef1234567890token)`);
