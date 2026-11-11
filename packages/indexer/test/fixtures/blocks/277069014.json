@@ -1,0 +1,95 @@
+{
+ "block": {
+  "header": {
+   "height": 277069014,
+   "hash": "GF6AqXfdErJwq67NsVqjhgDmvdaafpw5c2EbtRtcfoym",
+   "timestamp_nanosec": "1794314632822897424"
+  }
+ },
+ "shards": [
+  {
+   "shard_id": 10,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 11,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 1,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 12,
+   "receipt_execution_outcomes": [
+    {
+     "tx_hash": "BxUgGjgxEG8JcojAZ1HC8upQDDw2ud4MkVUthx8euczL",
+     "receipt": {
+      "predecessor_id": "demo2.factory.arunafi.testnet",
+      "priority": 0,
+      "receipt": {
+       "Action": {
+        "actions": [
+         {
+          "FunctionCall": {
+           "args": "eyJhZGFwdGVyIjoic3dhcCIsInRhcmdldCI6ImF0dGFja2VyLTIudGVzdG5ldCIsImFtb3VudCI6IjEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsIm1pbl9hbW91bnRfb3V0IjoiMCJ9",
+           "deposit": "0",
+           "gas": 60000000000000,
+           "method_name": "spend"
+          }
+         }
+        ],
+        "gas_price": "1000000000",
+        "input_data_ids": [],
+        "is_promise_yield": false,
+        "output_data_receivers": [],
+        "signer_id": "demo2.factory.arunafi.testnet",
+        "signer_public_key": "ed25519:3r6KHvcr3pdRjRLmSnbBtKNYRaMab6rKissMuqTpshdi"
+       }
+      },
+      "receipt_id": "5DPQS341eDe9RWJZwRQ6MByy8nFQiC1uQ9bm6urWpj97",
+      "receiver_id": "demo2.factory.arunafi.testnet"
+     },
+     "execution_outcome": {
+      "id": "5DPQS341eDe9RWJZwRQ6MByy8nFQiC1uQ9bm6urWpj97",
+      "block_hash": "GF6AqXfdErJwq67NsVqjhgDmvdaafpw5c2EbtRtcfoym",
+      "outcome": {
+       "executor_id": "demo2.factory.arunafi.testnet",
+       "logs": [
+        "EVENT_JSON:{\"standard\":\"aruna\",\"version\":\"1.0.0\",\"event\":\"execution_rejected\",\"data\":[{\"agent\":\"ed25519:3r6KHvcr3pdRjRLmSnbBtKNYRaMab6rKissMuqTpshdi\",\"target\":\"attacker-2.testnet\",\"reason\":\"ARUNA_TARGET_NOT_ALLOWED\",\"class\":null,\"block\":277069014}]}",
+        "EVENT_JSON:{\"standard\":\"aruna\",\"version\":\"1.0.0\",\"event\":\"agent_auto_disabled\",\"data\":[{\"agent\":\"ed25519:3r6KHvcr3pdRjRLmSnbBtKNYRaMab6rKissMuqTpshdi\",\"weighted_refusals\":28,\"window_blocks\":1200}]}"
+       ],
+       "status": {
+        "SuccessValue": "eyJvdXRjb21lIjoiQmxvY2tlZCIsInJlYXNvbiI6IkFSVU5BX1RBUkdFVF9OT1RfQUxMT1dFRCIsImNsYXNzIjpudWxsfQ=="
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "shard_id": 13,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 9,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 6,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 7,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 4,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 5,
+   "receipt_execution_outcomes": []
+  }
+ ]
+}

@@ -1,0 +1,170 @@
+{
+ "block": {
+  "header": {
+   "height": 277069048,
+   "hash": "2KwTAa9W5Y5UpxSryKPtp3NidJYA9jo2bGvZqpC3TBtv",
+   "timestamp_nanosec": "1794314653605694293"
+  }
+ },
+ "shards": [
+  {
+   "shard_id": 10,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 11,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 1,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 12,
+   "receipt_execution_outcomes": [
+    {
+     "tx_hash": "BqTxFWwXCSmFqkKeQawS8gm8YhpGu9Hwv9qqqJaXuHnJ",
+     "receipt": {
+      "predecessor_id": "swap.arunafi.testnet",
+      "priority": 0,
+      "receipt": {
+       "Action": {
+        "actions": [
+         {
+          "Transfer": {
+           "deposit": "99500000000000000000000"
+          }
+         }
+        ],
+        "gas_price": "1000000000",
+        "input_data_ids": [],
+        "is_promise_yield": false,
+        "output_data_receivers": [],
+        "signer_id": "demo2.factory.arunafi.testnet",
+        "signer_public_key": "ed25519:7THAYJHPStMpR3xZjiKoHDdBu6ChQWfG6w93r9sUxHFi"
+       }
+      },
+      "receipt_id": "FSgXvs3nshuxL5WV4aJBqLmmZc7ibPSV44SUFKMfMMP6",
+      "receiver_id": "demo2.factory.arunafi.testnet"
+     },
+     "execution_outcome": {
+      "id": "FSgXvs3nshuxL5WV4aJBqLmmZc7ibPSV44SUFKMfMMP6",
+      "block_hash": "2KwTAa9W5Y5UpxSryKPtp3NidJYA9jo2bGvZqpC3TBtv",
+      "outcome": {
+       "executor_id": "demo2.factory.arunafi.testnet",
+       "logs": [],
+       "status": {
+        "SuccessValue": ""
+       }
+      }
+     }
+    },
+    {
+     "tx_hash": "BqTxFWwXCSmFqkKeQawS8gm8YhpGu9Hwv9qqqJaXuHnJ",
+     "receipt": {
+      "predecessor_id": "system",
+      "priority": 0,
+      "receipt": {
+       "Action": {
+        "actions": [
+         {
+          "Transfer": {
+           "deposit": "20520012305377700000000"
+          }
+         }
+        ],
+        "gas_price": "0",
+        "input_data_ids": [],
+        "is_promise_yield": false,
+        "output_data_receivers": [],
+        "signer_id": "demo2.factory.arunafi.testnet",
+        "signer_public_key": "ed25519:7THAYJHPStMpR3xZjiKoHDdBu6ChQWfG6w93r9sUxHFi"
+       }
+      },
+      "receipt_id": "BeUtJJduC3hLv9pN8aHpSs8c1Dg9MeqfARWHUZc36crV",
+      "receiver_id": "demo2.factory.arunafi.testnet"
+     },
+     "execution_outcome": {
+      "id": "BeUtJJduC3hLv9pN8aHpSs8c1Dg9MeqfARWHUZc36crV",
+      "block_hash": "2KwTAa9W5Y5UpxSryKPtp3NidJYA9jo2bGvZqpC3TBtv",
+      "outcome": {
+       "executor_id": "demo2.factory.arunafi.testnet",
+       "logs": [],
+       "status": {
+        "SuccessValue": ""
+       }
+      }
+     }
+    },
+    {
+     "tx_hash": "BqTxFWwXCSmFqkKeQawS8gm8YhpGu9Hwv9qqqJaXuHnJ",
+     "receipt": {
+      "predecessor_id": "demo2.factory.arunafi.testnet",
+      "priority": 0,
+      "receipt": {
+       "Action": {
+        "actions": [
+         {
+          "FunctionCall": {
+           "args": "eyJhZ2VudCI6ImVkMjU1MTk6N1RIQVlKSFBTdE1wUjN4WmppS29IRGRCdTZDaFFXZkc2dzkzcjlzVXhIRmkiLCJ0YXJnZXQiOiJzd2FwLmFydW5hZmkudGVzdG5ldCIsImFtb3VudCI6IjEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCIsImNsYXNzIjoibG9jYWxfdXBncmFkZWFibGUifQ==",
+           "deposit": "0",
+           "gas": 15000000000000,
+           "method_name": "cb_settle"
+          }
+         }
+        ],
+        "gas_price": "1000000000",
+        "input_data_ids": [
+         "7zFRdoqq5H1y1Y81MpEogtpJ5y8mFgQF1K5AZuwuBUAK"
+        ],
+        "is_promise_yield": false,
+        "output_data_receivers": [],
+        "signer_id": "demo2.factory.arunafi.testnet",
+        "signer_public_key": "ed25519:7THAYJHPStMpR3xZjiKoHDdBu6ChQWfG6w93r9sUxHFi"
+       }
+      },
+      "receipt_id": "65JqwxhNbovjRf3cJvt7XFYaBbNLmi95w1KudJMsZfrX",
+      "receiver_id": "demo2.factory.arunafi.testnet"
+     },
+     "execution_outcome": {
+      "id": "65JqwxhNbovjRf3cJvt7XFYaBbNLmi95w1KudJMsZfrX",
+      "block_hash": "2KwTAa9W5Y5UpxSryKPtp3NidJYA9jo2bGvZqpC3TBtv",
+      "outcome": {
+       "executor_id": "demo2.factory.arunafi.testnet",
+       "logs": [
+        "EVENT_JSON:{\"standard\":\"aruna\",\"version\":\"1.0.0\",\"event\":\"exposure_recorded\",\"data\":[{\"agent\":\"ed25519:7THAYJHPStMpR3xZjiKoHDdBu6ChQWfG6w93r9sUxHFi\",\"target\":\"swap.arunafi.testnet\",\"amount\":\"100000000000000000000000\",\"class\":\"local_upgradeable\",\"total\":\"200000000000000000000000\"}]}"
+       ],
+       "status": {
+        "SuccessValue": "dHJ1ZQ=="
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "shard_id": 13,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 9,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 6,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 7,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 4,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 5,
+   "receipt_execution_outcomes": []
+  }
+ ]
+}

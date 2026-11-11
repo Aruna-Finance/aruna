@@ -1,0 +1,134 @@
+{
+ "block": {
+  "header": {
+   "height": 277068625,
+   "hash": "Cqc3AbLKmKM4BGvxXgEr8vX85YT4HfgN61mrM4zSgEaV",
+   "timestamp_nanosec": "1794314404509526999"
+  }
+ },
+ "shards": [
+  {
+   "shard_id": 10,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 11,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 1,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 12,
+   "receipt_execution_outcomes": [
+    {
+     "tx_hash": "9krcc5BarPuzCsYZWULhZRWhxzfXg7NqKBwh7yY4SzwG",
+     "receipt": {
+      "predecessor_id": "system",
+      "priority": 0,
+      "receipt": {
+       "Action": {
+        "actions": [
+         {
+          "Transfer": {
+           "deposit": "16222625386803800000000"
+          }
+         }
+        ],
+        "gas_price": "0",
+        "input_data_ids": [],
+        "is_promise_yield": false,
+        "output_data_receivers": [],
+        "signer_id": "demo-company.arunafi.testnet",
+        "signer_public_key": "ed25519:FRW591Z2oSrinJZG8VXo9nWieNzsq5SoSZXhKSwLobeE"
+       }
+      },
+      "receipt_id": "D2TCvJCxteGt6M2LnguNaGSZQvraWHCec1oTPh8khCGr",
+      "receiver_id": "demo-company.arunafi.testnet"
+     },
+     "execution_outcome": {
+      "id": "D2TCvJCxteGt6M2LnguNaGSZQvraWHCec1oTPh8khCGr",
+      "block_hash": "Cqc3AbLKmKM4BGvxXgEr8vX85YT4HfgN61mrM4zSgEaV",
+      "outcome": {
+       "executor_id": "demo-company.arunafi.testnet",
+       "logs": [],
+       "status": {
+        "SuccessValue": ""
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "shard_id": 13,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 9,
+   "receipt_execution_outcomes": [
+    {
+     "tx_hash": "9krcc5BarPuzCsYZWULhZRWhxzfXg7NqKBwh7yY4SzwG",
+     "receipt": {
+      "predecessor_id": "factory.arunafi.testnet",
+      "priority": 0,
+      "receipt": {
+       "Action": {
+        "actions": [
+         {
+          "FunctionCall": {
+           "args": "eyJ2YXVsdCI6ImRlbW8yLmZhY3RvcnkuYXJ1bmFmaS50ZXN0bmV0Iiwib3duZXIiOiJkZW1vLWNsaWVudC5hcnVuYWZpLnRlc3RuZXQiLCJwYXllciI6ImRlbW8tY29tcGFueS5hcnVuYWZpLnRlc3RuZXQiLCJkZXBvc2l0IjoiMzAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMCJ9",
+           "deposit": "0",
+           "gas": 123628225764203,
+           "method_name": "cb_vault_created"
+          }
+         }
+        ],
+        "gas_price": "1000000000",
+        "input_data_ids": [
+         "92m6cfr98B6mPieqxus3c8cmmYfUn86PEegyDaz5y57V"
+        ],
+        "is_promise_yield": false,
+        "output_data_receivers": [],
+        "signer_id": "demo-company.arunafi.testnet",
+        "signer_public_key": "ed25519:FRW591Z2oSrinJZG8VXo9nWieNzsq5SoSZXhKSwLobeE"
+       }
+      },
+      "receipt_id": "Cb9nRNoepoadiRniMDUsUhGfBH9PzZyoVDsNBnayjuyM",
+      "receiver_id": "factory.arunafi.testnet"
+     },
+     "execution_outcome": {
+      "id": "Cb9nRNoepoadiRniMDUsUhGfBH9PzZyoVDsNBnayjuyM",
+      "block_hash": "Cqc3AbLKmKM4BGvxXgEr8vX85YT4HfgN61mrM4zSgEaV",
+      "outcome": {
+       "executor_id": "factory.arunafi.testnet",
+       "logs": [
+        "EVENT_JSON:{\"standard\":\"aruna\",\"version\":\"1.0.0\",\"event\":\"vault_created\",\"data\":[{\"vault\":\"demo2.factory.arunafi.testnet\",\"owner\":\"demo-client.arunafi.testnet\",\"code_hash\":\"4hDwncUDmaMbrde7F95Agj7g4otBVpSeM1evk6JNQSam\"}]}"
+       ],
+       "status": {
+        "SuccessValue": "ImRlbW8yLmZhY3RvcnkuYXJ1bmFmaS50ZXN0bmV0Ig=="
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "shard_id": 6,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 7,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 4,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 5,
+   "receipt_execution_outcomes": []
+  }
+ ]
+}

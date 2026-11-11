@@ -17,11 +17,18 @@
       "import": "./dist/client.js"
     }
   },
+  "bin": {
+    "aruna-indexer": "./dist/cli.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "config"
   ],
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist"

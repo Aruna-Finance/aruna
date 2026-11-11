@@ -1,0 +1,92 @@
+{
+ "block": {
+  "header": {
+   "height": 277068623,
+   "hash": "8kYNNBthSc2dEc2UKnZLaFmQmmp83FRJGTr3vTiY3D7x",
+   "timestamp_nanosec": "1794314403283356753"
+  }
+ },
+ "shards": [
+  {
+   "shard_id": 10,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 11,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 1,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 12,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 13,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 9,
+   "receipt_execution_outcomes": [
+    {
+     "tx_hash": "9krcc5BarPuzCsYZWULhZRWhxzfXg7NqKBwh7yY4SzwG",
+     "receipt": {
+      "predecessor_id": "demo-company.arunafi.testnet",
+      "priority": 0,
+      "receipt": {
+       "Action": {
+        "actions": [
+         {
+          "FunctionCall": {
+           "args": "eyJjZWlsaW5nIjp7ImFnZW50X2FsbG93YW5jZSI6IjEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLCJhbGxvd2VkX3RhcmdldHMiOlsic3dhcC5hcnVuYWZpLnRlc3RuZXQiXSwiZGFpbHlfdG90YWwiOiIzMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIiwibWF4X3Blcl90eCI6IjEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAiLCJtYXhfcmlza19jbGFzcyI6ImxvY2FsX3VwZ3JhZGVhYmxlIn0sIm5hbWUiOiJkZW1vMiIsIm9wZXJhdG9yIjoiZGVtby1jb21wYW55LmFydW5hZmkudGVzdG5ldCIsIm93bmVyIjoiZGVtby1jbGllbnQuYXJ1bmFmaS50ZXN0bmV0In0=",
+           "deposit": "3000000000000000000000000",
+           "gas": 150000000000000,
+           "method_name": "create_vault"
+          }
+         }
+        ],
+        "gas_price": "1000000000",
+        "input_data_ids": [],
+        "is_promise_yield": false,
+        "output_data_receivers": [],
+        "signer_id": "demo-company.arunafi.testnet",
+        "signer_public_key": "ed25519:FRW591Z2oSrinJZG8VXo9nWieNzsq5SoSZXhKSwLobeE"
+       }
+      },
+      "receipt_id": "o1EEE556YHyAkifZnZirh8ZymZGnACy4dcZXoiYWiaV",
+      "receiver_id": "factory.arunafi.testnet"
+     },
+     "execution_outcome": {
+      "id": "o1EEE556YHyAkifZnZirh8ZymZGnACy4dcZXoiYWiaV",
+      "block_hash": "8kYNNBthSc2dEc2UKnZLaFmQmmp83FRJGTr3vTiY3D7x",
+      "outcome": {
+       "executor_id": "factory.arunafi.testnet",
+       "logs": [],
+       "status": {
+        "SuccessReceiptId": "Cb9nRNoepoadiRniMDUsUhGfBH9PzZyoVDsNBnayjuyM"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "shard_id": 6,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 7,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 4,
+   "receipt_execution_outcomes": []
+  },
+  {
+   "shard_id": 5,
+   "receipt_execution_outcomes": []
+  }
+ ]
+}
