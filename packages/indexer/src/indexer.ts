@@ -24,7 +24,8 @@ export interface IndexerOptions {
 }
 
 export async function runIndexer(o: IndexerOptions): Promise<void> {
-  const concurrency = Math.max(1, o.concurrency ?? 16);
+  const concurrency = o.concurrency ?? 16;
+  if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error(`concurrency must be a positive integer, got ${o.concurrency}`);
   const watch = new WatchSet(o.seeds);
   for (const v of o.store.knownVaults()) watch.addVault(v.vault, v.factory);
 

@@ -22,6 +22,9 @@ export interface Health {
   /** The chain's final block when last checked; null before the first check. */
   head_block: number | null;
   lag_blocks: number | null;
+  /** How long ago the indexer last read the chain's head; null before the first read. Healthy needs a recent read
+   * as well as a small lag, so an indexer that stopped reading is never reported as caught up. */
+  head_seen_ms_ago: number | null;
   /** Events kept raw because their name or shape was not recognised (R4). */
   unparsed_events: number;
   healthy: boolean;
@@ -48,23 +51,26 @@ export interface VaultSummary {
   created_tx: string;
 }
 
-export type ActivityKind =
-  | "allowed"
-  | "refused"
-  | "failed"
-  | "exposure"
-  | "auto_disabled"
-  | "agent_registered"
-  | "status_changed"
-  | "policy_updated"
-  | "class_refreshed"
-  | "target_frozen"
-  | "deposit"
-  | "withdrawal"
-  | "ceiling_updated"
-  | "operator_changed"
-  | "owner_changed"
-  | "other";
+export const ACTIVITY_KINDS = [
+  "allowed",
+  "refused",
+  "failed",
+  "exposure",
+  "auto_disabled",
+  "agent_registered",
+  "status_changed",
+  "policy_updated",
+  "class_refreshed",
+  "target_frozen",
+  "deposit",
+  "withdrawal",
+  "ceiling_updated",
+  "operator_changed",
+  "owner_changed",
+  "other",
+] as const;
+
+export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 
 /** One vault event, normalised for display. `data` is the event's own payload, unchanged. */
 export interface ActivityItem extends ChainRef {

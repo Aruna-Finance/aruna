@@ -15,7 +15,7 @@ export interface RawRecord {
   timestamp_ms: number;
   tx_hash: string;
   receipt_id: string;
-  /** Position of the log line in its receipt; -1 for a call record. */
+  /** Position of the log line in its receipt; for a call record, -(action index + 1). */
   idx: number;
 }
 
@@ -103,11 +103,11 @@ export function extractRecords(block: NeardataBlock, watch: WatchSet): RawRecord
       if (watch.isFactory(contract)) {
         const inner = o.receipt?.receipt;
         const actions = isObject(inner) && isObject(inner.Action) && Array.isArray(inner.Action.actions) ? inner.Action.actions : [];
-        for (const a of actions) {
-          if (!isObject(a) || !isObject(a.FunctionCall) || a.FunctionCall.method_name !== "create_vault") continue;
+        actions.forEach((a, i) => {
+          if (!isObject(a) || !isObject(a.FunctionCall) || a.FunctionCall.method_name !== "create_vault") return;
           const args = decodeArgs(String(a.FunctionCall.args ?? ""));
-          if (args) out.push({ ...base, kind: "call", name: "create_vault", data: args, idx: -1 });
-        }
+          if (args) out.push({ ...base, kind: "call", name: "create_vault", data: args, idx: -(i + 1) });
+        });
       }
 
       o.execution_outcome.outcome.logs.forEach((line, idx) => {

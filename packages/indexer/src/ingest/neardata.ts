@@ -53,11 +53,11 @@ export function neardataSource(o: { baseUrl?: string; apiKey?: string; fetch?: t
       let res: Response | undefined;
       try {
         res = await doFetch(`${base}${path}`, { redirect: "follow", headers });
+        if (res.ok) return await res.json();
       } catch (e) {
         last = e;
       }
-      if (res) {
-        if (res.ok) return await res.json();
+      if (res && !res.ok) {
         await res.body?.cancel();
         last = new Error(`neardata ${path} answered ${res.status}`);
         if (isPermanentClientError(res.status)) throw last;

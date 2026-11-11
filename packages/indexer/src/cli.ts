@@ -2,7 +2,8 @@
 // aruna-indexer — reads Aruna's testnet events from the public block archive into one SQLite file.
 // Holds no keys and sends no transactions (R5).
 
-import { readFileSync, rmSync } from "node:fs";
+import { readFileSync, realpathSync, rmSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { runIndexer, type IndexerOptions } from "./indexer.js";
@@ -127,7 +128,8 @@ async function main(argv: string[]): Promise<number> {
   return 0;
 }
 
-const isMain = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
+// The bin is usually reached through a symlink (node_modules/.bin, a global install), so compare real paths.
+const isMain = !!process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   main(process.argv.slice(2)).then(
     (code) => process.exit(code),

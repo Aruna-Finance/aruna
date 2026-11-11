@@ -6,7 +6,7 @@
 // The one value not taken from chain: demo2's creation block and transaction are not in the recorded
 // runs, so VAULTS carries 0 and "" there until an indexer export replaces this file.
 
-import type { ActivityItem, EventItem, ExposureRow, IndexerClient, Page, VaultSummary } from "@aruna/indexer/client";
+import { clampLimit, type ActivityItem, type EventItem, type ExposureRow, type IndexerClient, type Page, type VaultSummary } from "@aruna/indexer/client";
 
 export const FIXTURE_LAST_INDEXED_BLOCK = 277069048;
 
@@ -435,20 +435,28 @@ export const EVENTS: EventItem[] = [
   }
 ];
 
-function page<T extends { seq: number }>(items: T[], after?: number, limit = 100): Page<T> {
+function page<T extends { seq: number }>(items: T[], after?: number, limit?: number): Page<T> {
+  const n = clampLimit(limit);
   const rest = items.filter((i) => after === undefined || i.seq > after);
-  const slice = rest.slice(0, limit);
+  const slice = rest.slice(0, n);
   return { last_indexed_block: FIXTURE_LAST_INDEXED_BLOCK, items: slice, next_after: rest.length > slice.length ? slice[slice.length - 1].seq : null };
 }
 
-/** Answers like the live indexer, from the recorded data above. */
+const isVault = (account: string) => VAULTS.some((v) => v.vault === account);
+const field = (e: EventItem, key: string): unknown => e.data[key] ?? (e.data.coverage as Record<string, unknown> | undefined)?.[key] ?? (e.data.report as Record<string, unknown> | undefined)?.[key];
+
+/** Answers like the live indexer, from the recorded data above: the same filters, paging and page-size clamp. */
 export const fixtureIndexerClient: IndexerClient = {
   async health() {
-    return { last_indexed_block: FIXTURE_LAST_INDEXED_BLOCK, head_block: FIXTURE_LAST_INDEXED_BLOCK, lag_blocks: 0, unparsed_events: 0, healthy: true };
+    return { last_indexed_block: FIXTURE_LAST_INDEXED_BLOCK, head_block: FIXTURE_LAST_INDEXED_BLOCK, lag_blocks: 0, head_seen_ms_ago: 0, unparsed_events: 0, healthy: true };
   },
   async vaults(q = {}) {
-    const items = VAULTS.filter((v) => (!q.owner || v.owner === q.owner) && (!q.operator || v.operator === q.operator) && (!q.code_hash || v.code_hash === q.code_hash));
-    return { last_indexed_block: FIXTURE_LAST_INDEXED_BLOCK, items, next_after: null };
+    // VAULTS is in creation order, which is the live seq order.
+    const items = VAULTS.map((v, i) => ({ ...v, seq: i + 1 })).filter(
+      (v) => (!q.owner || v.owner === q.owner) && (!q.operator || v.operator === q.operator) && (!q.code_hash || v.code_hash === q.code_hash),
+    );
+    const p = page(items, q.after, q.limit);
+    return { ...p, items: p.items.map(({ seq: _seq, ...v }) => v) };
   },
   async activity(vault, q = {}) {
     return page(ACTIVITY.filter((a) => a.vault === vault && (!q.agent || a.agent === q.agent) && (!q.kind || a.kind === q.kind)), q.after, q.limit);
@@ -457,7 +465,19 @@ export const fixtureIndexerClient: IndexerClient = {
     return page(EXPOSURE.filter((e) => e.vault === vault && (!q.agent || e.agent === q.agent) && (!q.target || e.target === q.target) && (!q.token || e.token === q.token)), q.after, q.limit);
   },
   async events(q = {}) {
-    const names = q.event ? q.event.split(",") : null;
-    return page(EVENTS.filter((e) => (!q.contract || e.contract === q.contract) && (!names || names.includes(e.event)) && (!q.vault || e.contract === q.vault) && (!q.target || e.data.target === q.target)), q.after, q.limit);
+    const names = q.event ? q.event.split(",").map((s) => s.trim()) : null;
+    return page(
+      EVENTS.filter(
+        (e) =>
+          (!q.contract || e.contract === q.contract) &&
+          (!names || names.includes(e.event)) &&
+          (!q.vault || (isVault(e.contract) ? e.contract : field(e, "vault")) === q.vault) &&
+          (!q.target || field(e, "target") === q.target) &&
+          (!q.attestor || field(e, "attestor") === q.attestor) &&
+          (q.coverage === undefined || (typeof e.data.coverage === "number" ? e.data.coverage : field(e, "id")) === q.coverage),
+      ),
+      q.after,
+      q.limit,
+    );
   },
 };

@@ -1,6 +1,6 @@
 // Maps the read contract's routes onto the store (plan U3, KTD4). GET only, open CORS, no auth.
 
-import { ROUTES, type ActivityKind } from "./api.js";
+import { ACTIVITY_KINDS, ROUTES, type ActivityKind } from "./api.js";
 import type { Store } from "./store.js";
 
 export interface Reply {
@@ -36,6 +36,12 @@ function int(params: URLSearchParams, key: string): number | undefined {
 
 const text = (params: URLSearchParams, key: string) => params.get(key) || undefined;
 
+function kind(params: URLSearchParams): ActivityKind | undefined {
+  const v = text(params, "kind");
+  if (v !== undefined && !(ACTIVITY_KINDS as readonly string[]).includes(v)) throw new BadQuery(`kind must be one of ${ACTIVITY_KINDS.join(", ")}`);
+  return v as ActivityKind | undefined;
+}
+
 export function handle(store: Store, method: string, rawUrl: string): Reply {
   if (method === "OPTIONS") return { status: 204, headers: CORS, body: "" };
   if (method !== "GET") return json(405, { error: "the indexer API is read-only: GET only" });
@@ -54,7 +60,7 @@ export function handle(store: Store, method: string, rawUrl: string): Reply {
     const m = VAULT_SUBROUTE.exec(url.pathname);
     if (m) {
       const vault = decodeURIComponent(m[1]);
-      if (m[2] === "activity") return json(200, store.activity(vault, { ...page, agent: text(p, "agent"), kind: text(p, "kind") as ActivityKind | undefined }));
+      if (m[2] === "activity") return json(200, store.activity(vault, { ...page, agent: text(p, "agent"), kind: kind(p) }));
       return json(200, store.exposure(vault, { ...page, agent: text(p, "agent"), target: text(p, "target"), token: text(p, "token") }));
     }
     return json(404, { error: `no route ${url.pathname}` });

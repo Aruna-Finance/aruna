@@ -55,8 +55,10 @@ export function applyRecord(db: DatabaseSync, seq: number, rec: RawRecord): void
   if (rec.kind === "call" && rec.name === "create_vault") {
     const name = str(d.name);
     if (!name) return;
-    db.prepare("INSERT OR REPLACE INTO creates (vault, owner, operator, seq) VALUES ($vault, $owner, $operator, $seq)").run({
+    // Anyone may call create_vault for any name, so a call is tied to a vault only through its own transaction.
+    db.prepare("INSERT OR REPLACE INTO creates (vault, tx_hash, owner, operator, seq) VALUES ($vault, $tx, $owner, $operator, $seq)").run({
       $vault: `${name}.${rec.contract}`,
+      $tx: rec.tx_hash,
       $owner: str(d.owner),
       $operator: str(d.operator),
       $seq: seq,
@@ -74,7 +76,7 @@ export function applyRecord(db: DatabaseSync, seq: number, rec: RawRecord): void
 
   if (event === "vault_created") {
     const vault = str(d.vault)!;
-    const create = db.prepare("SELECT operator FROM creates WHERE vault = ?").get(vault) as { operator: string | null } | undefined;
+    const create = db.prepare("SELECT operator FROM creates WHERE vault = ? AND tx_hash = ?").get(vault, rec.tx_hash) as { operator: string | null } | undefined;
     db.prepare(
       "INSERT OR REPLACE INTO vaults (vault, factory, owner, operator, code_hash, created_block, created_tx, seq) VALUES ($vault, $factory, $owner, $operator, $code_hash, $block, $tx, $seq)",
     ).run({ $vault: vault, $factory: rec.contract, $owner: str(d.owner), $operator: create?.operator ?? null, $code_hash: str(d.code_hash), $block: rec.block, $tx: rec.tx_hash, $seq: seq });

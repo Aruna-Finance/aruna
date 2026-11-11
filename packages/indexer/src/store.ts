@@ -9,6 +9,8 @@ import type { RawRecord } from "./ingest/parse.js";
 
 /** A head lag above this many blocks reports the indexer as not healthy (about a minute on testnet). */
 export const HEALTHY_LAG_BLOCKS = 60;
+/** A head last read longer ago than this means ingest has stopped reading the chain. */
+export const HEAD_STALE_MS = 120_000;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -17,7 +19,7 @@ CREATE TABLE IF NOT EXISTS raw (
   block INTEGER NOT NULL, timestamp_ms INTEGER NOT NULL, tx_hash TEXT NOT NULL, receipt_id TEXT NOT NULL, idx INTEGER NOT NULL,
   UNIQUE (receipt_id, kind, idx)
 );
-CREATE TABLE IF NOT EXISTS creates (vault TEXT PRIMARY KEY, owner TEXT, operator TEXT, seq INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS creates (vault TEXT NOT NULL, tx_hash TEXT NOT NULL, owner TEXT, operator TEXT, seq INTEGER NOT NULL, PRIMARY KEY (vault, tx_hash));
 CREATE TABLE IF NOT EXISTS vaults (
   vault TEXT PRIMARY KEY, factory TEXT NOT NULL, owner TEXT, operator TEXT, code_hash TEXT,
   created_block INTEGER NOT NULL, created_tx TEXT NOT NULL, seq INTEGER NOT NULL
@@ -66,7 +68,9 @@ function canonical(x: unknown): unknown {
   return x;
 }
 
-export function openStore(path: string): Store {
+export function openStore(path: string, o: { now?: () => number } = {}): Store {
+  const now = o.now ?? Date.now;
+  let headSeenAt: number | null = null;
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
   db.exec(SCHEMA);
@@ -156,6 +160,7 @@ export function openStore(path: string): Store {
     },
     knownVaults: () => (db.prepare("SELECT vault, factory FROM vaults ORDER BY seq").all() as Row[]).map((r) => ({ vault: String(r.vault), factory: String(r.factory) })),
     setHead(h) {
+      headSeenAt = now();
       if (getMeta("head") !== String(h)) setMeta("head", String(h));
     },
     health(head) {
@@ -163,8 +168,10 @@ export function openStore(path: string): Store {
       const stored = getMeta("head");
       const knownHead = head ?? (stored === null ? null : Number(stored));
       const lag = knownHead === null ? null : Math.max(0, knownHead - last);
+      const seenAgo = head !== undefined && head !== null ? 0 : headSeenAt === null ? null : now() - headSeenAt;
       const unparsed = Number((db.prepare("SELECT COUNT(*) AS n FROM raw WHERE kind = 'unparsed'").get() as Row).n);
-      return { last_indexed_block: last, head_block: knownHead, lag_blocks: lag, unparsed_events: unparsed, healthy: lag !== null && lag <= HEALTHY_LAG_BLOCKS };
+      const healthy = lag !== null && lag <= HEALTHY_LAG_BLOCKS && seenAgo !== null && seenAgo <= HEAD_STALE_MS;
+      return { last_indexed_block: last, head_block: knownHead, lag_blocks: lag, head_seen_ms_ago: seenAgo, unparsed_events: unparsed, healthy };
     },
     vaults: (q = {}) =>
       page("vaults", [["owner", q.owner], ["operator", q.operator], ["code_hash", q.code_hash]], q, vaultRow),
