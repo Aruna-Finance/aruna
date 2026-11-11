@@ -18,6 +18,30 @@ Never start a stage before the previous one's acceptance criteria are green.
 Stages 0, 1 and 2 are committed. Stage 3 is a deliberately thin vault with its public page,
 on testnet, if time allows. Everything else follows v0.
 
+### Status (12 November 2026)
+
+| Stage | Status | Evidence |
+|---|---|---|
+| 0 Lab debt | Done | `lab/owed`, `NEAR-FACTS.md` §10; README step 8 |
+| 1 Classifier | Done | `classifier-core` 47 tests, zero dependencies; README steps 2–3 |
+| 2 Measurement and page | Done | `measurement/REPORT.md`, `pnpm measure`; README steps 4, 5, 7 |
+| 3 Thin vault and public page | Done on testnet | vault v2 on `demo2.factory.arunafi.testnet` self-classifies `immutable_verified`; 5 sandbox integration tests; README steps 5b, 9–11 |
+| 4 SDK and MCP | Done | `sdk` 70 and `mcp` 22 tests, ABI-generated types with a drift test; README steps 6, 13 |
+| 5 Exposure, indexer, console | Partly done | `exposure_before` in vault v3; a failed callback releases its reservation (step 10); `@aruna/indexer` built and tested (70) but not hosted; console lanes L0–L3 (wallet, preview, create a vault, agents) live; L4 (running the two agents from the playground, which today only reads the demo vault) and L5 (activity and exposure from the indexer) not. `class_at_record` keeps only the latest class per target (`AUDIT-v0.md` I1) |
+| 6 Migration | Not started | planned after v0: U14–U16 in `plans/2026-11-11-1645-…` |
+| 7 Coverage on testnet | Done on testnet | see the status under stage 7; README step 12 |
+| 8 Simulation | Not started | `packages/sim` is empty; the console's Simulation screen runs an in-browser sample model |
+
+**Out of order.** Stage 7 was built before stages 5 and 6 were green, against the rule above.
+It runs on testnet only and holds no real value, so no gate is affected, but stage 5's
+remaining criteria and stage 6 are still owed before gate A.
+
+**Console live spend: unblocked 12 November.** `registry2.arunafi.testnet` had no class for
+`swap.arunafi.testnet`, so a console-created vault could list only the frozen
+`drift-target.arunafi.testnet`. It was classified `local_upgradeable` on 12 November 2026 (tx
+`EFuXBSrLsKCWXaTpf1xt7Wkzu554URHroJDj5WwbnTaX`, `target_classified` event), which unblocks L4.
+A vault's agent still pulls it with `refresh_class` before its first spend.
+
 ## Stage 0 — Lab debt
 
 Before any product code. T5–T9 (`TESTING.md`) can invalidate later work: the lab tested gas
@@ -182,7 +206,9 @@ of this work most likely to outlive the product.
 
 ## Submission checklist for v0
 
-- [ ] Public repo, MIT LICENSE, no keys in git history
+- [x] Public repo, MIT LICENSE, no keys in git history (repo public with MIT on GitHub; on
+  12 November every branch's history was searched for `ed25519:` private keys, `secret_key` and
+  `private_key`, and no tracked `.env`, with no match. A pattern search, not a secret scanner)
 - [x] README with numbered "do X, see Y" steps, each with an expected result
 - [x] First screen carries the positioning sentence from `COMPETITIVE.md`
 - [ ] Demo post on X tagging @NEARProtocol and #NEARHackathon, with video or screenshots

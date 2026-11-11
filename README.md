@@ -17,10 +17,11 @@ should see.
 
 ## Steps
 
-Requirements: Node 20+, pnpm 9 (`corepack enable`). Steps 8 and 10 also need Rust ≥ 1.95 and
-`cargo-near`. Deploying your own copies (steps 4, 9 and 11) needs `near-cli-rs` ≥ 0.31 and a funded
-testnet account, and running the agents in `examples/` needs Node ≥ 22.18; reading ours needs
-nothing.
+Requirements: Node 22.13+ (the indexer's tests use `node:sqlite`), pnpm 9 (`corepack enable`).
+Steps 8 and 10 also need Rust ≥ 1.95 and `cargo-near`. Deploying your own copies (steps 4, 9 and 11)
+needs `near-cli-rs` ≥ 0.31 and a funded testnet account, step 5d needs a testnet wallet holding at
+least 0.5 NEAR plus gas, and running the agents in `examples/` needs Node ≥ 22.18; reading ours
+needs nothing.
 
 ### 1. Install, build and test
 
@@ -31,7 +32,7 @@ pnpm -r test
 ```
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
-skipped), `cli` (8), `attestor` (13), `sdk` (70), `mcp` (22) and `apps/web` (206).
+skipped), `cli` (8), `attestor` (13), `sdk` (70), `mcp` (22), `indexer` (70) and `apps/web` (206).
 
 ### 2. Classify any NEAR contract
 
@@ -93,8 +94,13 @@ With the static host from step 5 still running, open `http://localhost:4173/cons
 `demo2.factory.arunafi.testnet` live through `@aruna/sdk` `readVault`, with no login. Expected: owner
 `demo-client.arunafi.testnet`, operator `demo-company.arunafi.testnet`, `0` full-access keys, and a list
 of agents. Click an agent. Expected: a page listing what its key cannot do, its limits and usage, and a
-`curl` for `view_access_key_list` whose output you can compare by hand. The other console screens
-(`/console/dashboard/`, `/console/coverage/`, `/console/claims/`) run on mock data until the contracts are wired in.
+`curl` for `view_access_key_list` whose output you can compare by hand.
+
+Which console screens read the chain: Lookup and the public agent page (this step), Create a vault and
+Agents (step 5d), and Playground, which reads the demo vault live and gives the commands for the agents
+in step 11 rather than running them. Every other screen — Overview, Targets, Coverage, Claims,
+Migration, Pool, Simulation, Attestor and the Guided demo — still runs on sample data in v0. Treat the
+numbers on those screens as illustrations, not results; the results are in steps 9 to 13.
 
 ### 5c. Connect a testnet wallet
 
@@ -102,8 +108,43 @@ You need a testnet wallet account. With the static host still running, open `htt
 and click `Connect wallet` in the header. Expected: a wallet picker opens; after you sign in with a testnet account,
 the header shows that account id and a `Disconnect` button, and the Lookup page adds a line saying whether your
 account is the vault owner, the operator, or neither (for `demo2.factory.arunafi.testnet` it is neither, unless you
-sign in as its owner). Connecting only logs in: no screen signs or sends a transaction yet, and the other console
-screens still run on mock data. Closing the picker is not an error.
+sign in as its owner). Closing the picker is not an error. Every transaction the console sends is shown in a
+preview first — receiver, method, deposit and gas — and declining it sends nothing.
+
+### 5d. Create your own vault and an agent
+
+With a wallet connected, open `http://localhost:4173/console/create/`. Pick a vault name, keep yourself
+as operator or name another account, and deposit at least 0.5 NEAR, the minimum
+`factory2.arunafi.testnet` requires (`node fixtures/tools.mjs view factory2.arunafi.testnet get_config`
+shows `"min_deposit":"500000000000000000000000"`). Expected: a preview of `create_vault` on
+`factory2.arunafi.testnet`; after you sign, the screen shows the new `<name>.factory2.arunafi.testnet`
+with your account as owner, its balance and `0` full-access keys. Check it yourself:
+
+```bash
+node packages/cli/dist/index.js classify <name>.factory2.arunafi.testnet --network testnet
+```
+
+Expected: `"class": "immutable_verified"`, `"fullAccessKeyCount": 0` and `"upgradeImports": []`, as for
+`l2ocbae.factory2.arunafi.testnet`, a vault created this way on 11 November 2026.
+
+Then open `Manage agents` and `Create an agent`. Expected: the wizard generates the agent's key pair in
+the browser, previews `add_agent`, and after you sign, the agent appears in the list. `view_access_key_list`
+on the vault then shows one function-call key whose `method_names` are `spend` and `refresh_class`.
+
+The ceiling lists the targets `registry2.arunafi.testnet` has classified. `swap.arunafi.testnet` was
+classified there on 12 November 2026 (transaction `EFuXBSrLsKCWXaTpf1xt7Wkzu554URHroJDj5WwbnTaX`):
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"swap.arunafi.testnet"}'
+```
+
+Expected: `"class":"local_upgradeable"`, `"frozen":false`, `"classifier":"arunafi.testnet"`. So a vault
+created here can admit the swap target, at most `local_upgradeable`.
+
+What is not proven in v0: no agent of a console-created vault has spent into the swap yet; the spend
+path is shown on `demo2` and `demo4` in steps 11 to 13. Pause, resume and revoke were sent on testnet
+from the console's modules; policy changes, deposit, withdraw and operator and ceiling changes from
+these screens pass unit tests only.
 
 ### 6. Ask from an agent (MCP)
 
@@ -310,7 +351,9 @@ Aruna is verifiable and reproducible. It is not trustless.
 
 | In v0 | Not yet |
 |---|---|
-| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | indexer; console on real data |
+| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | a hosted indexer, and console history read from it |
+| console: wallet, transaction preview, create a vault, add agents (steps 5c, 5d) | console overview, coverage, claims, pool and targets on chain data; agents run from the console |
+| `@aruna/indexer`: testnet events into SQLite behind a read API, runnable yourself ([`packages/indexer`](packages/indexer/README.md)) | |
 | coverage on testnet: pool, registry drift path, attestor, vault v3 (step 12) | pool simulation, and `k` and the concentration limit derived from it |
 | live classifier page (`apps/web`) | migration tooling between vault versions |
 | keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | an attestor independent of Aruna |
@@ -332,8 +375,10 @@ packages/cli               aruna classify | measure | imports
 packages/sdk               Classifier (check, watch), readVault, vault role clients, coverage clients and quote, ABI-generated types
 packages/mcp               MCP server: aruna_check_target, aruna_watch_target, aruna_explain_class, aruna_read_vault, coverage reads, agent tools
 packages/attestor          drift attestor: watches targets, files signed reports and heartbeats
+packages/indexer           testnet aruna events into SQLite, served over a read-only HTTP API
+packages/sim               empty in v0: the pool simulation follows
 contracts/                 vault, registry, factory, pool, common; integration tests on a sandbox
-apps/web                   static classifier page, spec, proof and console shell
+apps/web                   static classifier page, spec, proof and console (live: lookup, create a vault, agents)
 fixtures/                  one testnet account per class, the drift demo
 examples/                  an honest and a prompt-injected agent against the testnet vault
 measurement/               BigQuery query, raw export, results, report
