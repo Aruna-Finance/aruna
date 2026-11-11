@@ -1,9 +1,12 @@
 # The Aruna indexer: read API plus ingest, one process, one SQLite file on a volume (plan U3, KTD5).
 #
 # The build context is this directory, and nothing outside it is read, so a host can build it with this folder as the
-# root (Railway: Root Directory /packages/indexer).
+# root (Railway: Root Directory /packages/indexer, Dockerfile path "Dockerfile").
 #   docker build -t aruna-indexer packages/indexer
 #   docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data --env-file packages/indexer/.env aruna-indexer
+#
+# There is no VOLUME instruction: Railway rejects it when it validates the file. The database lives in /data, and the
+# host mounts the volume there (docker run -v above; a Railway volume at /data).
 FROM node:24-slim AS build
 WORKDIR /app
 COPY package.json tsconfig.build.json ./
@@ -17,7 +20,6 @@ COPY config ./config
 COPY package.json ./
 ENV NODE_ENV=production ARUNA_INDEXER_DB=/data/aruna-indexer.sqlite PORT=8080
 RUN mkdir -p /data && chown node:node /data
-VOLUME /data
 EXPOSE 8080
 USER node
 # Liveness only: the API answers. Whether ingest keeps up is the "healthy" field of /health, which is false while the
