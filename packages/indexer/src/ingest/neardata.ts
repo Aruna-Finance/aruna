@@ -23,9 +23,17 @@ export interface NeardataBlock {
   shards: Array<{ shard_id?: number; receipt_execution_outcomes: ReceiptOutcome[] | null }>;
 }
 
-export interface BlockSource {
+/**
+ * Where blocks come from, in two phases. `block` is a cheap read that is safe to run in parallel across a window of
+ * heights. `expand` then completes one scanned block into receipt outcomes, and runs in height order at commit time,
+ * so it sees the watched set as it stands after every earlier block: a vault created a few blocks ago is already in it.
+ * A source that reads whole blocks has nothing left to do in `expand`.
+ */
+export interface BlockSource<Scanned = NeardataBlock> {
   /** The block at `height`, or null when the chain skipped that height. */
-  block(height: number): Promise<NeardataBlock | null>;
+  block(height: number): Promise<Scanned | null>;
+  /** The scanned block with the receipt outcomes of the accounts `watched` keeps. */
+  expand(scanned: Scanned, watched: (account: string) => boolean): Promise<NeardataBlock>;
   /** The latest final block height. */
   finalHeight(): Promise<number>;
 }
@@ -71,6 +79,7 @@ export function neardataSource(o: { baseUrl?: string; apiKey?: string; fetch?: t
     async block(height) {
       return (await getJson(`/v0/block/${height}`)) as NeardataBlock | null;
     },
+    expand: async (scanned) => scanned,
     async finalHeight() {
       const b = (await getJson("/v0/last_block/final")) as NeardataBlock;
       return b.block.header.height;

@@ -10,7 +10,7 @@ import type { Store } from "./store.js";
 
 export interface IndexerOptions {
   store: Store;
-  source: BlockSource;
+  source: BlockSource<unknown>;
   seeds: Seeds;
   /** First block to read on an empty store. */
   startBlock: number;
@@ -42,7 +42,8 @@ export async function runIndexer(o: IndexerOptions): Promise<void> {
       for (let i = 0; i < heights.length; i++) {
         const r = fetched[i];
         if (r.status === "rejected") throw r.reason;
-        o.store.commitBlock(heights[i], r.value === null ? [] : extractRecords(r.value, watch));
+        const block = r.value === null ? null : await o.source.expand(r.value, (account) => watch.has(account));
+        o.store.commitBlock(heights[i], block === null ? [] : extractRecords(block, watch));
         next = heights[i] + 1;
       }
       o.onProgress?.({ block: next - 1, head });

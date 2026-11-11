@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { runIndexer, type IndexerOptions } from "./indexer.js";
-import { neardataSource } from "./ingest/neardata.js";
+import { neardataSource, type BlockSource } from "./ingest/neardata.js";
+import { rpcSource } from "./ingest/rpc.js";
 import { startServer } from "./server.js";
 import { sleep } from "./sleep.js";
 import { openStore } from "./store.js";
@@ -15,18 +16,23 @@ import { openStore } from "./store.js";
 const USAGE = `aruna-indexer — Aruna's testnet history, rebuilt from chain data alone.
 
 Usage:
-  aruna-indexer index   [--db <file>] [--config <file>] [--stop-at <block>] [--follow] [--concurrency 16]
+  aruna-indexer index   [--db <file>] [--config <file>] [--stop-at <block>] [--follow] [--concurrency N]
       Read blocks from the committed cursor (or the config's start block) to the head, or to --stop-at.
       --follow keeps reading new blocks as they become final.
-  aruna-indexer rebuild [--db <file>] [--config <file>] [--stop-at <block>] [--concurrency 16]
+  aruna-indexer rebuild [--db <file>] [--config <file>] [--stop-at <block>] [--concurrency N]
       Delete the store and read everything again from the start block. Takes hours from scratch.
-  aruna-indexer serve   [--db <file>] [--config <file>] [--port 8080] [--concurrency 16]
+  aruna-indexer serve   [--db <file>] [--config <file>] [--port 8080] [--concurrency N]
       Serve the read API and keep indexing new blocks in the same process. A failed read is retried.
   aruna-indexer export  [--db <file>] [--out <file>]
       Write every derived table as canonical JSON. Two stores built from the same blocks export the same bytes.
 
-Environment: ARUNA_INDEXER_DB (default ./aruna-indexer.sqlite), ARUNA_INDEXER_CONFIG, and FASTNEAR_API_KEY.
-Without FASTNEAR_API_KEY, neardata serves 30 blocks a minute, too slow to backfill or to follow the head.`;
+Environment: ARUNA_INDEXER_DB (default ./aruna-indexer.sqlite) and ARUNA_INDEXER_CONFIG.
+Block source, in this order:
+  QUICKNODE_RPC_URL   a testnet JSON-RPC archive endpoint (the URL carries the token, so it is a secret).
+                      One call per block, plus a few for a block that touches an Aruna account.
+  otherwise neardata  testnet.neardata.xyz, with FASTNEAR_API_KEY when set. Without a key it serves 30 blocks a
+                      minute, too slow to backfill or to follow the head.
+--concurrency is how many blocks are read at a time. The default is 8 for an RPC endpoint and 16 for neardata.`;
 
 export interface IndexerConfig {
   network: string;
@@ -43,13 +49,30 @@ export function loadConfig(path?: string): IndexerConfig {
   return c;
 }
 
+/** Blocks read at a time from a QuickNode testnet endpoint. Measured on 11 November 2026: 12.5 blocks/s at 8, and slower above
+ * it (10.6 at 16, 5.5 at 48) because the endpoint rate-limits and the retries cost more than the parallelism gains. */
+const RPC_CONCURRENCY = 8;
+const NEARDATA_CONCURRENCY = 16;
+
+export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = process.env): { source: BlockSource<unknown>; label: string; defaultConcurrency: number } {
+  if (env.QUICKNODE_RPC_URL) return { source: rpcSource({ url: env.QUICKNODE_RPC_URL }), label: "RPC endpoint (QUICKNODE_RPC_URL)", defaultConcurrency: RPC_CONCURRENCY };
+  const apiKey = env.FASTNEAR_API_KEY || undefined;
+  return {
+    source: neardataSource({ baseUrl: config.neardata, apiKey }),
+    label: apiKey ? "neardata with a FastNear key" : "neardata without a key (30 blocks a minute)",
+    defaultConcurrency: NEARDATA_CONCURRENCY,
+  };
+}
+
 function ingestOptions(config: IndexerConfig, store: IndexerOptions["store"], concurrency: string | undefined): IndexerOptions {
+  const { source, label, defaultConcurrency } = chooseSource(config);
+  console.error(`block source: ${label}`);
   return {
     store,
-    source: neardataSource({ baseUrl: config.neardata, apiKey: process.env.FASTNEAR_API_KEY || undefined }),
+    source,
     seeds: { factories: config.factories, contracts: config.contracts },
     startBlock: config.start_block,
-    concurrency: concurrency ? Number(concurrency) : undefined,
+    concurrency: concurrency ? Number(concurrency) : defaultConcurrency,
   };
 }
 

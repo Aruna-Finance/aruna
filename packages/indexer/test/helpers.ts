@@ -31,6 +31,7 @@ export function memorySource(blocks: Map<number, NeardataBlock>, opts: { head?: 
       }
       return blocks.get(h) ?? { block: { header: { height: h, hash: `empty-${h}`, timestamp_nanosec: String(1794314403283356753n + BigInt(h - FIRST) * 1_000_000_000n) } }, shards: [] };
     },
+    expand: async (b) => b,
     async finalHeight() {
       return opts.head ?? LAST;
     },

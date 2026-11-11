@@ -293,7 +293,7 @@ Lane B needs no backend from lane A for current state or actions, because `@arun
 
 ### Key Technical Decisions
 
-- KTD1. **The indexer reads `testnet.neardata.xyz` block by block, from the block of the first Aruna deployment to the head, then follows the head.** Each block carries `receipt_execution_outcomes` with `logs` and `tx_hash`. This was verified on block 277069040, which holds `demo2.factory.arunafi.testnet`'s `class_refreshed` event with tx `At17sV6…`. The source is free, needs no key, and is the same data a stranger can read to check R2. A full rebuild covers a few hundred thousand blocks and takes hours. That is accepted, and the README states it. Governs R1, R2.
+- KTD1. **The indexer reads over JSON-RPC from a QuickNode testnet archive endpoint, block by block, from the block of the first Aruna deployment to the head, then follows the head.** (session-settled: user-directed — chosen over `testnet.neardata.xyz` with a FastNear key: the project owner supplied a QuickNode endpoint, and keyless neardata serves 30 blocks a minute, below testnet's block rate.) One `EXPERIMENTAL_changes_in_block` call per block lists the accounts it touched. Only for a block that touches a watched account, the indexer then asks for the receipts that changed those accounts, each receipt's transaction (`EXPERIMENTAL_receipt_to_tx`) and its outcomes with logs (`EXPERIMENTAL_tx_status`), and builds the same block shape a NEAR Data block has, so one parser serves both. The endpoint URL carries its token, so it is read from the environment and never logged. `neardata` stays in the code as the fallback when no endpoint is set. A full rebuild covers about 260,000 blocks and takes hours; the README states it, and the per-method credit cost on the owner's plan is still to be checked. Governs R1, R2.
 - KTD2. **Only events whose executor is a watched Aruna account are trusted.** The watched set starts from configured seeds (the registries, factories and pools, and the demo vaults). It grows from each factory's own `vault_created` events. This mirrors the SDK's rule of trusting events only from the contract they belong to (commit `7b4ffbe`), so a contract outside the set cannot forge Aruna history. Governs R1, R4.
 - KTD3. **One SQLite file holds raw chain records, and every derived table is a pure function of them.** The records are the Aruna events, plus the `create_vault` arguments of receipts executed by a watched factory. These are needed because no event names a vault's initial operator: `vault_created` carries only the vault, owner and code hash. Both come from the same neardata blocks. Rebuilding means replaying the raw records into an empty file. R2 then holds by construction and is checked by comparing exports. Unknown events stay in the raw table and are flagged. Governs R2, R3, R4.
 - KTD4. **The read API is GET-only JSON with open CORS, and every response carries `last_indexed_block`.** Its request and response types are defined once in `packages/indexer` and imported by `apps/web` through a client entry. Lane B's fixture is generated against those same types. Governs R6, R7, R8.
@@ -315,7 +315,7 @@ Lane B needs no backend from lane A for current state or actions, because `@arun
 
 ```mermaid
 flowchart TB
-  ND[testnet.neardata.xyz block at height h] --> F{receipt executor in watched set?}
+  ND[block at height h: RPC scan then expand, or a NEAR Data block] --> F{receipt executor in watched set?}
   F -->|no| SKIP[skip]
   F -->|yes| P[parse EVENT_JSON lines with standard aruna]
   P -->|known event| RAW[(raw_events)]
@@ -366,7 +366,7 @@ The v0 core is about 2.5 working days, from 11 November evening to the 13 Novemb
 ### Assumptions
 
 - Testnet throughput is about one block per second, so the backfill covers the blocks since the first Aruna deployment on testnet in November 2026. The exact start height is read from that deployment's transaction during U2.
-- `testnet.neardata.xyz` serves historical blocks without a key at a rate that lets the backfill finish within a working day. U2 measures this. If it is throttled, the backfill slows down, and nothing in its design changes.
+- The QuickNode endpoint serves historical testnet blocks at a rate that lets the backfill finish within a working day. U2 measures this against the owner's plan. If it is throttled, the backfill slows down, and nothing in its design changes.
 - A visitor's wallet holds enough testnet NEAR for the factory's `MIN_DEPOSIT`, the vault deposit and gas. The console states the total before signing (R15).
 
 ---
@@ -998,7 +998,7 @@ Paths under `screens/` and `ui/` are relative to `apps/web/src/console/`.
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| `testnet.neardata.xyz` throttles or is down | backfill or head-follow stalls | resumable cursor (U2); `/health` shows lag (U3); the console degrades per R10 |
+| The RPC endpoint throttles, or its plan runs out of credits | backfill or head-follow stalls | resumable cursor (U2); `/health` shows lag (U3); the console degrades per R10 |
 | A wallet in near-connect mishandles attached deposits | owner actions fail for that wallet | U4 proves one wallet first; the README names the wallet used |
 | The hosting account is not ready on day one | U3 slips, and so does the history step of F1 | U9 reports the gap honestly; the console still works per R10 |
 | 2.5 days is tight for lane B | U8 or U9 slips past the cut | U10 starts at the cut regardless; the unmet steps are named |
@@ -1013,5 +1013,5 @@ Paths under `screens/` and `ui/` are relative to `apps/web/src/console/`.
 - Making the indexer redundant across hosts.
 
 ### Considered and not built
-- A fallback from neardata to archival RPC. One source keeps R2 reproducible. It would be reconsidered if neardata proves unavailable for more than a day.
+- Reading every receipt of every block over RPC (`block` plus a `chunk` per shard, about eleven calls a block). The state-change scan needs one call per block and was checked against the recorded blocks. It would be reconsidered if an Aruna contract ever emitted from a method that does not write its state.
 - A static history snapshot shipped with the site. It was rejected upstream in favour of the hosted indexer, and the R10 degraded state covers outages.
