@@ -1,6 +1,6 @@
 # Ilham's plan: lane B (console, live)
 
-This is Ilham's scope in `docs/plans/2026-11-11-1645-feat-live-console-indexer-migration-sim-plan.md`. It is lane B: the console stops using mock data, signs through the connected wallet, and reads history from Aris's indexer. Aris owns lane A (indexer, contracts, CLI, `@aruna/sim`) and has agreed that Ilham may touch the small SDK and `examples/` changes listed under L4 and L5.
+This is Ilham's scope in `docs/plans/2026-11-11-1645-feat-live-console-indexer-migration-sim-plan.md`. It is lane B: the console stops using mock data, signs through the connected wallet, and reads history from Aris's indexer. Aris owns lane A (indexer, contracts, CLI, `@aruna/sim`). Two items below reach into lane A files (`examples/` in L4, `packages/sdk/src/coverage/quote.ts` in L5). The plan assigns both to Ilham (U7, U8), but tell Aris before touching them.
 
 The plan file is the authority for requirements (R-numbers), decisions (KTD-numbers) and acceptance examples (AE-numbers). This file only orders the work and says when each phase is done.
 
@@ -95,7 +95,7 @@ Done when: on a self-serve vault an agent is added with a browser key, paused, r
 
 ### L4. Playground, live (U7)
 
-Requirement: R22; KTD8. Touches `examples/`, so Aris has confirmed it.
+Requirement: R22; KTD8. Touches `examples/`, which Aris also uses (`coverage-demo.ts`, `injected-agent.ts`). The plan assigns `examples/scenarios.ts` to Ilham (U7); tell Aris before editing the two agent files.
 
 - [ ] `examples/scenarios.ts`: the injected attempts and the honest swap, defined once; `examples/injected-agent.ts` and `honest-agent.ts` import it; export from `examples/package.json`; the recorded run in `examples/README.md` must still reproduce
 - [ ] `screens/Playground.tsx`: build `AgentVault` with `nearApiTransport`, vault as signer and the stored key; run attempts one at a time with queued, sending, outcome; stop at `agent_auto_disabled` and show the new state from `readVault`; Stop button halts before the next attempt
@@ -111,7 +111,7 @@ Requirements: R24, R25, R27; AE2, AE3. R26 moves to L7.
 
 - [ ] `ui/ActivityList.tsx`, `ui/ExposureHistory.tsx`: rows from the history client; a refusal shows reason code, class at refusal and its transaction link; an exposure row shows the class recorded with it; says exposure is what was sent, not the value of a position
 - [ ] `Overview.tsx`, `AgentDetail.tsx` activity tab; totals from `readVault` still render when history is unavailable (AE2)
-- [ ] `packages/sdk/src/coverage/quote.ts`: optional proposed policy (daily cap, riskiest class) passed to the pool's own `quote` view, so no pricing arithmetic moves into the SDK or the browser; a proposed class is a filter over registry classes. Touches the SDK, so Aris has confirmed it
+- [ ] `packages/sdk/src/coverage/quote.ts`: optional proposed policy (daily cap, riskiest class) passed to the pool's own `quote` view, so no pricing arithmetic moves into the SDK or the browser; a proposed class is a filter over registry classes. Touches the SDK (lane A). The plan lists it under U8 (Ilham); tell Aris before editing.
 - [ ] `ui/PolicyFields.tsx`, `pricing.ts`: edit a draft, show on-chain and draft quotes side by side with the draft labelled "proposed, not yet signed", debounced; declared defaults shown as assumptions; default limit set above `daily cap x days x ratio` so the premium follows the cap; "testnet, assumed numbers" on every quote (R27); "Apply" sends the tighten call through the preview
 - [ ] `pricing.ts` stops computing premiums itself
 - [ ] Tests: `packages/sdk/test/coverage-quote.test.ts` (proposed cap passed to `quote`, equals the pool's result); AE3 cap 2 to 1 NEAR lowers the draft premium before signing and the on-chain quote then matches; payout bound by the cap at both caps; a quote refused by the pool (zero cap) is an outcome with its reason; AE2 with history unavailable
