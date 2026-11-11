@@ -71,17 +71,19 @@ Done when: a connected testnet wallet pauses an agent on a test vault from the c
 
 Requirements: R11, R15 to R17; AE4.
 
-- [ ] `data/factory.ts`: read the factory's minimum deposit, build `create_vault` (`name`, `owner`, `operator`, `ceiling`), check a duplicate name before signing
-- [ ] `screens/CreateVault.tsx`: total needed = minimum deposit + vault deposit + gas, balance check; if short, show the shortfall and a faucet link and send nothing
-- [ ] Ceiling picker lists only targets with a registry class, each with its class and evidence one click away; default ceiling contains `swap.arunafi.testnet`
-- [ ] Deposit NEAR into the vault as a previewed plain transfer
-- [ ] Setup checklist derived from chain state (created, ceiling set, funded, first agent added), resuming at the first step not done
+- [x] `data/factory.ts`: read the factory's minimum deposit, build `create_vault` (`name`, `owner`, `operator`, `ceiling`), check a duplicate name before signing
+- [x] `screens/CreateVault.tsx`: total needed = minimum deposit + vault deposit + gas, balance check; if short, show the shortfall and a faucet link and send nothing
+- [~] Ceiling picker lists only targets with a registry class, each with its class and evidence one click away. NOT MET: default ceiling cannot contain `swap.arunafi.testnet` because registry2 has no class for it (needs Aris)
+- [x] Deposit NEAR into the vault as a previewed plain transfer
+- [x] Setup checklist derived from chain state (created, ceiling set, funded, first agent added), resuming at the first step not done
 - [ ] `useVault.ts`: live `readVault`; `walletRole.ts`: role from the vault's on-chain owner and operator; the wallet's vault list from the indexer (`vaults?owner=` and `?operator=`)
 - [ ] `nav.ts`: an entry when the wallet has no vault
 - [ ] Keep `data/vault-mock.ts` until no importer remains; move `vaultStore` into a story-local fixture because the guided demo keeps its content
 - [ ] Tests: short balance builds no transaction (AE4); existing name caught; picker omits unclassified targets; created-but-unfunded vault opens at "fund the vault"; indexer down after creation still opens the vault with "history unavailable"; role is owner and operator when both are the wallet, neither for a stranger
 
 Done when: a fresh testnet wallet creates a vault, sets a ceiling containing `swap.arunafi.testnet`, deposits NEAR and sees the balance.
+
+**Status (11 November 2026).** Partly done. With a connected testnet wallet, a local test page created `l2ocbae.factory2.arunafi.testnet` (tx `HChX9XSWrkLLDcNVtQHLLNE4EQCWWEcsreQAycE7ocAq`, `FINAL`, `vault_created` and `vault_deployed` events, 150 Tgas, 0.5 NEAR) and deposited 0.5 NEAR by plain transfer (tx `DTGuccdDcTwSK55obPJoWrSQjNkcjjmqFsR7RHJuG2KC`, `FINAL`). Read back from the RPC: balance 1 NEAR, no full-access key, owner and operator the wallet. Not met: the ceiling could not contain `swap.arunafi.testnet`, because registry2 has no class for it (only the frozen `drift-target.arunafi.testnet` is classified); needs Aris. Open: live `useVault.ts`, the nav entry for a wallet with no vault, mock cleanup, and the indexer-down and role tests. The real `/console/create/` screen was not clicked through yet; the test page used the same modules.
 
 ### L3. Agents and role actions (U6)
 

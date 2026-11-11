@@ -10,7 +10,10 @@ import { WalletCancelledError } from "./tx-status";
 export interface WalletLike {
   signAndSendTransaction(p: {
     receiverId: string;
-    actions: { type: "FunctionCall"; params: { methodName: string; args: Record<string, unknown>; gas: string; deposit: string } }[];
+    actions: (
+      | { type: "FunctionCall"; params: { methodName: string; args: Record<string, unknown>; gas: string; deposit: string } }
+      | { type: "Transfer"; params: { deposit: string } }
+    )[];
   }): Promise<unknown>;
 }
 
@@ -63,21 +66,48 @@ export function createWalletTransport(o: WalletTransportOptions): VaultTransport
       };
       if (o.confirm && !(await o.confirm(preview))) throw new WalletCancelledError("You declined the transaction.");
 
-      let outcome: unknown;
-      try {
-        outcome = await o.wallet.signAndSendTransaction({
-          receiverId: contract,
-          actions: [{ type: "FunctionCall", params: { methodName: method, args, gas: preview.gas, deposit: preview.depositYocto } }],
-        });
-      } catch (e) {
-        const m = e instanceof Error ? e.message : String(e);
-        if (CANCELLED.test(m)) throw new WalletCancelledError(m);
-        if (AUTH_FAILURE.test(m)) throw new ArunaAuthError(m);
-        throw new ArunaRpcError(m);
-      }
-      return toCallResult(outcome);
+      return toCallResult(
+        await signOrThrow(() =>
+          o.wallet.signAndSendTransaction({
+            receiverId: contract,
+            actions: [{ type: "FunctionCall", params: { methodName: method, args, gas: preview.gas, deposit: preview.depositYocto } }],
+          }),
+        ),
+      );
     },
   };
+}
+
+async function signOrThrow(send: () => Promise<unknown>): Promise<unknown> {
+  try {
+    return await send();
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    if (CANCELLED.test(m)) throw new WalletCancelledError(m);
+    if (AUTH_FAILURE.test(m)) throw new ArunaAuthError(m);
+    throw new ArunaRpcError(m);
+  }
+}
+
+/**
+ * A plain NEAR transfer, such as a deposit into a vault (R17). Same rules as a call: testnet only, preview first,
+ * a declined preview sends nothing. The vault needs no method for it.
+ */
+export async function sendNear(o: {
+  wallet: WalletLike;
+  signerId: string;
+  receiver: string;
+  depositYocto: bigint;
+  network?: string;
+  confirm?: (p: CallPreview) => Promise<boolean> | boolean;
+}): Promise<CallResult> {
+  if ((o.network ?? "testnet") !== "testnet") throw new Error("The console signs on testnet only. Refusing to build a signing transport for another network.");
+  if (o.depositYocto <= 0n) throw new Error("A transfer needs an amount above zero.");
+  const preview: CallPreview = { signer: o.signerId, receiver: o.receiver, method: "transfer", args: {}, depositYocto: o.depositYocto.toString(), gas: "0" };
+  if (o.confirm && !(await o.confirm(preview))) throw new WalletCancelledError("You declined the transaction.");
+  return toCallResult(
+    await signOrThrow(() => o.wallet.signAndSendTransaction({ receiverId: o.receiver, actions: [{ type: "Transfer", params: { deposit: preview.depositYocto } }] })),
+  );
 }
 
 interface Outcome {

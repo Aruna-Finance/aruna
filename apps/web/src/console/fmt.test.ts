@@ -12,3 +12,18 @@ describe("yoctoToNear", () => {
     expect(yoctoToNear("n/a")).toBe("n/a");
   });
 });
+
+describe("nearToYocto", () => {
+  it("converts whole and fractional NEAR without a float in the result", async () => {
+    const { nearToYocto } = await import("./fmt");
+    expect(nearToYocto(0.5)).toBe(500000000000000000000000n);
+    expect(nearToYocto(1)).toBe(10n ** 24n);
+    expect(nearToYocto(0.000001)).toBe(10n ** 18n);
+  });
+  it("is zero for a blank, negative or non-finite entry", async () => {
+    const { nearToYocto } = await import("./fmt");
+    expect(nearToYocto(NaN)).toBe(0n);
+    expect(nearToYocto(-1)).toBe(0n);
+    expect(nearToYocto(Infinity)).toBe(0n);
+  });
+});

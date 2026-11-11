@@ -21,3 +21,9 @@ export function yoctoToNear(yocto: string): string {
   const f = frac.toString().padStart(4, "0").replace(/0+$/, "");
   return `${whole.toLocaleString("en-US")}${f ? `.${f}` : ""}`;
 }
+
+/** NEAR typed in a form (up to six decimals) to yoctoNEAR, rounding to the nearest millionth. Never sent as a float. */
+export function nearToYocto(near: number): bigint {
+  if (!Number.isFinite(near) || near < 0) return 0n;
+  return BigInt(Math.round(near * 1_000_000)) * 10n ** 18n;
+}
