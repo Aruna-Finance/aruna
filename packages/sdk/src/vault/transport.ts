@@ -22,6 +22,22 @@ export interface VaultTransport {
   account(id: string): Promise<{ amount: string; globalContractHash: string | null }>;
 }
 
+/**
+ * What a migration needs beyond the vault clients (plan U15): sending NEAR, several calls in ONE transaction
+ * (a paused agent is added and paused together), a transaction's outcome by hash, and the storage a
+ * vault uses. `nearApiTransport` implements it. A wallet transport can add these when the console
+ * migrates (U16); until then it is refused for a migration, not guessed at.
+ */
+export interface MigrationTransport extends VaultTransport {
+  account(id: string): Promise<{ amount: string; globalContractHash: string | null; storageUsage: number }>;
+  /** Sends NEAR from the signer to `receiver`. */
+  transfer(receiver: string, amountYocto: bigint): Promise<{ tx: string }>;
+  /** Function calls to one contract, in one transaction: all happen or none. */
+  callBatch(contract: string, calls: { method: string; args: Record<string, unknown>; depositYocto: bigint; tgas: bigint }[]): Promise<CallResult>;
+  /** Whether a transaction (and every receipt it spawned) succeeded. "unknown" when the node cannot say. */
+  txStatus(txHash: string): Promise<"success" | "failed" | "unknown">;
+}
+
 /** An authorization failure: a panic in the contract, or the network refusing the key's permission.
  * Nothing persisted. Not a policy refusal: those resolve with `{ ok: false }` (docs/SDK.md). */
 export class ArunaAuthError extends Error {

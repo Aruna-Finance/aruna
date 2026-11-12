@@ -45,8 +45,8 @@ export interface Policy {
   maxRiskClass: "immutable_verified" | "local_upgradeable" | "global_by_account" | "unknown";
 }
 
-const rawToken = (t: Token) => (t === "near" ? "near" : { ft: t });
-const rawPolicy = (p: Policy) => ({
+export const rawToken = (t: Token) => (t === "near" ? "near" : { ft: t });
+export const rawPolicy = (p: Policy) => ({
   limits: p.limits.map((l) => ({ token: rawToken(l.token), max_per_tx: l.maxPerTx, daily_cap: l.dailyCap })),
   max_slippage_bps: p.maxSlippageBps,
   allowed_targets: p.allowedTargets,
