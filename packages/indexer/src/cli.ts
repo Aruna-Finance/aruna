@@ -80,7 +80,9 @@ export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = pro
   const source = routedSource({
     archive: quicknode ? { source: rpcSource({ url: quicknode }), label: "QuickNode", concurrency: RPC_CONCURRENCY } : undefined,
     live: { source: rpcSource({ url: config.live_rpc, proveSkips: true }), label: "dRPC", concurrency: LIVE_CONCURRENCY },
-    fallback: { source: rpcSource({ url: config.fallback_rpc }), label: "NEAR archival", concurrency: FALLBACK_CONCURRENCY },
+    // The fallback can trail the head that dRPC reported, and answers UNKNOWN_BLOCK for a final block it has not
+    // synced yet, so it proves skips too. QuickNode reads only deep history, where UNKNOWN_BLOCK is a real skip.
+    fallback: { source: rpcSource({ url: config.fallback_rpc, proveSkips: true }), label: "NEAR archival", concurrency: FALLBACK_CONCURRENCY },
     onSwitch: (label) => console.error(`block source now: ${label}`),
   });
   const label = quicknode ? "QuickNode to dRPC's edge, then dRPC; NEAR archival as fallback" : "dRPC; NEAR archival for older blocks and as fallback";
