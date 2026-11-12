@@ -72,6 +72,12 @@ the SDK resolves refusals and throws only authorization and transport failures.
 
 Each fix has a regression test in `contracts/pool/src/tests.rs` or `contracts/registry/src/tests_drift.rs`,
 and the nine sandbox tests (including the NEAR, USDC and dispute loops) pass. The pool on testnet
-(`pool.arunafi.testnet`) predates these fixes and, because they change its stored records, needs a
-fresh pool; the registry's logic can be redeployed in place.
+(`pool.arunafi.testnet`) predates these fixes and, because they change its stored records, cannot be
+upgraded in place; it is retired. The fresh pool is `pool2.arunafi.testnet`, set up by
+`scripts/testnet-coverage-setup.sh`. Checked on 12 November 2026: its code hash
+(`4eLKdKp3UGKbgvTPvSihMMzRvnTVSbQbyWvypEfLYsRq`) equals the hash of the committed
+`contracts/pool/res/aruna_pool.wasm`, that wasm contains `ARUNA_DEPOSIT_TOO_SMALL`,
+`paid_through_block` and `claim_in_flight`, and coverage 2 on `pool2` carries `paid_through_block` and
+`claim_started_at` (`node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":2}'`).
+The registry's logic can be redeployed in place.
 
