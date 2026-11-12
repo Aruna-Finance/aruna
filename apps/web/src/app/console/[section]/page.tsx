@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { Attestor } from "@/console/screens/Attestor";
 import { CreateVault } from "@/console/screens/CreateVault";
 import { Developers } from "@/console/screens/Developers";
@@ -36,6 +37,11 @@ export default async function Page({ params }: { params: Promise<{ section: stri
   if (section === "simulation") return <Simulation />;
   if (section === "story") return <Story />;
   if (section === "attestor") return <Attestor />;
-  if (section === "playground") return <Playground />;
+  if (section === "playground")
+    return (
+      <Suspense fallback={<p className="text-muted">Loading.</p>}>
+        <Playground />
+      </Suspense>
+    );
   return <ScreenPlaceholder id={section as ScreenId} />;
 }
