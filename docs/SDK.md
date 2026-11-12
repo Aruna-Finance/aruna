@@ -89,6 +89,28 @@ Each reads the vault's global contract hash and refuses a version it does not kn
 (`KNOWN_VAULT_VERSIONS`: v1 to v4) or a call the version cannot make (`ft_swap` needs v3, `simulate`
 v4), with a `VaultVersionError`. The keyless entry point (`@aruna/sdk`) never loads a signer.
 
+### Migration — `@aruna/sdk/vault`
+
+Vaults are immutable, so a new version means a new vault. `planMigration` reads and refuses; `runMigration`
+moves the agents (same keys, labels and policies) and then the funds, and can be run again after a stop.
+
+```ts
+import { nearApiTransport, planMigration, runMigration, memoryJournal } from "@aruna/sdk/vault";
+
+const transport = nearApiTransport({ signerId: "owner.testnet", privateKey, network: "testnet" }); // the OWNER
+const plan = await planMigration({ oldVault: "acme.factory.testnet", factory: "factory2.you.testnet", name: "acme2", transport });
+// plan.agents, plan.funds, plan.coverage ("none" | "active" | "unchecked"), plan.notes
+const result = await runMigration(plan, { transport, journal: memoryJournal(), acceptCoverageStays: true });
+```
+
+`planMigration` throws before anything is sent for a vault on an unknown code hash (`VaultVersionError`, naming
+the hash), a signer who is not the owner (`ArunaAuthError`), a vault already at the factory's version, and a
+vault already at the new name that is not a copy (`MigrationRefused`). Active coverage stays bound to the old
+vault; the run refuses until `acceptCoverageStays` is set. A `JournalStore` (a file for the CLI, `localStorage`
+for a console) records each fund transaction; a step whose outcome the journal cannot tell throws
+`MigrationNeedsReview` instead of moving funds twice. `confirm` is called before every transaction. The signer
+must be a `MigrationTransport` (`nearApiTransport` is one). Decision: `docs/DECISIONS.md` D-65.
+
 ### `Registry`, `Pool` and `OwnerCoverage` — `@aruna/sdk/coverage`
 
 ```ts
