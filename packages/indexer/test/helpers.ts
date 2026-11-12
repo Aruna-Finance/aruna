@@ -1,5 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { PGlite } from "@electric-sql/pglite";
+import { toPositional, type Db, type Queryable } from "../src/db.js";
 import type { BlockSource, NeardataBlock } from "../src/ingest/neardata.js";
 
 const DIR = join(import.meta.dirname, "fixtures", "blocks");
@@ -45,3 +47,25 @@ export const SEEDS = {
 
 /** An EVENT_JSON log line as a contract would write it. */
 export const eventLine = (event: string, data: unknown) => `EVENT_JSON:${JSON.stringify({ standard: "aruna", version: "1.0.0", event, data: [data] })}`;
+
+/** A fresh Postgres in this process, with BIGINT read as a number like production does. */
+export async function pglite(): Promise<PGlite> {
+  const pg = new PGlite({ parsers: { 20: (v: string) => Number(v) } });
+  await pg.waitReady;
+  return pg;
+}
+
+/** The database interface over a PGlite. Two of these over one PGlite are two writers on one database: PGlite runs one transaction at a time. */
+export function pgliteDb(pg: PGlite): Db {
+  const wrap = (q: Pick<PGlite, "query">): Queryable => ({
+    async query(sql, params) {
+      const p = toPositional(sql, params);
+      return (await q.query(p.text, p.values)).rows as Array<Record<string, unknown>>;
+    },
+    async run(sql, params) {
+      const p = toPositional(sql, params);
+      return (await q.query(p.text, p.values)).affectedRows ?? 0;
+    },
+  });
+  return { ...wrap(pg), transaction: (fn) => pg.transaction((tx) => fn(wrap(tx))), close: async () => {} };
+}
