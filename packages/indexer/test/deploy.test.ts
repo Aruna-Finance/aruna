@@ -13,6 +13,14 @@ describe("what a Railway deploy reads from this folder", () => {
     expect(instructions).not.toContain("VOLUME");
   });
 
+  it("keeps nothing on the container's disk: no database path, no data directory, no retired variable", () => {
+    const dockerfile = read("Dockerfile")
+      .split("\n")
+      .filter((l) => !l.trim().startsWith("#"))
+      .join("\n");
+    for (const retired of ["ARUNA_INDEXER_DB", "/data", "sqlite", "FASTNEAR", "ARUNA_BLOCK_SOURCE"]) expect(dockerfile.toLowerCase()).not.toContain(retired.toLowerCase());
+  });
+
   it("names the Dockerfile relative to the folder, so the folder can be the service's Root Directory", () => {
     const config = JSON.parse(read("railway.json")) as { build: { builder: string; dockerfilePath: string } };
     expect(config.build).toEqual({ builder: "DOCKERFILE", dockerfilePath: "Dockerfile" });

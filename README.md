@@ -17,7 +17,7 @@ should see.
 
 ## Steps
 
-Requirements: Node 22.13+ (the indexer's tests use `node:sqlite`), pnpm 9 (`corepack enable`).
+Requirements: Node 22.13+, pnpm 9 (`corepack enable`). The indexer's tests need no database: they run on an in-process Postgres.
 Steps 8 and 10 also need Rust ≥ 1.95 and `cargo-near`. Deploying your own copies (steps 4, 9 and 11)
 needs `near-cli-rs` ≥ 0.31 and a funded testnet account, step 5d needs a testnet wallet holding at
 least 0.5 NEAR plus gas, and running the agents in `examples/` needs Node ≥ 22.18; reading ours
@@ -31,13 +31,12 @@ pnpm -r build
 pnpm -r test
 ```
 
-On Windows, `pnpm -r test` stops at two tests that depend on the platform: `sdk` `abi-drift` fails if git
+On Windows, `pnpm -r test` stops at a test that depends on the platform: `sdk` `abi-drift` fails if git
 checked the files out with CRLF line endings (`git config core.autocrlf false`, then check out again, and it
-passes), and `indexer` `cli.test.ts` "read-only directory" fails because Windows ignores the directory
-permission it relies on. `pnpm -r --no-bail test` runs the rest.
+passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (121, 3 skipped), `sim` (36) and `apps/web` (244).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (144, 8 skipped), `sim` (36) and `apps/web` (244).
 
 ### 2. Classify any NEAR contract
 
@@ -472,7 +471,7 @@ Aruna is verifiable and reproducible. It is not trustless.
 |---|---|
 | `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | a hosted indexer, and console history read from it |
 | console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price (steps 5c to 5f) | console coverage, claims, pool and targets on chain data; console history from the indexer (step 5g) |
-| `@aruna/indexer`: testnet events into SQLite behind a read API, runnable yourself ([`packages/indexer`](packages/indexer/README.md)) | |
+| `@aruna/indexer`: testnet events into Postgres behind a read API, runnable yourself ([`packages/indexer`](packages/indexer/README.md)) | |
 | coverage on testnet: pool, registry drift path, attestor, vault v3 (step 12) | pool simulation, and `k` and the concentration limit derived from it |
 | live classifier page (`apps/web`) | migration tooling between vault versions |
 | keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | an attestor independent of Aruna |
@@ -494,7 +493,7 @@ packages/cli               aruna classify | measure | imports
 packages/sdk               Classifier (check, watch), readVault, vault role clients, coverage clients and quote, ABI-generated types
 packages/mcp               MCP server: aruna_check_target, aruna_watch_target, aruna_explain_class, aruna_read_vault, coverage reads, agent tools
 packages/attestor          drift attestor: watches targets, files signed reports and heartbeats
-packages/indexer           testnet aruna events into SQLite, served over a read-only HTTP API
+packages/indexer           testnet aruna events into Postgres, served over a read-only HTTP API
 packages/sim               empty in v0: the pool simulation follows
 contracts/                 vault, registry, factory, pool, common; integration tests on a sandbox
 apps/web                   static classifier page, spec, proof and console (live: lookup, create a vault, agents)

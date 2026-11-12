@@ -1,15 +1,17 @@
 # @aruna/indexer
 
-Every `aruna` NEP-297 event on testnet, read from the public block archive, served over a read-only
-HTTP API. The indexer holds no keys and sends no transactions.
+Every `aruna` NEP-297 event on testnet, read from public RPC endpoints into a Postgres database and served
+over a read-only HTTP API. The indexer holds no keys and sends no transactions.
 
-Plan: `docs/plans/2026-11-11-1645-feat-live-console-indexer-migration-sim-plan.md` (U1 read contract,
-U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
+Plans: `docs/plans/2026-11-11-1645-feat-live-console-indexer-migration-sim-plan.md` (U1 read contract,
+U2 ingest, U3 server) and `docs/plans/2026-11-13-0335-feat-indexer-postgres-supabase-plan.md` (the database).
+Every route answers with the types in `src/api.ts`.
 
 ## How it reads the chain
 
-- **Source.** Block by block, starting at block 276952600, just before `registry.arunafi.testnet` was
-  created, over JSON-RPC from three endpoints, chosen per height (`src/ingest/routed.ts`):
+- **Source.** Block by block, starting at block 277103284, where `registry2.arunafi.testnet`, the first of the v2 contracts, was created, and
+  following only the v2 contracts (`factory2`, `registry2`, `pool2`; the v1 contracts are no longer indexed),
+  over JSON-RPC from three endpoints, chosen per height (`src/ingest/routed.ts`):
   - **dRPC** (`live_rpc` in `config/testnet.json`), free with no key. It keeps only about the last two days
     of blocks (191,000 on 12 November 2026, from its `status` field `earliest_block_height`), and reads
     those and the head.
@@ -36,11 +38,8 @@ U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
 - **Cost.** At least one call per block, plus a handful for each block that touches an Aruna account.
   QuickNode charges 50 credits per NEAR call (quicknode.com/api-credits/near), so it costs about 50
   credits per block it reads, and only blocks older than dRPC's window go to it. `--concurrency` (default 8)
-  is the window of heights read at once; each endpoint has its own limit inside it: QuickNode 8 (its
-  throughput peaked there on 11 November 2026, 12.5 blocks/s), dRPC 4, NEAR archival 1.
-- **neardata.** `ARUNA_BLOCK_SOURCE=neardata` reads `testnet.neardata.xyz` instead, with
-  `FASTNEAR_API_KEY` when set (sent as `Authorization: Bearer`, never logged). Without a key it serves 30
-  blocks a minute, below testnet's block rate. A `FASTNEAR_API_KEY` alone no longer selects it.
+  is the window of heights read at once; each endpoint has its own limit inside it: QuickNode 3 (`QUICKNODE_CONCURRENCY`;
+  a trial rate-limits at about 15 requests a second, and 8 hit HTTP 429 on 13 November 2026), dRPC 4, NEAR archival 1.
 - **Which events count.** Only receipts that succeeded and were executed by a watched account. The
   watched set starts from the registries, factories and pools in `config/testnet.json`. A vault joins
   it when one of those factories emits `vault_created` for it. A look-alike event from any other
@@ -50,33 +49,41 @@ U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
   dropped silently.
 - **Initial operator.** A vault's initial operator comes from the factory's `create_vault`
   arguments, because no event names it.
-- **Storage.** One SQLite file holds the raw records and the tables derived from them, and each block
-  is committed with the cursor. A restart resumes from the cursor without duplicating anything.
+- **Storage.** A Postgres database (`DATABASE_URL`, in production a Supabase project) holds the raw records and
+  the tables derived from them. A window of consecutive blocks (`--concurrency` of them) is one transaction
+  that first moves the cursor, and only if it is still where this process left it. A restart or a redeploy
+  resumes from the cursor without duplicating anything; so does a second instance that runs for a minute
+  during a deploy: it loses the commit, reloads the cursor and the vaults the other found, and goes on.
+  The schema is created on the first start. Nothing is written to disk.
 
 ## Run it
 
-Requires Node 22.13 or later, for `node:sqlite`.
+Requires Node 22.13 or later and a Postgres database. For Supabase use the **Session pooler** URI (Connect,
+then Session pooler, port 5432), not the Direct connection (IPv6) or the Transaction pooler (serverless clients).
 
 ```bash
 pnpm --filter @aruna/indexer build
-cp packages/indexer/.env.example packages/indexer/.env   # QUICKNODE_RPC_URL is optional
-node --env-file=packages/indexer/.env packages/indexer/dist/cli.js serve --db aruna-indexer.sqlite --port 8080
+cp packages/indexer/.env.example packages/indexer/.env   # set DATABASE_URL; QUICKNODE_RPC_URL is optional
+node --env-file=packages/indexer/.env packages/indexer/dist/cli.js serve --port 8080
 curl -s localhost:8080/health
 ```
 
-With no environment the indexer reads from dRPC and NEAR's archival RPC. `QUICKNODE_RPC_URL`, when set,
+For a local database, `DATABASE_URL=postgresql://postgres@127.0.0.1:5432/postgres` with a running Postgres works.
+With no other environment the indexer reads from dRPC and NEAR's archival RPC. `QUICKNODE_RPC_URL`, when set,
 is the full "HTTP Provider" URL from the QuickNode dashboard, `https://<name>.<network>.quiknode.pro/<token>/`,
 not only the token. The CLI does not read `.env` by itself, so pass it with `--env-file`. Expected: JSON
 with `last_indexed_block` rising toward `head_block`, `source` naming the endpoint serving blocks, and
 `mode` `catching_up` or `following`. `"healthy"` becomes `true` once
 the lag is 60 blocks or less, and only while the indexer has read the chain's head in the last two
-minutes (`head_seen_ms_ago`). An indexer that stopped reading is never reported as caught up.
+minutes (`head_seen_ms_ago`). An indexer that stopped reading is never reported as caught up. While the
+database is unreachable `/health` still answers, with `"healthy":false` and `"last_indexed_block":0`, and the
+other routes answer 503.
 
-As a container. The build context is this folder, and nothing outside it is read. The image has no `VOLUME` instruction (Railway rejects one), so mount the volume at `/data` yourself:
+As a container. The build context is this folder, and nothing outside it is read:
 
 ```bash
 docker build -t aruna-indexer packages/indexer
-docker run -d --restart unless-stopped -p 8080:8080 -v aruna-indexer:/data --env-file packages/indexer/.env aruna-indexer
+docker run -d --restart unless-stopped -p 8080:8080 --env-file packages/indexer/.env aruna-indexer
 ```
 
 The image's health check is liveness only: it passes while the API answers. `/health` answers 200 even while `"healthy"` is `false`, so a restart policy never fires during the first backfill. To catch a stalled indexer, monitor the response text `"healthy":true`.
@@ -86,12 +93,12 @@ To run it on Railway, follow [`docs/DEPLOY-INDEXER-RAILWAY.md`](../../docs/DEPLO
 ## Rebuild from nothing
 
 ```bash
-QUICKNODE_RPC_URL=... node packages/indexer/dist/cli.js rebuild --db a.sqlite   # without it, older blocks read slowly
-node packages/indexer/dist/cli.js export --db a.sqlite --out a.json
+QUICKNODE_RPC_URL=... node --env-file=packages/indexer/.env packages/indexer/dist/cli.js rebuild   # without it, older blocks read slowly
+node --env-file=packages/indexer/.env packages/indexer/dist/cli.js export --out a.json
 ```
 
-`rebuild` deletes the store and reads every block again from the start block. That is about 260,000
-blocks as of 11 November 2026, so it takes hours. Two stores rebuilt from the same blocks export
+`rebuild` empties every table in the database and reads every block again from the start block. That is about
+310,000 blocks as of 13 November 2026, so it takes hours. Two databases built from the same blocks export
 byte-identical JSON.
 
 ## Read contract

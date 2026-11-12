@@ -4,8 +4,8 @@ import { createIndexerClient } from "../src/client.js";
 import { MAX_LIMIT } from "../src/api.js";
 import { runIndexer } from "../src/indexer.js";
 import { startServer } from "../src/server.js";
-import { openStore, type Store } from "../src/store.js";
-import { eventLine, FIRST, LAST, memorySource, recordedBlocks, SEEDS } from "./helpers.js";
+import type { Store } from "../src/store.js";
+import { eventLine, FIRST, LAST, memorySource, recordedBlocks, SEEDS, testStore } from "./helpers.js";
 
 const DEMO2 = "demo2.factory.arunafi.testnet";
 let store: Store;
@@ -13,12 +13,12 @@ let close: () => Promise<void>;
 let base: string;
 
 beforeAll(async () => {
-  store = openStore(":memory:");
+  store = await testStore();
   await runIndexer({ store, source: memorySource(recordedBlocks()), seeds: SEEDS, startBlock: FIRST, stopAt: LAST });
   // 600 heartbeats in one more block, to check the page-size clamp.
   const logs = Array.from({ length: 600 }, (_, i) => eventLine("heartbeat", { attestor: "attestor-a.arunafi.testnet", block: LAST + 1, n: i }));
-  store.commitBlock(LAST + 1, logs.map((_, idx) => ({ kind: "event", contract: "registry2.arunafi.testnet", name: "heartbeat", data: { attestor: "attestor-a.arunafi.testnet", n: idx }, block: LAST + 1, timestamp_ms: 1, tx_hash: "hb", receipt_id: "hb-receipt", idx })));
-  store.setHead(LAST + 1);
+  await store.commitBlock(LAST + 1, logs.map((_, idx) => ({ kind: "event", contract: "registry2.arunafi.testnet", name: "heartbeat", data: { attestor: "attestor-a.arunafi.testnet", n: idx }, block: LAST + 1, timestamp_ms: 1, tx_hash: "hb", receipt_id: "hb-receipt", idx })));
+  await store.setHead(LAST + 1);
   const s = await startServer({ store, port: 0 });
   close = s.close;
   base = `http://127.0.0.1:${(s.server.address() as AddressInfo).port}`;
@@ -26,13 +26,13 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await close();
-  store.close();
+  await store.close();
 });
 
 describe("indexer read API", () => {
   it("serves activity matching the read contract, with last_indexed_block equal to the cursor", async () => {
     const page = await createIndexerClient({ baseUrl: base }).activity(DEMO2, { kind: "refused" });
-    expect(page.last_indexed_block).toBe(store.cursor());
+    expect(page.last_indexed_block).toBe(await store.cursor());
     expect(page.items.map((a) => a.reason)).toEqual(["ARUNA_TARGET_NOT_ALLOWED"]);
   });
 
@@ -74,9 +74,9 @@ describe("indexer read API", () => {
   it("reports health, and a lag beyond the bound as not healthy", async () => {
     const c = createIndexerClient({ baseUrl: base });
     expect(await c.health()).toMatchObject({ last_indexed_block: LAST + 1, lag_blocks: 0, healthy: true });
-    store.setHead(LAST + 1 + 500);
+    await store.setHead(LAST + 1 + 500);
     expect(await c.health()).toMatchObject({ lag_blocks: 500, healthy: false });
-    store.setHead(LAST + 1);
+    await store.setHead(LAST + 1);
   });
 
   it("answers an unknown route or a bad query with an error status, not a page", async () => {

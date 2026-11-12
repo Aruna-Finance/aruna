@@ -1,5 +1,5 @@
 // Blocks from a NEAR JSON-RPC archive node, such as a QuickNode testnet endpoint (plan KTD1). An RPC node has no
-// "every receipt of a block" call, so a block is read in two phases (see BlockSource in neardata.ts):
+// "every receipt of a block" call, so a block is read in two phases (see BlockSource in blocks.ts):
 //
 //   scan    one `EXPERIMENTAL_changes_in_block` call lists every account the block touched. A block that touches
 //           no watched account costs this one call and nothing more.
@@ -11,7 +11,7 @@
 // a `&mut self` method, which writes its state, and the tests replay recorded testnet blocks to check this holds.
 
 import { sleep } from "../sleep.js";
-import type { BlockSource, NeardataBlock, ReceiptOutcome } from "./neardata.js";
+import type { BlockSource, NeardataBlock, ReceiptOutcome } from "./blocks.js";
 
 export interface RpcScan {
   height: number;

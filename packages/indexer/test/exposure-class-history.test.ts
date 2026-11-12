@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runIndexer } from "../src/indexer.js";
-import { openStore } from "../src/store.js";
-import { FIRST, LAST, memorySource, recordedBlocks, SEEDS } from "./helpers.js";
+import { FIRST, LAST, memorySource, recordedBlocks, SEEDS, testStore } from "./helpers.js";
 
 const DEMO2 = "demo2.factory.arunafi.testnet";
 const AGENT = "ed25519:7THAYJHPStMpR3xZjiKoHDdBu6ChQWfG6w93r9sUxHFi";
@@ -24,25 +23,25 @@ const exposure = (block: number, idx: number, amount: string, total: string, cls
 // history has to come from the append-only `exposure_recorded` events. This pins that behaviour.
 describe("exposure rows keep the class each one was recorded under", () => {
   it("does not overwrite an earlier row's class when the target's class changes", async () => {
-    const store = openStore(":memory:");
+    const store = await testStore();
     await runIndexer({ store, source: memorySource(recordedBlocks()), seeds: SEEDS, startBlock: FIRST, stopAt: LAST });
-    const recorded = store.exposure(DEMO2, {}).items.length;
+    const recorded = (await store.exposure(DEMO2, {})).items.length;
 
-    store.commitBlock(LAST + 1, [exposure(LAST + 1, 0, "1", "300", "immutable_verified")]);
-    store.commitBlock(LAST + 2, [exposure(LAST + 2, 0, "2", "302", "global_by_account")]);
+    await store.commitBlock(LAST + 1, [exposure(LAST + 1, 0, "1", "300", "immutable_verified")]);
+    await store.commitBlock(LAST + 2, [exposure(LAST + 2, 0, "2", "302", "global_by_account")]);
 
-    const rows = store.exposure(DEMO2, { target: TARGET }).items;
+    const rows = (await store.exposure(DEMO2, { target: TARGET })).items;
     expect(rows).toHaveLength(recorded + 2);
     expect(rows.slice(-3).map((r) => r.class)).toEqual(["local_upgradeable", "immutable_verified", "global_by_account"]);
     expect(rows.slice(-2).map((r) => r.block)).toEqual([LAST + 1, LAST + 2]);
   });
 
   it("stores null, never a guess, when an event carries no class", async () => {
-    const store = openStore(":memory:");
+    const store = await testStore();
     await runIndexer({ store, source: memorySource(recordedBlocks()), seeds: SEEDS, startBlock: FIRST, stopAt: LAST });
     const rec = exposure(LAST + 1, 0, "1", "301", "x");
     delete (rec.data as { class?: string }).class;
-    store.commitBlock(LAST + 1, [rec]);
-    expect(store.exposure(DEMO2, {}).items.at(-1)?.class).toBeNull();
+    await store.commitBlock(LAST + 1, [rec]);
+    expect((await store.exposure(DEMO2, {})).items.at(-1)?.class).toBeNull();
   });
 });
