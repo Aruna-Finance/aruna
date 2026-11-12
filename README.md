@@ -37,7 +37,7 @@ passes), and `indexer` `cli.test.ts` "read-only directory" fails because Windows
 permission it relies on. `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
-skipped), `cli` (8), `attestor` (13), `sdk` (74), `mcp` (22), `indexer` (95, 3 skipped) and `apps/web` (244).
+ skipped), `cli` (8), `attestor` (13), `sdk` (74), `mcp` (22), `indexer` (121, 3 skipped) and `apps/web` (244).
 
 ### 2. Classify any NEAR contract
 

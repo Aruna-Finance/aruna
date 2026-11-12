@@ -1,6 +1,6 @@
 // Maps the read contract's routes onto the store (plan U3, KTD4). GET only, open CORS, no auth.
 
-import { ACTIVITY_KINDS, ROUTES, type ActivityKind } from "./api.js";
+import { ACTIVITY_KINDS, CLAIM_OUTCOMES, COVERAGE_STATUSES, REPORT_STATES, ROUTES, type ActivityKind } from "./api.js";
 import type { Store } from "./store.js";
 
 export interface Reply {
@@ -42,6 +42,13 @@ function kind(params: URLSearchParams): ActivityKind | undefined {
   return v as ActivityKind | undefined;
 }
 
+/** A query value that must be one of a fixed list. */
+function oneOf<T extends string>(params: URLSearchParams, key: string, allowed: readonly T[]): T | undefined {
+  const v = text(params, key);
+  if (v !== undefined && !(allowed as readonly string[]).includes(v)) throw new BadQuery(`${key} must be one of ${allowed.join(", ")}`);
+  return v as T | undefined;
+}
+
 export function handle(store: Store, method: string, rawUrl: string): Reply {
   if (method === "OPTIONS") return { status: 204, headers: CORS, body: "" };
   if (method !== "GET") return json(405, { error: "the indexer API is read-only: GET only" });
@@ -57,6 +64,14 @@ export function handle(store: Store, method: string, rawUrl: string): Reply {
         200,
         store.events({ ...page, contract: text(p, "contract"), event: text(p, "event"), vault: text(p, "vault"), target: text(p, "target"), attestor: text(p, "attestor"), coverage: int(p, "coverage") }),
       );
+    if (url.pathname === ROUTES.coverages)
+      return json(200, store.coverages({ ...page, pool: text(p, "pool"), vault: text(p, "vault"), owner: text(p, "owner"), agent: text(p, "agent"), target: text(p, "target"), token: text(p, "token"), status: oneOf(p, "status", COVERAGE_STATUSES) }));
+    if (url.pathname === ROUTES.claims) return json(200, store.claims({ ...page, pool: text(p, "pool"), vault: text(p, "vault"), coverage: int(p, "coverage"), outcome: oneOf(p, "outcome", CLAIM_OUTCOMES) }));
+    if (url.pathname === ROUTES.reports) return json(200, store.reports({ ...page, registry: text(p, "registry"), target: text(p, "target"), attestor: text(p, "attestor"), state: oneOf(p, "state", REPORT_STATES) }));
+    if (url.pathname === ROUTES.freezes) return json(200, store.freezes({ ...page, registry: text(p, "registry"), target: text(p, "target") }));
+    if (url.pathname === ROUTES.heartbeats) return json(200, store.heartbeats({ ...page, registry: text(p, "registry"), attestor: text(p, "attestor"), target: text(p, "target") }));
+    if (url.pathname === ROUTES.attestors) return json(200, store.attestors({ ...page, registry: text(p, "registry"), attestor: text(p, "attestor") }));
+    if (url.pathname === ROUTES.classes) return json(200, store.classes({ ...page, registry: text(p, "registry"), target: text(p, "target") }));
     const m = VAULT_SUBROUTE.exec(url.pathname);
     if (m) {
       const vault = decodeURIComponent(m[1]);
