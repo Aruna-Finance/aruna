@@ -39,7 +39,7 @@ describe("which block source the CLI uses", () => {
 
   it("starts at the creation of factory2 and follows only the v2 contracts", () => {
     const shipped = loadConfig();
-    expect(shipped.start_block).toBe(277103406);
+    expect(shipped.start_block).toBe(277103284);
     expect(shipped.factories).toEqual(["factory2.arunafi.testnet"]);
     expect(shipped.contracts).toEqual(["registry2.arunafi.testnet", "pool2.arunafi.testnet"]);
     expect("neardata" in shipped).toBe(false);

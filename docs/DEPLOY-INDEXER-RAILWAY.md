@@ -21,7 +21,7 @@ builder, the healthcheck and the restart policy.
   - Not the Transaction pooler (port 6543): it is meant for short-lived serverless clients, and the indexer is one
     long-lived process.
 - Optional: a QuickNode testnet endpoint URL, the full "HTTP Provider" URL: `https://<name>.<network>.quiknode.pro/<token>/`.
-  It carries the token, so it is a secret. The indexer starts at block 277103406, about 110,000 blocks before the
+  It carries the token, so it is a secret. The indexer starts at block 277103284, about 110,000 blocks before the
   lower edge of what dRPC keeps, and that part is read from QuickNode when the URL is set and from NEAR's archival
   RPC otherwise, which takes days (see "The credit check").
 
@@ -55,18 +55,18 @@ builder, the healthcheck and the restart policy.
 If the service already runs with a volume and the older variables: merge the change to `main` first (Railway deploys
 `main`), then in the service's Variables tab set `DATABASE_URL` and delete `RAILWAY_RUN_UID`, `FASTNEAR_API_KEY`,
 `ARUNA_INDEXER_DB` and `ARUNA_BLOCK_SOURCE`, and remove the volume. The old SQLite file is not migrated: the new
-database starts empty at block 277103406 and reads the v2 contracts only. The v1 contracts are no longer indexed.
+database starts empty at block 277103284 and reads the v2 contracts only. The v1 contracts are no longer indexed.
 
 ## The credit check
 
 Do this before you paste a QuickNode URL. QuickNode charges 50 credits per NEAR call, and the indexer spends
 about one call per block it reads there. It reads there only the blocks between its cursor and dRPC's earliest
-block plus 2,000. On an empty database the cursor is the block before the start block, 277103405:
+block plus 2,000. On an empty database the cursor is the block before the start block, 277103283:
 
 ```bash
 EARLIEST=$(curl -s -X POST https://near-testnet.drpc.org -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"status","params":[]}' | jq .result.sync_info.earliest_block_height)
-CURSOR=277103405   # on a running service: curl -s https://<domain>/health | jq .last_indexed_block
+CURSOR=277103283   # on a running service: curl -s https://<domain>/health | jq .last_indexed_block
 echo $(( (EARLIEST + 2000 - CURSOR) * 55 ))   # credits needed, with 10% to spare
 ```
 
@@ -130,7 +130,7 @@ first backfill.
 
 The history is in Supabase, so it survives anything that happens to Railway. Backups beyond what Supabase provides by
 default are not set up. `aruna-indexer rebuild` empties every table in the database and reads everything again from
-block 277103406 on purpose. Run it with `DATABASE_URL` set (for example `railway run`), and expect the same
+block 277103284 on purpose. Run it with `DATABASE_URL` set (for example `railway run`), and expect the same
 backfill as on the first deploy.
 
 ## If something fails

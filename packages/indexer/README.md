@@ -9,7 +9,7 @@ Every route answers with the types in `src/api.ts`.
 
 ## How it reads the chain
 
-- **Source.** Block by block, starting at block 277103406, where `factory2.arunafi.testnet` was created, and
+- **Source.** Block by block, starting at block 277103284, where `registry2.arunafi.testnet`, the first of the v2 contracts, was created, and
   following only the v2 contracts (`factory2`, `registry2`, `pool2`; the v1 contracts are no longer indexed),
   over JSON-RPC from three endpoints, chosen per height (`src/ingest/routed.ts`):
   - **dRPC** (`live_rpc` in `config/testnet.json`), free with no key. It keeps only about the last two days

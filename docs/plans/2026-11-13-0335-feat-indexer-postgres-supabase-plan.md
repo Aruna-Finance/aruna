@@ -24,11 +24,11 @@ execution: code
 
 ## Product Contract
 
-Product Contract unchanged.
+Product Contract unchanged in meaning. The start block's number was corrected from 277103406 to 277103284 after the archival RPC showed `registry2` was created 122 blocks before `factory2`; the decision (start at the creation of the v2 contracts, keep their complete history) is the same.
 
 ### Summary
 
-The indexer stores everything in Supabase Postgres and nothing on disk. SQLite, the Railway volume and the settings that served them are removed. A fresh database starts at block 277103406 and follows only the v2 contracts. The read API the console uses is unchanged.
+The indexer stores everything in Supabase Postgres and nothing on disk. SQLite, the Railway volume and the settings that served them are removed. A fresh database starts at block 277103284 and follows only the v2 contracts. The read API the console uses is unchanged.
 
 ### Problem Frame
 
@@ -39,7 +39,7 @@ Rebuilding is getting more expensive every day. The free dRPC endpoint keeps onl
 ### Key Decisions
 
 - **Postgres on Supabase is the only store; SQLite is removed entirely.** One storage path keeps the code, tests and deploy simple. (session-settled: user-directed — chosen over keeping SQLite and backing the file up to Supabase Storage: the user wants one clean store with no SQLite left.) Governs R1, R2, R7.
-- **A fresh start at block 277103406, the creation of `factory2.arunafi.testnet`, following only the v2 contracts.** It keeps the complete v2 history and puts about 110,000 blocks below dRPC's edge, which fits a QuickNode trial. (session-settled: user-directed — chosen over starting at dRPC's edge, which loses the first two v2 vaults and every pool deposit, coverage and claim; starting at the head, which hides every existing vault; and starting at the v1 block 276952600, about 14M credits, beyond a 10M trial.) Governs R4, R5.
+- **A fresh start at block 277103284, the creation of `registry2.arunafi.testnet`, the first of the v2 contracts, following only the v2 contracts.** It keeps the complete v2 history and puts about 110,000 blocks below dRPC's edge, which fits a QuickNode trial. (session-settled: user-directed — chosen over starting at dRPC's edge, which loses the first two v2 vaults and every pool deposit, coverage and claim; starting at the head, which hides every existing vault; and starting at the v1 block 276952600, about 14M credits, beyond a 10M trial.) Governs R4, R5.
 - **The FastNear/neardata block source is removed.** The user's two FastNear keys were invalid and the keyless tier (about 30 blocks a minute) cannot keep up with testnet, so the option is configuration nobody can use. Governs R8.
 - **Block reading is unchanged.** QuickNode only below dRPC's edge, keyless dRPC for the rest and the head, NEAR archival as the fallback. (session-settled: user-directed — chosen over FastNear, whose two keys were invalid.)
 
@@ -53,7 +53,7 @@ Rebuilding is getting more expensive every day. The free dRPC endpoint keeps onl
 
 **Starting point and scope**
 
-- R4. On an empty database the indexer starts at block 277103406.
+- R4. On an empty database the indexer starts at block 277103284.
 - R5. The indexer follows `factory2.arunafi.testnet`, `registry2.arunafi.testnet` and `pool2.arunafi.testnet` only; the v1 contracts and their vaults are no longer indexed.
 - R6. The indexer creates the schema it needs in an empty database by itself on first start.
 
@@ -75,7 +75,7 @@ Rebuilding is getting more expensive every day. The free dRPC endpoint keeps onl
 ### Acceptance Examples
 
 - AE1. **Covers R3.** Given the indexer has stored blocks up to 277300000, when the Railway service is redeployed, then `/health` reports `last_indexed_block` at least 277300000 within a minute and ingest continues from 277300001.
-- AE2. **Covers R4, R6.** Given an empty Supabase database, when the indexer starts, then it creates its schema, and its first committed block is 277103406.
+- AE2. **Covers R4, R6.** Given an empty Supabase database, when the indexer starts, then it creates its schema, and its first committed block is 277103284.
 - AE3. **Covers R11.** Given the database is unreachable for two minutes, when it comes back, then ingest resumes from the stored cursor and no block between the two is missing or stored twice.
 - AE4. **Covers R9.** Given the URI holds a password, when the connection fails, then the log line names the failure without the URI or the password.
 
@@ -91,7 +91,7 @@ Rebuilding is getting more expensive every day. The free dRPC endpoint keeps onl
 - How blocks are read, routed and retried does not change, apart from removing the neardata source (R8).
 - No data is migrated from the current SQLite file (40 blocks past its start).
 - Deferred for later:
-  - Indexing v1 contracts or history before block 277103406.
+  - Indexing v1 contracts or history before block 277103284.
   - Running more than one indexer instance against the same database on purpose. KTD5 only keeps the brief overlap of a Railway deploy safe.
   - Supabase row-level security, read replicas, backups beyond what Supabase provides by default.
 - Considered and not built:
@@ -112,7 +112,7 @@ Rebuilding is getting more expensive every day. The free dRPC endpoint keeps onl
 - `packages/indexer/src/ingest/neardata.ts`: holds the `BlockSource`, `NeardataBlock` and `ReceiptOutcome` types that `rpc.ts`, `routed.ts`, `parse.ts` and `indexer.ts` import.
 - `packages/indexer/Dockerfile`: `ARUNA_INDEXER_DB=/data/aruna-indexer.sqlite`, the `/data` directory, and a build that installs without a lockfile.
 - `packages/indexer/src/ingest/watch.ts:2`: vaults join the watched set only through a watched factory's `vault_created`, so a start after a vault's creation hides that vault.
-- NearBlocks v3 `accounts/{a}/txns` on 13 November 2026: `factory2.arunafi.testnet` created at block 277103406 (10 Nov 18:20 UTC), `pool2.arunafi.testnet` at 277192455; dRPC's `earliest_block_height` 277213255, head about 277411600.
+- NearBlocks v3 `accounts/{a}/txns` on 13 November 2026: `factory2.arunafi.testnet` created at block 277103406 (10 Nov 18:20 UTC); NEAR's archival RPC (`view_account` by block) shows `registry2.arunafi.testnet` first existing at block 277103284, 122 blocks earlier, and `factory2` and `pool2` absent at 277103406, `pool2.arunafi.testnet` at 277192455; dRPC's `earliest_block_height` 277213255, head about 277411600.
 - Railway `/health` on 13 November 2026: `last_indexed_block` 276952640, `source` NEAR archival.
 - npm on 13 November 2026: `postgres` 4.1.1 and `@electric-sql/pglite` 0.5.16 have no dependencies; `pg` 8.23.1 has six.
 - Supabase, "Connect to your database" (supabase.com/docs/guides/database/connecting-to-postgres) and the Supavisor FAQ: direct connection over IPv6, session pooler on 5432 for persistent IPv4 clients, transaction pooler on 6543 for serverless.
@@ -260,7 +260,7 @@ U1 adds the database interface and its two implementations. U2 moves the store a
 
 ### U3. Async callers, CLI, config and removal of neardata
 
-**Goal:** The ingest loop, the server and the CLI run on the async Postgres store, configured only by `DATABASE_URL`, starting at block 277103406 and following only the v2 contracts.
+**Goal:** The ingest loop, the server and the CLI run on the async Postgres store, configured only by `DATABASE_URL`, starting at block 277103284 and following only the v2 contracts.
 
 **Requirements:** R3, R4, R5, R7, R8, R10, R11; KTD3, KTD6, KTD7, KTD8, KTD9.
 
@@ -279,7 +279,7 @@ U1 adds the database interface and its two implementations. U2 moves the store a
 2. `serve` starts the HTTP server first, then opens the store inside the retried ingest loop (KTD7).
 3. `handle` in `routes.ts` becomes async and the server awaits it; unexpected errors still answer 500 without detail.
 4. `cli.ts` reads `DATABASE_URL`, drops `--db`, `assertWritable`, `removeStore` and the neardata branch of `chooseSource`, and keeps the `index`, `serve`, `rebuild` and `export` commands. `rebuild` empties the tables per KTD9. The usage text and its source list lose the neardata and `FASTNEAR_API_KEY` lines.
-5. `config/testnet.json`: `start_block` 277103406, `factories` only `factory2.arunafi.testnet`, `contracts` only `registry2.arunafi.testnet` and `pool2.arunafi.testnet`, and the `neardata` field removed along with it in `IndexerConfig`.
+5. `config/testnet.json`: `start_block` 277103284, `factories` only `factory2.arunafi.testnet`, `contracts` only `registry2.arunafi.testnet` and `pool2.arunafi.testnet`, and the `neardata` field removed along with it in `IndexerConfig`.
 6. Move the shared block types per KTD8.
 
 **Patterns to follow:** `ingestForever` in `packages/indexer/src/cli.ts` for restart-on-failure; the existing route table in `src/routes.ts`.
@@ -289,7 +289,7 @@ U1 adds the database interface and its two implementations. U2 moves the store a
 - The byte-identical export test over the recorded RPC window still passes, both for one endpoint and split across endpoints.
 - Covers AE3. The database fails mid-ingest: `serve` keeps answering `/health` unhealthy, and once the database is back ingest resumes from the stored cursor with no block missing or doubled.
 - Covers AE1. A store with a cursor at N: a new `runIndexer` starts at N+1, not at the start block.
-- On an empty database the first block read is 277103406.
+- On an empty database the first block read is 277103284.
 - A lost-race commit makes `runIndexer` continue from the cursor the other process stored; when the winning window held a `vault_created`, the loser records that vault's later events.
 - `serve` with an unreachable `DATABASE_URL` answers `/health` with `healthy: false` and keeps retrying the open.
 - `chooseSource` ignores a set `FASTNEAR_API_KEY` or `ARUNA_BLOCK_SOURCE` and builds the routed source.
@@ -335,7 +335,7 @@ U1 adds the database interface and its two implementations. U2 moves the store a
 | Console typecheck | `pnpm --filter @aruna/web typecheck` | the indexer client the console imports did not change shape |
 | No SQLite left | `git grep -il -e sqlite -e ARUNA_INDEXER_DB -e RAILWAY_RUN_UID -e ARUNA_BLOCK_SOURCE -e FASTNEAR -- ':!lab' ':!docs/plans' ':!pnpm-lock.yaml'` returns nothing | R2, R8 |
 | Image smoke | `docker build -t aruna-indexer packages/indexer`, then run it with `DATABASE_URL` set to a scratch Postgres and fetch `/health` | R6, R7; the container needs no volume |
-| Deploy smoke (user, on Railway) | after deploy, `/health` shows `last_indexed_block` at or above 277103406 and rising; after a manual redeploy it resumes from the same block | R3, R4, AE1 |
+| Deploy smoke (user, on Railway) | after deploy, `/health` shows `last_indexed_block` at or above 277103284 and rising; after a manual redeploy it resumes from the same block | R3, R4, AE1 |
 | Opt-in live tests | `ARUNA_LIVE=1 pnpm --filter @aruna/indexer test` | the routed sources still read real testnet blocks |
 
 ## Definition of Done

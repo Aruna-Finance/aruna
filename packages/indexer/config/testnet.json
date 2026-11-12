@@ -2,7 +2,7 @@
   "network": "testnet",
   "live_rpc": "https://near-testnet.drpc.org",
   "fallback_rpc": "https://archival-rpc.testnet.near.org",
-  "start_block": 277103406,
+  "start_block": 277103284,
   "factories": [
     "factory2.arunafi.testnet"
   ],
