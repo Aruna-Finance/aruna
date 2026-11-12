@@ -437,6 +437,255 @@ fn a_deposit_that_rounds_to_no_shares_is_refused() {
     ctx("victim.testnet", NOW, 1, vec![]);
     p.deposit();
 }
+
+// ---- golden vectors for packages/sim (plan U17, KTD11) ----
+//
+// The TypeScript model in packages/sim re-implements the pool's premium, adequacy, concentration, release
+// and payout rules. Both sides read fixtures/golden/pool-rules.json: this test drives the REAL pool
+// (through the same simulated promise results as the tests above) and fails if its answers differ from the
+// file; the model's test fails if its answers differ from the same file. Regenerate after a deliberate
+// rule change with `ARUNA_WRITE_GOLDEN=1 cargo test -p aruna-pool golden`, and read the diff.
+mod golden {
+    use super::*;
+    use aruna_common::params::{CAPITAL_COST_BPS_30D, CLAIM_REPORTING_BLOCKS, CONCENTRATION_BPS, K_X100, RISK_MARGIN_BPS};
+    use serde_json::{json, Value};
+
+    const GOLDEN: &str = "../../fixtures/golden/pool-rules.json";
+
+    fn s(n: u128) -> Value {
+        json!(n.to_string())
+    }
+    fn class_name(c: RiskClass) -> &'static str {
+        match c {
+            RiskClass::ImmutableVerified => "immutable_verified",
+            RiskClass::LocalUpgradeable => "local_upgradeable",
+            RiskClass::GlobalByAccount => "global_by_account",
+            RiskClass::Unknown => "unknown",
+        }
+    }
+
+    /// The four reads a purchase makes, with the code hash and upgrade authority the target resolves to.
+    fn results_for(class: &str, hash: &str, authority: &str, daily_cap: u128) -> Vec<PromiseResult> {
+        vec![
+            ok(json!({ "vault": "v.factory.testnet", "owner": "client.testnet", "code_hash": "V3", "registered_at_block": 1 })),
+            ok(json!({ "class": class, "evidence_hash": "E", "classified_at_block": 1, "classifier": "c.testnet", "frozen": false, "resolved_code_hash": hash, "upgrade_authority": authority })),
+            ok(json!(true)),
+            ok(json!({ "label": "a", "status": "Active", "policy": { "limits": [{ "token": "near", "max_per_tx": "1", "daily_cap": daily_cap.to_string() }], "max_slippage_bps": 50, "allowed_targets": ["t.testnet"], "max_risk_class": "global_by_account" }, "policy_version": 3, "last_loosened_at": 0, "created_at": 1, "auto_disabled": false, "budgets": [], "refusals": [] })),
+        ]
+    }
+
+    fn quotes() -> Vec<Value> {
+        let mut out = vec![];
+        let classes = [RiskClass::ImmutableVerified, RiskClass::LocalUpgradeable, RiskClass::GlobalByAccount, RiskClass::Unknown];
+        let windows = [1u64, BLOCKS_PER_DAY, 5 * BLOCKS_PER_DAY, 30 * BLOCKS_PER_DAY];
+        let shapes = [(10 * NEAR, NEAR, 8_000u16), (10 * NEAR, 5 * NEAR, 8_000), (100 * NEAR, 2 * NEAR, 5_000), (3 * NEAR, 10 * NEAR, 10_000), (50 * NEAR, 1_234_567_890_123_456_789_012_345 / 100, 7_500)];
+        for class in classes {
+            for window in windows {
+                for (limit, cap, ratio) in shapes {
+                    let v = match pricing::quote(class, limit, ratio, window, cap) {
+                        None => json!({ "class": class_name(class), "limit": s(limit), "payout_ratio_bps": ratio, "window_blocks": window, "daily_cap": s(cap), "insurable": false }),
+                        Some(q) => json!({
+                            "class": class_name(class), "limit": s(limit), "payout_ratio_bps": ratio, "window_blocks": window, "daily_cap": s(cap), "insurable": true,
+                            "days": q.days, "reachable": s(q.reachable_payout.0), "expected_loss": s(q.expected_loss.0), "premium": s(q.premium.0),
+                        }),
+                    };
+                    out.push(v);
+                }
+            }
+        }
+        out
+    }
+
+    struct Buy<'a> {
+        class: &'a str,
+        hash: &'a str,
+        authority: &'a str,
+        limit: u128,
+        daily_cap: u128,
+        ratio: u16,
+        window: u64,
+    }
+    enum Step<'a> {
+        Buy(u64, Buy<'a>),
+        Release(u64, Vec<u32>),
+    }
+
+    /// The mock storage near-sdk gives a test is thread-local and shared by every pool made in it, so each
+    /// run gets a thread of its own: otherwise one run's books leak into the next.
+    fn isolated<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+        std::thread::spawn(f).join().expect("a golden run panicked")
+    }
+
+    fn purchase_run(name: &'static str, capital: u128, steps: Vec<Step<'static>>) -> Value {
+        isolated(move || purchase_run_in_this_thread(name, capital, steps))
+    }
+
+    fn purchase_run_in_this_thread(name: &str, capital: u128, steps: Vec<Step<'static>>) -> Value {
+        let mut p = pool_with_capital(capital);
+        let mut out = vec![];
+        for st in steps {
+            match st {
+                Step::Buy(at, b) => {
+                    let class = match b.class {
+                        "immutable_verified" => RiskClass::ImmutableVerified,
+                        "local_upgradeable" => RiskClass::LocalUpgradeable,
+                        _ => RiskClass::GlobalByAccount,
+                    };
+                    let q = pricing::quote(class, b.limit, b.ratio, b.window, b.daily_cap).unwrap();
+                    let req = BuyRequest { vault: acc("v.factory.testnet"), agent: agent_pk(), target: acc("t.testnet"), limit: U128(b.limit), payout_ratio_bps: b.ratio, window_blocks: b.window };
+                    ctx("pool.testnet", at, 0, results_for(b.class, b.hash, b.authority, b.daily_cap));
+                    let _ = p.cb_buy(acc("client.testnet"), TokenId::Near, U128(q.premium.0), req);
+                    let reason = refused_reason().map(|l| if l.contains("capital adequacy") { "capital_adequacy" } else if l.contains("concentration") { "concentration" } else { "other" });
+                    let book = p.get_book(TokenId::Near);
+                    out.push(json!({
+                        "op": "buy", "at_block": at, "class": b.class, "hash": b.hash, "authority": b.authority, "limit": s(b.limit), "daily_cap": s(b.daily_cap),
+                        "payout_ratio_bps": b.ratio, "window_blocks": b.window,
+                        "accepted": reason.is_none(), "reason": reason, "premium": s(q.premium.0),
+                        "capital_after": s(book.capital.0), "total_limits_after": s(book.total_limits.0), "locked_until": book.locked_until,
+                    }));
+                }
+                Step::Release(at, ids) => {
+                    ctx("anyone.testnet", at, 0, vec![]);
+                    let n = p.release_expired(ids.clone());
+                    let book = p.get_book(TokenId::Near);
+                    out.push(json!({ "op": "release", "at_block": at, "ids": ids, "released": n, "total_limits_after": s(book.total_limits.0), "capital_after": s(book.capital.0) }));
+                }
+            }
+        }
+        json!({ "name": name, "capital": s(capital), "steps": out })
+    }
+
+    fn purchase_runs() -> Vec<Value> {
+        let day = BLOCKS_PER_DAY;
+        let b = |class: &'static str, hash: &'static str, authority: &'static str, limit: u128| Buy { class, hash, authority, limit, daily_cap: NEAR, ratio: 8_000, window: 30 * day };
+        // Boundaries, to the last yoctoNEAR. A tiny daily cap makes the premium independent of the limit
+        // (reachable payout = cap x days x ratio < limit), so each edge can be computed exactly:
+        //   adequacy:      total limits <= k x (capital + premiums)
+        //   concentration: limits on one hash or authority <= bps x (capital + premiums)
+        let cap = NEAR / 100;
+        let tiny = |hash: &'static str, authority: &'static str, limit: u128| Buy { class: "immutable_verified", hash, authority, limit, daily_cap: cap, ratio: 8_000, window: 30 * day };
+        let prem = pricing::quote(RiskClass::ImmutableVerified, 100 * NEAR, 8_000, 30 * day, cap).unwrap().premium.0;
+        let c0 = 10 * NEAR;
+        let k_edge = K_X100 * (c0 + 3 * prem) / 100 - 38 * NEAR; // third purchase, after two of 19 NEAR
+        let conc_edge = CONCENTRATION_BPS * (c0 + prem) / 10_000; // one purchase
+        let conc_edge_2 = CONCENTRATION_BPS * (c0 + 2 * prem) / 10_000 - 10 * NEAR; // second purchase, 10 NEAR already
+        let adequacy_edge = |over: u128| {
+            vec![
+                Step::Buy(NOW, tiny("H1", "a1.testnet", 19 * NEAR)),
+                Step::Buy(NOW + 10, tiny("H2", "a2.testnet", 19 * NEAR)),
+                Step::Buy(NOW + 20, tiny("H3", "a3.testnet", k_edge + over)),
+            ]
+        };
+        vec![
+            purchase_run("adequacy_boundary_exactly_at_k", c0, adequacy_edge(0)),
+            purchase_run("adequacy_boundary_one_yocto_over", c0, adequacy_edge(1)),
+            purchase_run("concentration_boundary_hash_exactly_at_limit", c0, vec![Step::Buy(NOW, tiny("H1", "a1.testnet", conc_edge))]),
+            purchase_run("concentration_boundary_hash_one_yocto_over", c0, vec![Step::Buy(NOW, tiny("H1", "a1.testnet", conc_edge + 1))]),
+            purchase_run("concentration_boundary_authority_exactly_at_limit", c0, vec![Step::Buy(NOW, tiny("H1", "a1.testnet", 10 * NEAR)), Step::Buy(NOW + 10, tiny("H2", "a1.testnet", conc_edge_2))]),
+            purchase_run("concentration_boundary_authority_one_yocto_over", c0, vec![Step::Buy(NOW, tiny("H1", "a1.testnet", 10 * NEAR)), Step::Buy(NOW + 10, tiny("H2", "a1.testnet", conc_edge_2 + 1))]),
+            // k = 5: capital 10 NEAR plus premiums admits about 50 NEAR of limits, then refuses.
+            purchase_run("adequacy_ladder", 10 * NEAR, vec![
+                Step::Buy(NOW, b("immutable_verified", "H1", "a1.testnet", 19 * NEAR)),
+                Step::Buy(NOW + 10, b("immutable_verified", "H2", "a2.testnet", 19 * NEAR)),
+                Step::Buy(NOW + 20, b("immutable_verified", "H3", "a3.testnet", 12 * NEAR)),
+                Step::Buy(NOW + 30, b("immutable_verified", "H4", "a4.testnet", 5 * NEAR)),
+                Step::Buy(NOW + 40, b("immutable_verified", "H5", "a5.testnet", NEAR)),
+            ]),
+            // The same code hash under different authorities, and the same authority over different hashes.
+            purchase_run("concentration_by_hash_and_authority", 10 * NEAR, vec![
+                Step::Buy(NOW, b("local_upgradeable", "SAME", "a1.testnet", 15 * NEAR)),
+                Step::Buy(NOW + 10, b("local_upgradeable", "SAME", "a2.testnet", 10 * NEAR)),
+                Step::Buy(NOW + 20, b("local_upgradeable", "H2", "a1.testnet", 10 * NEAR)),
+                Step::Buy(NOW + 30, b("local_upgradeable", "H3", "a3.testnet", 15 * NEAR)),
+                Step::Buy(NOW + 40, b("global_by_account", "H4", "a1.testnet", 4 * NEAR)),
+            ]),
+            // Premiums raise capital, so a refusal can turn into an acceptance later; expiry frees capacity.
+            purchase_run("premiums_and_release", 4 * NEAR, vec![
+                Step::Buy(NOW, Buy { class: "global_by_account", hash: "H1", authority: "a1.testnet", limit: 7 * NEAR, daily_cap: 3 * NEAR, ratio: 8_000, window: 30 * day }),
+                Step::Buy(NOW + 10, Buy { class: "local_upgradeable", hash: "H2", authority: "a2.testnet", limit: 7 * NEAR, daily_cap: 3 * NEAR, ratio: 8_000, window: 30 * day }),
+                Step::Buy(NOW + 20, Buy { class: "local_upgradeable", hash: "H3", authority: "a3.testnet", limit: 7 * NEAR, daily_cap: 3 * NEAR, ratio: 8_000, window: 30 * day }),
+                Step::Release(NOW + 100, vec![0, 1, 2]),
+                // Each coverage is released at its own end + reporting period, and not one block before.
+                Step::Release(NOW + 30 * day + CLAIM_REPORTING_BLOCKS - 1, vec![0, 1, 2]),
+                Step::Release(NOW + 30 * day + CLAIM_REPORTING_BLOCKS, vec![0, 1, 2]),
+                Step::Release(NOW + 30 * day + CLAIM_REPORTING_BLOCKS + 9, vec![0, 1, 2]),
+                Step::Release(NOW + 30 * day + CLAIM_REPORTING_BLOCKS + 10, vec![0, 1, 2]),
+                Step::Release(NOW + 30 * day + CLAIM_REPORTING_BLOCKS + 100, vec![0, 1, 2, 0]),
+                Step::Buy(NOW + 30 * day + CLAIM_REPORTING_BLOCKS + 200, Buy { class: "local_upgradeable", hash: "H1", authority: "a1.testnet", limit: 12 * NEAR, daily_cap: 3 * NEAR, ratio: 8_000, window: 10 * day }),
+            ]),
+        ]
+    }
+
+    /// One coverage of `limit` bought into a pool of `capital`, then claims for changes at NOW+200, NOW+300.
+    fn payout_run(name: &'static str, capital: u128, limit: u128, ratio: u16, claims: &'static [(u128, u128)]) -> Value {
+        isolated(move || payout_run_in_this_thread(name, capital, limit, ratio, claims))
+    }
+
+    fn payout_run_in_this_thread(name: &str, capital: u128, limit: u128, ratio: u16, claims: &[(u128, u128)]) -> Value {
+        let mut p = pool_with_capital(capital);
+        let req = BuyRequest { vault: acc("v.factory.testnet"), agent: agent_pk(), target: acc("t.testnet"), limit: U128(limit), payout_ratio_bps: ratio, window_blocks: BLOCKS_PER_DAY };
+        let q = pricing::quote(RiskClass::LocalUpgradeable, limit, ratio, BLOCKS_PER_DAY, NEAR).unwrap();
+        ctx("pool.testnet", NOW, 0, results_for("local_upgradeable", "H1", "a1.testnet", NEAR));
+        let _ = p.cb_buy(acc("client.testnet"), TokenId::Near, U128(q.premium.0), req);
+        assert!(p.get_coverage(0).is_some(), "{name}: the coverage was not bought: {:?}", get_logs());
+        let mut out = vec![];
+        for (i, (before_change, before_start)) in claims.iter().enumerate() {
+            let id = i as u32;
+            claim_on(&mut p, id, vec![report("verified", "t.testnet", changed_of(id)), allowed()]);
+            let owed = pay_window(&mut p, id, *before_change, *before_start, 0).0;
+            let book = p.get_book(TokenId::Near);
+            out.push(json!({
+                "exposure_before_change": s(*before_change), "exposure_before_start": s(*before_start),
+                "owed": s(owed), "outcome": last_outcome(&p), "capital_after": s(book.capital.0), "total_limits_after": s(book.total_limits.0),
+            }));
+        }
+        json!({ "name": name, "capital": s(capital), "limit": s(limit), "payout_ratio_bps": ratio, "premium": s(q.premium.0), "claims": out })
+    }
+
+    fn payout_runs() -> Vec<Value> {
+        vec![
+            payout_run("exposure_times_ratio", 10 * NEAR, 10 * NEAR, 8_000, &[(3 * NEAR, 0)]),
+            payout_run("capped_by_the_remaining_limit_across_claims", 10 * NEAR, 10 * NEAR, 8_000, &[(11 * NEAR, 0), (22 * NEAR, 11 * NEAR)]),
+            payout_run("exposure_before_purchase_does_not_count", 10 * NEAR, 10 * NEAR, 8_000, &[(2 * NEAR / 10, NEAR / 10)]),
+            payout_run("ratio_below_one", 10 * NEAR, 10 * NEAR, 5_000, &[(4 * NEAR, 0)]),
+            // 75% of 3 NEAR + 5 yocto is 2.25 NEAR + 3.75 yocto: the contract rounds down.
+            payout_run("payout_rounds_down", 10 * NEAR, 10 * NEAR, 7_500, &[(3 * NEAR + 5, 0)]),
+            payout_run("no_exposure", 10 * NEAR, 10 * NEAR, 8_000, &[(0, 0)]),
+            // The pool pays all of a claim or none of it: a claim above the book's capital is unpaid. 5 NEAR of
+            // capital admits a 10 NEAR limit on one hash (concentration is 2 x capital), and 80% of 11 NEAR
+            // owed is 8.8: one change on one hash can ask for more than the whole book holds.
+            payout_run("book_capital_insufficient", 5 * NEAR, 10 * NEAR, 8_000, &[(11 * NEAR, 0)]),
+        ]
+    }
+
+    fn vectors() -> Value {
+        json!({
+            "about": "Generated by `ARUNA_WRITE_GOLDEN=1 cargo test -p aruna-pool golden` from the real pool. Amounts are yoctoNEAR strings.",
+            "params": {
+                "blocks_per_day": BLOCKS_PER_DAY, "k_x100": K_X100.to_string(), "concentration_bps": CONCENTRATION_BPS.to_string(),
+                "risk_margin_bps": RISK_MARGIN_BPS, "capital_cost_bps_30d": CAPITAL_COST_BPS_30D,
+                "p_event_bps_30d": { "immutable_verified": 50, "local_upgradeable": 500, "global_by_account": 1000 },
+                "waiting_period_blocks": WAITING_PERIOD_BLOCKS, "claim_reporting_blocks": CLAIM_REPORTING_BLOCKS,
+            },
+            "quotes": quotes(),
+            "purchase_runs": purchase_runs(),
+            "payout_runs": payout_runs(),
+        })
+    }
+
+    #[test]
+    fn golden_vectors_match_the_pool() {
+        let now = serde_json::to_string_pretty(&vectors()).unwrap() + "\n";
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(GOLDEN);
+        if std::env::var("ARUNA_WRITE_GOLDEN").is_ok() {
+            std::fs::write(&path, &now).unwrap();
+            return;
+        }
+        let committed = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}. Run with ARUNA_WRITE_GOLDEN=1 to create it", path.display()));
+        assert_eq!(committed, now, "the pool's answers differ from {GOLDEN}; if the rule change is deliberate, regenerate it and read the diff");
+    }
+}
+
 // ---- golden events for packages/indexer ----
 //
 // The same idea as `golden` above, for the indexer: run a coverage story on the REAL pool (a deposit, a

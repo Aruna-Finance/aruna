@@ -401,6 +401,33 @@ callbacks, so `OwnerCoverage` reads its outcome from the aruna events in the rec
 throws, rather than guessing, when they show none. Refusals from the pool are free text, so the SDK
 passes the reason through unchanged. A non-owner's purchase is a refusal that refunds, not a panic.
 
+### D-66 — The pool simulation: the contract's rules, an assumed world, and what it did and did not derive
+`@aruna/sim` applies the pool's own rules (premium, capital adequacy, concentration, release, payout, the
+withdrawal lock) and assumes everything else; each assumption is a field printed into every result, and
+`P(event)` is labelled an underwriting assumption, not a measurement. The rules are held to the contract by
+`fixtures/golden/pool-rules.json`, which the pool's test regenerates from the real pool and the model's test
+replays. Published run: `packages/sim/results/2026-11-12/REPORT.md`, 1,000 seeded runs per scenario.
+What it found, under those assumptions:
+- **Concentration limit.** The contract's 2 x capital on one code hash or upgrade authority is too loose for one
+  authority changing everything it controls: P(a claim goes unpaid) is 8.4% there. The largest value that
+  keeps it at or under 1% is **1.4 x** (0.9%, 95% interval 0.5% to 1.7%, so at the edge; 1.3 x is the
+  conservative reading), **1.2 x** if changes are twice as frequent as declared, **0.75 x** if five times.
+- **`k`.** Not identified at the declared P(event): at every `k` from 2 to 16 the bound holds in all three
+  scenarios once concentration is 1.4 x. If changes are two or five times as frequent, `k` of 3 is the largest
+  that holds. The contract keeps 5.
+- **Withdrawal.** The contract's lock refused the underwriter's withdrawal in every run: agents renew, so the
+  book is never idle. Without the lock, half the capital leaves on day 25 and ending capital falls from about
+  3,500 to about 1,300 NEAR.
+- **A pool with 100 NEAR, no adequacy rule and no concentration limit, hit by one authority's change, goes
+  unpaid in 99% of runs.** That is a thin pool without the rules; the run does not say which rule matters more.
+Nothing is locked and no contract constant changed: locking needs the measured drift frequency (open
+question 1) and the gate B review. Departures from the plan, on purpose: the plan says to derive "the smallest
+values" that keep the probability under the bound, but a smaller limit is always safer, so the largest is
+taken; it derives from three scenarios, not two, because normal operation and one target changing stay at 0%
+for every value tried and constrain nothing; claims refused for want of capital are retried daily, which
+makes "unpaid at the end" forgiving, so the peak owed at once is reported beside it; and the selection rule
+was fixed after an exploratory run, not before.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to
@@ -413,6 +440,9 @@ prevent.
 2. **`k` for capital adequacy, and the concentration limit per code hash.** Derive from
    simulation, then lock as constants with no admin key — the absence of an admin key
    is part of the product's promise.
+   *Simulated 12 November 2026 (D-66): a concentration limit of 1.4 x capital under the
+   declared P(event), `k` not identified there. Derived under assumptions, not locked: locking
+   waits for question 1 and the gate B review.*
 3. **`MAX_CLASS_AGE` and the attestor's polling interval**, and how both enter the
    coverage period definition. Detection lag adds to the TOCTOU window.
 4. **The subscription price per vault.** Validate with AaaS prospects. It must exceed

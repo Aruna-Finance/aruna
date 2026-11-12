@@ -1,0 +1,709 @@
+{
+  "date": "2026-11-12",
+  "runsPerScenario": 1000,
+  "firstSeed": 1,
+  "derivationRunsPerCell": 1000,
+  "poolParams": {
+    "blocksPerDay": 43200,
+    "kX100": "500",
+    "concentrationBps": "20000",
+    "riskMarginBps": "2000",
+    "capitalCostBps30d": "100",
+    "pEventBps30d": {
+      "immutable_verified": 50,
+      "local_upgradeable": 500,
+      "global_by_account": 1000
+    },
+    "waitingPeriodBlocks": 120,
+    "claimReportingBlocks": 600,
+    "maxWindowBlocks": 1296000
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "title": "Normal operation",
+      "note": "Independent, infrequent code changes, at the pool's own declared P(event). No scripted event.",
+      "assumptions": {
+        "agents": 200,
+        "days": 60,
+        "implementations": [
+          {
+            "class": "local_upgradeable",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 1
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 3
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 4
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 5
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 6
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 7
+          },
+          {
+            "class": "global_by_account",
+            "authority": 1
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          }
+        ],
+        "zipfExponent": 1,
+        "dailyCapNear": {
+          "median": 2,
+          "sigma": 0.8
+        },
+        "utilizationBps": {
+          "min": 3000,
+          "max": 9000
+        },
+        "coverage": {
+          "windowDays": 30,
+          "payoutRatioBps": 8000,
+          "renewProbability": 0.8,
+          "purchaseSpreadDays": 30,
+          "maxBuyAttempts": 7
+        },
+        "pool": {
+          "startingCapitalNear": 3000,
+          "params": {
+            "blocksPerDay": 43200,
+            "kX100": "500",
+            "concentrationBps": "20000",
+            "riskMarginBps": "2000",
+            "capitalCostBps30d": "100",
+            "pEventBps30d": {
+              "immutable_verified": 50,
+              "local_upgradeable": 500,
+              "global_by_account": 1000
+            },
+            "waitingPeriodBlocks": 120,
+            "claimReportingBlocks": 600,
+            "maxWindowBlocks": 1296000
+          },
+          "book": {}
+        },
+        "events": {
+          "pEventMultiplier": 1,
+          "scripted": [],
+          "freezeDays": 5
+        },
+        "claims": {
+          "detectDelayBlocks": 60,
+          "challengeWindowBlocks": 300,
+          "claimDelayMaxBlocks": 43200,
+          "retryUnpaidDaily": true
+        },
+        "underwriter": {
+          "withdrawal": null
+        }
+      }
+    },
+    {
+      "id": "single_target_changes",
+      "title": "One target changes",
+      "note": "On top of the random changes, the implementation with the most coverage on it changes on day 20.",
+      "assumptions": {
+        "agents": 200,
+        "days": 60,
+        "implementations": [
+          {
+            "class": "local_upgradeable",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 1
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 3
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 4
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 5
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 6
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 7
+          },
+          {
+            "class": "global_by_account",
+            "authority": 1
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          }
+        ],
+        "zipfExponent": 1,
+        "dailyCapNear": {
+          "median": 2,
+          "sigma": 0.8
+        },
+        "utilizationBps": {
+          "min": 3000,
+          "max": 9000
+        },
+        "coverage": {
+          "windowDays": 30,
+          "payoutRatioBps": 8000,
+          "renewProbability": 0.8,
+          "purchaseSpreadDays": 30,
+          "maxBuyAttempts": 7
+        },
+        "pool": {
+          "startingCapitalNear": 3000,
+          "params": {
+            "blocksPerDay": 43200,
+            "kX100": "500",
+            "concentrationBps": "20000",
+            "riskMarginBps": "2000",
+            "capitalCostBps30d": "100",
+            "pEventBps30d": {
+              "immutable_verified": 50,
+              "local_upgradeable": 500,
+              "global_by_account": 1000
+            },
+            "waitingPeriodBlocks": 120,
+            "claimReportingBlocks": 600,
+            "maxWindowBlocks": 1296000
+          },
+          "book": {}
+        },
+        "events": {
+          "pEventMultiplier": 1,
+          "scripted": [
+            {
+              "day": 20,
+              "kind": "most_exposed_implementation"
+            }
+          ],
+          "freezeDays": 5
+        },
+        "claims": {
+          "detectDelayBlocks": 60,
+          "challengeWindowBlocks": 300,
+          "claimDelayMaxBlocks": 43200,
+          "retryUnpaidDaily": true
+        },
+        "underwriter": {
+          "withdrawal": null
+        }
+      }
+    },
+    {
+      "id": "correlated_mass_claims",
+      "title": "Mass correlated claims",
+      "note": "On day 30 the upgrade authority with the most coverage behind it changes everything it controls at once, and every exposed agent claims within two hours of the report becoming claimable.",
+      "assumptions": {
+        "agents": 200,
+        "days": 60,
+        "implementations": [
+          {
+            "class": "local_upgradeable",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 1
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 3
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 4
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 5
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 6
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 7
+          },
+          {
+            "class": "global_by_account",
+            "authority": 1
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          }
+        ],
+        "zipfExponent": 1,
+        "dailyCapNear": {
+          "median": 2,
+          "sigma": 0.8
+        },
+        "utilizationBps": {
+          "min": 3000,
+          "max": 9000
+        },
+        "coverage": {
+          "windowDays": 30,
+          "payoutRatioBps": 8000,
+          "renewProbability": 0.8,
+          "purchaseSpreadDays": 30,
+          "maxBuyAttempts": 7
+        },
+        "pool": {
+          "startingCapitalNear": 3000,
+          "params": {
+            "blocksPerDay": 43200,
+            "kX100": "500",
+            "concentrationBps": "20000",
+            "riskMarginBps": "2000",
+            "capitalCostBps30d": "100",
+            "pEventBps30d": {
+              "immutable_verified": 50,
+              "local_upgradeable": 500,
+              "global_by_account": 1000
+            },
+            "waitingPeriodBlocks": 120,
+            "claimReportingBlocks": 600,
+            "maxWindowBlocks": 1296000
+          },
+          "book": {}
+        },
+        "events": {
+          "pEventMultiplier": 1,
+          "scripted": [
+            {
+              "day": 30,
+              "kind": "most_concentrated_authority"
+            }
+          ],
+          "freezeDays": 5
+        },
+        "claims": {
+          "detectDelayBlocks": 60,
+          "challengeWindowBlocks": 300,
+          "claimDelayMaxBlocks": 3600,
+          "retryUnpaidDaily": true
+        },
+        "underwriter": {
+          "withdrawal": null
+        }
+      }
+    },
+    {
+      "id": "underwriter_withdrawal",
+      "title": "Underwriter withdrawal",
+      "note": "On day 25 the underwriter tries to withdraw half its shares, daily until it works; on day 40 a mid-sized change lands. The contract refuses withdrawals while any coverage is open or in its reporting period.",
+      "assumptions": {
+        "agents": 200,
+        "days": 60,
+        "implementations": [
+          {
+            "class": "local_upgradeable",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 1
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 3
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 4
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 5
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 6
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 7
+          },
+          {
+            "class": "global_by_account",
+            "authority": 1
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          }
+        ],
+        "zipfExponent": 1,
+        "dailyCapNear": {
+          "median": 2,
+          "sigma": 0.8
+        },
+        "utilizationBps": {
+          "min": 3000,
+          "max": 9000
+        },
+        "coverage": {
+          "windowDays": 30,
+          "payoutRatioBps": 8000,
+          "renewProbability": 0.8,
+          "purchaseSpreadDays": 30,
+          "maxBuyAttempts": 7
+        },
+        "pool": {
+          "startingCapitalNear": 3000,
+          "params": {
+            "blocksPerDay": 43200,
+            "kX100": "500",
+            "concentrationBps": "20000",
+            "riskMarginBps": "2000",
+            "capitalCostBps30d": "100",
+            "pEventBps30d": {
+              "immutable_verified": 50,
+              "local_upgradeable": 500,
+              "global_by_account": 1000
+            },
+            "waitingPeriodBlocks": 120,
+            "claimReportingBlocks": 600,
+            "maxWindowBlocks": 1296000
+          },
+          "book": {}
+        },
+        "events": {
+          "pEventMultiplier": 1,
+          "scripted": [
+            {
+              "day": 40,
+              "kind": "most_exposed_implementation"
+            }
+          ],
+          "freezeDays": 5
+        },
+        "claims": {
+          "detectDelayBlocks": 60,
+          "challengeWindowBlocks": 300,
+          "claimDelayMaxBlocks": 43200,
+          "retryUnpaidDaily": true
+        },
+        "underwriter": {
+          "withdrawal": {
+            "day": 25,
+            "shareBps": 5000
+          }
+        }
+      }
+    },
+    {
+      "id": "underwriter_withdrawal_without_lock",
+      "title": "Underwriter withdrawal, lock switched off (counterfactual, not the contract)",
+      "note": "The same run with the contract's withdrawal lock removed, to show what the lock protects. The contract does not behave like this.",
+      "counterfactual": true,
+      "assumptions": {
+        "agents": 200,
+        "days": 60,
+        "implementations": [
+          {
+            "class": "local_upgradeable",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 1
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 3
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 4
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 5
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 6
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 7
+          },
+          {
+            "class": "global_by_account",
+            "authority": 1
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          }
+        ],
+        "zipfExponent": 1,
+        "dailyCapNear": {
+          "median": 2,
+          "sigma": 0.8
+        },
+        "utilizationBps": {
+          "min": 3000,
+          "max": 9000
+        },
+        "coverage": {
+          "windowDays": 30,
+          "payoutRatioBps": 8000,
+          "renewProbability": 0.8,
+          "purchaseSpreadDays": 30,
+          "maxBuyAttempts": 7
+        },
+        "pool": {
+          "startingCapitalNear": 3000,
+          "params": {
+            "blocksPerDay": 43200,
+            "kX100": "500",
+            "concentrationBps": "20000",
+            "riskMarginBps": "2000",
+            "capitalCostBps30d": "100",
+            "pEventBps30d": {
+              "immutable_verified": 50,
+              "local_upgradeable": 500,
+              "global_by_account": 1000
+            },
+            "waitingPeriodBlocks": 120,
+            "claimReportingBlocks": 600,
+            "maxWindowBlocks": 1296000
+          },
+          "book": {
+            "lockEnforced": false
+          }
+        },
+        "events": {
+          "pEventMultiplier": 1,
+          "scripted": [
+            {
+              "day": 40,
+              "kind": "most_exposed_implementation"
+            }
+          ],
+          "freezeDays": 5
+        },
+        "claims": {
+          "detectDelayBlocks": 60,
+          "challengeWindowBlocks": 300,
+          "claimDelayMaxBlocks": 43200,
+          "retryUnpaidDaily": true
+        },
+        "underwriter": {
+          "withdrawal": {
+            "day": 25,
+            "shareBps": 5000
+          }
+        }
+      }
+    },
+    {
+      "id": "insufficient_capital",
+      "title": "Capital not enough",
+      "note": "The pool starts with 100 NEAR, with no adequacy rule and no concentration limit, against all the coverage the agents want to buy. On day 30 the upgrade authority with the most coverage behind it changes everything it controls, and every exposed agent claims within two hours. This is the scenario that breaks the pool.",
+      "breaksThePool": true,
+      "assumptions": {
+        "agents": 200,
+        "days": 60,
+        "implementations": [
+          {
+            "class": "local_upgradeable",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 1
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 3
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 4
+          },
+          {
+            "class": "global_by_account",
+            "authority": 0
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 5
+          },
+          {
+            "class": "immutable_verified",
+            "authority": 6
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 7
+          },
+          {
+            "class": "global_by_account",
+            "authority": 1
+          },
+          {
+            "class": "local_upgradeable",
+            "authority": 2
+          }
+        ],
+        "zipfExponent": 1,
+        "dailyCapNear": {
+          "median": 2,
+          "sigma": 0.8
+        },
+        "utilizationBps": {
+          "min": 3000,
+          "max": 9000
+        },
+        "coverage": {
+          "windowDays": 30,
+          "payoutRatioBps": 8000,
+          "renewProbability": 0.8,
+          "purchaseSpreadDays": 30,
+          "maxBuyAttempts": 7
+        },
+        "pool": {
+          "startingCapitalNear": 100,
+          "params": {
+            "blocksPerDay": 43200,
+            "kX100": "500",
+            "concentrationBps": "20000",
+            "riskMarginBps": "2000",
+            "capitalCostBps30d": "100",
+            "pEventBps30d": {
+              "immutable_verified": 50,
+              "local_upgradeable": 500,
+              "global_by_account": 1000
+            },
+            "waitingPeriodBlocks": 120,
+            "claimReportingBlocks": 600,
+            "maxWindowBlocks": 1296000
+          },
+          "book": {
+            "adequacy": false,
+            "concentration": false
+          }
+        },
+        "events": {
+          "pEventMultiplier": 1,
+          "scripted": [
+            {
+              "day": 30,
+              "kind": "most_concentrated_authority"
+            }
+          ],
+          "freezeDays": 5
+        },
+        "claims": {
+          "detectDelayBlocks": 60,
+          "challengeWindowBlocks": 300,
+          "claimDelayMaxBlocks": 3600,
+          "retryUnpaidDaily": true
+        },
+        "underwriter": {
+          "withdrawal": null
+        }
+      }
+    }
+  ]
+}

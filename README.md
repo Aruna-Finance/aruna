@@ -37,7 +37,7 @@ passes), and `indexer` `cli.test.ts` "read-only directory" fails because Windows
 permission it relies on. `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (8), `attestor` (13), `sdk` (79), `mcp` (22), `indexer` (121, 3 skipped) and `apps/web` (244).
+ skipped), `cli` (8), `attestor` (13), `sdk` (79), `mcp` (22), `indexer` (121, 3 skipped), `sim` (36) and `apps/web` (244).
 
 ### 2. Classify any NEAR contract
 
@@ -349,6 +349,22 @@ keyless half of `@aruna/sdk/coverage`. With an agent key, `node examples/mcp-smo
 starts the MCP server as a client would and calls `aruna_watch_target`, `aruna_budget`,
 `aruna_simulate` (with a coverage shape: verdict `block: TARGET_FROZEN` and the coverage premium),
 `aruna_spend` (the same refusal), `aruna_pool_book` and `aruna_drift_report` against the real vault.
+
+### 15. The pool simulation
+
+```bash
+node packages/sim/dist/run.js --check packages/sim/results/2026-11-12
+```
+
+Expected: `ok: 10 files ... equal what raw/ produces`. The report, the summary and every chart are rebuilt from the
+recorded runs and match the committed files. Read [`packages/sim/results/2026-11-12/REPORT.md`](packages/sim/results/2026-11-12/REPORT.md):
+six scenarios with ending capital, claims paid and unpaid, solvency ratio, maximum drawdown, probability of
+insolvency and time to insolvency; every input assumption, with `P(event)` named an underwriting assumption;
+the scenario that breaks the pool, shown as it is (a pool with 100 NEAR and no rules goes unpaid in 99% of runs);
+and the derived concentration limit. To regenerate everything from nothing (about 3 minutes):
+`pnpm --filter @aruna/sim sim --date 2026-11-12`. The model's rules are checked against the real pool:
+`cargo test -p aruna-pool golden` (in `contracts/`) and `pnpm --filter @aruna/sim test`. Nothing here is
+measured: how often contracts really change is still open (`docs/DECISIONS.md`, question 1).
 
 ---
 
