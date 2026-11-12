@@ -51,6 +51,8 @@ export interface Store {
   commitBlock(height: number, records: RawRecord[]): void;
   knownVaults(): Array<{ vault: string; factory: string }>;
   setHead(height: number): void;
+  /** Names the block source now serving blocks, for /health. Kept in memory only. */
+  setSource(label: string): void;
   health(head?: number | null): Health;
   vaults(q?: VaultsQuery): Page<VaultSummary>;
   activity(vault: string, q?: ActivityQuery): Page<ActivityItem>;
@@ -71,6 +73,7 @@ function canonical(x: unknown): unknown {
 export function openStore(path: string, o: { now?: () => number } = {}): Store {
   const now = o.now ?? Date.now;
   let headSeenAt: number | null = null;
+  let source: string | undefined;
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
   db.exec(SCHEMA);
@@ -163,6 +166,9 @@ export function openStore(path: string, o: { now?: () => number } = {}): Store {
       headSeenAt = now();
       if (getMeta("head") !== String(h)) setMeta("head", String(h));
     },
+    setSource(label) {
+      source = label;
+    },
     health(head) {
       const last = cursor() ?? 0;
       const stored = getMeta("head");
@@ -171,7 +177,8 @@ export function openStore(path: string, o: { now?: () => number } = {}): Store {
       const seenAgo = head !== undefined && head !== null ? 0 : headSeenAt === null ? null : now() - headSeenAt;
       const unparsed = Number((db.prepare("SELECT COUNT(*) AS n FROM raw WHERE kind = 'unparsed'").get() as Row).n);
       const healthy = lag !== null && lag <= HEALTHY_LAG_BLOCKS && seenAgo !== null && seenAgo <= HEAD_STALE_MS;
-      return { last_indexed_block: last, head_block: knownHead, lag_blocks: lag, head_seen_ms_ago: seenAgo, unparsed_events: unparsed, healthy };
+      const mode = lag === null ? undefined : lag > HEALTHY_LAG_BLOCKS ? ("catching_up" as const) : ("following" as const);
+      return { last_indexed_block: last, head_block: knownHead, lag_blocks: lag, head_seen_ms_ago: seenAgo, unparsed_events: unparsed, healthy, ...(source && { source }), ...(mode && { mode }) };
     },
     vaults: (q = {}) =>
       page("vaults", [["owner", q.owner], ["operator", q.operator], ["code_hash", q.code_hash]], q, vaultRow),

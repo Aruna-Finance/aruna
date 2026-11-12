@@ -28,6 +28,10 @@ export interface Health {
   /** Events kept raw because their name or shape was not recognised (R4). */
   unparsed_events: number;
   healthy: boolean;
+  /** The block source serving blocks now, by label (never its URL). Absent before the first block. */
+  source?: string;
+  /** `catching_up` while the lag exceeds the healthy limit, `following` within it. Absent before the first head. */
+  mode?: "catching_up" | "following";
 }
 
 /** Where an item came from on chain. */
