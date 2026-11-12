@@ -401,6 +401,25 @@ callbacks, so `OwnerCoverage` reads its outcome from the aruna events in the rec
 throws, rather than guessing, when they show none. Refusals from the pool are free text, so the SDK
 passes the reason through unchanged. A non-owner's purchase is a refusal that refunds, not a panic.
 
+### D-65 — A vault migrates by making a new one; the owner runs it, in steps that can be repeated
+Vaults are immutable, so moving to a new version means a new vault, the same agent keys, and the
+funds. `planMigration` only reads and refuses, before any transaction, a vault on an unknown code hash,
+a signer who is not the owner (an operator could pause and add agents but not finish, so it is refused
+up front), a vault already at the factory's version, and a vault already at the new name that is not a
+copy (owner, operator and ceiling must match). `runMigration` goes: pause the carried agents on the
+old vault, create the new vault, re-add each agent with its key, label and policy, move the funds,
+revoke the old agents. An agent that was paused or auto-disabled is added and paused in one transaction,
+so it is never active on the new vault; an auto-disable becomes an owner pause there. Each step reads
+chain state first, so agents and the vault are never made twice. Funds cannot be recognised from chain
+state (a withdrawal lands in the owner's general balance, a deposit emits no event), so a journal
+records the plan and each fund transaction's hash, and writes "sending" after the owner confirms and
+just before the send: a crash in between stops the run for a human look and never moves funds twice.
+The old vault keeps its storage cost plus 0.001 NEAR; that is the margin, chosen, not measured. Active
+coverage stays bound to the old vault, so the run refuses until the owner acknowledges it, and
+`--yes` alone does not. A v1 vault takes no deposit on its owner methods (`CAPABILITIES`).
+`aruna migrate` is the one signing command in the CLI, testnet only, with the key read from
+near-cli-rs's legacy credentials and never from an argument.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

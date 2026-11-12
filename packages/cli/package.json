@@ -1,7 +1,7 @@
 {
   "name": "@aruna/cli",
   "version": "0.1.0",
-  "description": "Aruna command line: classify NEAR accounts, run the mainnet measurement, list WASM imports. Read-only.",
+  "description": "Aruna command line: classify NEAR accounts, run the mainnet measurement, list WASM imports (read-only), and migrate a testnet vault to the current version (signs).",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@aruna/classifier-core": "workspace:*",
-    "@aruna/rpc": "workspace:*"
+    "@aruna/rpc": "workspace:*",
+    "@aruna/sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

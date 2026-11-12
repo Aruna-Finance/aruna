@@ -47,3 +47,6 @@ next-env.d.ts
 
 # local re-runs of the measurement
 measurement/results/rerun/
+
+# aruna migrate resume files: hashes and amounts, no keys, but they belong to one run
+*.journal.json

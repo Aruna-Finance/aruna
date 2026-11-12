@@ -145,6 +145,9 @@ importers:
       '@aruna/rpc':
         specifier: workspace:*
         version: link:../rpc
+      '@aruna/sdk':
+        specifier: workspace:*
+        version: link:../sdk
     devDependencies:
       '@types/node':
         specifier: 22.20.5
