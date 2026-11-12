@@ -75,7 +75,7 @@ export function routedSource<S>(o: RoutedSourceOptions<S>): RoutedSource<S> {
   const now = o.now ?? Date.now;
 
   let edge: { height: number; at: number } | undefined;
-  // Set once a height at or above the edge is served: from then on the archive is never called (KTD4).
+  // Set once a height at or above the edge is routed: from then on the archive is never called (KTD4).
   let latched = false;
   let serving: string | undefined;
 

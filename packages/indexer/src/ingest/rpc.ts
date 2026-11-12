@@ -26,14 +26,6 @@ interface RpcErrorBody {
   cause?: { name?: string };
 }
 
-/** The endpoint is on another network. Not a passing failure: a retry or another check will not change it. */
-export class WrongNetworkError extends Error {
-  constructor(chainId: string) {
-    super(`the RPC endpoint is on ${chainId}; the indexer runs on testnet only`);
-    this.name = "WrongNetworkError";
-  }
-}
-
 /** The node answered with a JSON-RPC error that retrying will not fix, or exhausted the retries. */
 export class RpcError extends Error {
   constructor(
@@ -140,12 +132,13 @@ export function rpcSource(o: RpcSourceOptions): RpcBlockSource {
   }
 
   // The indexer runs on testnet only (CLAUDE.md rule 3); an endpoint on another network fails before any read.
-  // A failed check is forgotten, so a source benched for a passing outage can be used again; a wrong network is not.
+  // A failed status call is forgotten, so a source benched for a passing outage can be used again. A wrong network
+  // is thrown from the success handler, so it stays cached and every later call fails the same way.
   let verified: Promise<void> | undefined;
   const ready = () =>
     (verified ??= rpc<{ chain_id: string }>("status", []).then(
       (s) => {
-        if (s.chain_id !== "testnet") throw new WrongNetworkError(s.chain_id);
+        if (s.chain_id !== "testnet") throw new Error(`the RPC endpoint is on ${s.chain_id}; the indexer runs on testnet only`);
       },
       (e: unknown) => {
         verified = undefined;
