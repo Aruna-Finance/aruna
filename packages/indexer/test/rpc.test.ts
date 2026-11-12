@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runIndexer } from "../src/indexer.js";
-import { rpcSource } from "../src/ingest/rpc.js";
+import { BlockNotServedError, rpcSource } from "../src/ingest/rpc.js";
 import { extractRecords, type RawRecord } from "../src/ingest/parse.js";
 import { WatchSet } from "../src/ingest/watch.js";
 import { openStore } from "../src/store.js";
@@ -11,6 +11,8 @@ import { FIRST, LAST, memorySource, recordedBlocks, SEEDS } from "./helpers.js";
 const DEMO2 = "demo2.factory.arunafi.testnet";
 const URL_ = "https://testnet.quiknode.example/abcdef1234567890token/";
 type Reply = { status?: number; body: unknown };
+const UNKNOWN_BLOCK = { jsonrpc: "2.0", id: 1, error: { name: "HANDLER_ERROR", cause: { name: "UNKNOWN_BLOCK" }, code: -32000 } };
+const header = (height: number, prev: number) => ({ jsonrpc: "2.0", id: 1, result: { header: { height, prev_height: prev, hash: `h${height}`, timestamp_nanosec: "0" } } });
 
 /** Real testnet responses, recorded from an archival node by rpcSource itself (test/fixtures/rpc/). */
 const recorded = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "rpc", "recorded.json"), "utf8")) as Record<string, unknown>;
@@ -103,8 +105,9 @@ describe("rpc source cost and safety", () => {
   });
 
   it("treats UNKNOWN_BLOCK as a height the chain skipped", async () => {
-    const { fetch } = replay((method) => (method === "EXPERIMENTAL_changes_in_block" ? { body: { jsonrpc: "2.0", id: 1, error: { name: "HANDLER_ERROR", cause: { name: "UNKNOWN_BLOCK" }, code: -32000 } } } : undefined));
+    const { fetch, calls } = replay((method) => (method === "EXPERIMENTAL_changes_in_block" ? { body: UNKNOWN_BLOCK } : undefined));
     expect(await rpcSource({ url: URL_, fetch }).block(277068700)).toBeNull();
+    expect(calls).toEqual(["status", "EXPERIMENTAL_changes_in_block"]);
   });
 
   it("retries a rate limit and a node timeout, then reads the block", async () => {
@@ -150,5 +153,77 @@ describe("rpc source cost and safety", () => {
     expect(err.message).toContain("could not be read");
     expect(err.message).not.toContain("abcdef1234567890token");
     expect(err.message).not.toContain("quiknode");
+  });
+});
+
+describe("rpc source on a node that prunes old blocks (proveSkips)", () => {
+  const H = 277068700;
+  const unknownFor = (heights: number[]) => (method: string, params: Record<string, unknown>) =>
+    (method === "EXPERIMENTAL_changes_in_block" && heights.includes(params.block_id as number)) || (method === "block" && heights.includes(params.block_id as number)) ? { body: UNKNOWN_BLOCK } : undefined;
+
+  it("returns null for UNKNOWN_BLOCK only when a later block's prev_height shows the height was skipped", async () => {
+    const { fetch } = replay((method, params) => (method === "block" && params.block_id === H + 1 ? { body: header(H + 1, H - 1) } : unknownFor([H])(method, params)));
+    expect(await rpcSource({ url: URL_, fetch, proveSkips: true }).block(H)).toBeNull();
+  });
+
+  it("refuses to call a block skipped when the node holds no later block either", async () => {
+    const { fetch } = replay(unknownFor([H, H + 1, H + 2, H + 3]));
+    await expect(rpcSource({ url: URL_, fetch, proveSkips: true, backoffMs: 1 }).block(H)).rejects.toBeInstanceOf(BlockNotServedError);
+  });
+
+  it("refuses to call a block skipped when a later block names it as its parent", async () => {
+    const { fetch } = replay((method, params) => (method === "block" && params.block_id === H + 1 ? { body: header(H + 1, H) } : unknownFor([H])(method, params)));
+    await expect(rpcSource({ url: URL_, fetch, proveSkips: true }).block(H)).rejects.toBeInstanceOf(BlockNotServedError);
+  });
+});
+
+describe("rpc source timeouts and recovery", () => {
+  /** Hangs until the request's abort signal fires, as a stalled socket does. */
+  const hang = (init?: RequestInit) =>
+    new Promise<Response>((_, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal!.reason)));
+
+  it("abandons a hung request after the timeout and retries it", async () => {
+    const { fetch: base } = replay();
+    let hung = false;
+    const fetch = (async (url: string | URL, init?: RequestInit) => {
+      if (!hung && String(init?.body).includes("EXPERIMENTAL_changes_in_block")) {
+        hung = true;
+        return hang(init);
+      }
+      return base(url, init);
+    }) as typeof globalThis.fetch;
+    const scan = await rpcSource({ url: URL_, fetch, backoffMs: 1, timeoutMs: 20 }).block(277068625);
+    expect(scan?.touched).toContain("factory.arunafi.testnet");
+  });
+
+  it("names a timed-out read without the endpoint token", async () => {
+    const fetch = (async (_url: string | URL, init?: RequestInit) => hang(init)) as typeof globalThis.fetch;
+    const err = await rpcSource({ url: URL_, fetch, retries: 0, timeoutMs: 20 })
+      .block(277068625)
+      .then(() => new Error("the read did not fail"), (e: unknown) => e as Error);
+    expect(err.message).toContain("could not be read");
+    expect(err.message).not.toContain("abcdef1234567890token");
+  });
+
+  it("checks the network again after a failed status call, so a source can recover", async () => {
+    let statusCalls = 0;
+    const { fetch } = replay((method) => (method === "status" && ++statusCalls === 1 ? { status: 503, body: {} } : undefined));
+    const src = rpcSource({ url: URL_, fetch, retries: 0 });
+    await expect(src.block(277068625)).rejects.toThrow(/HTTP 503/);
+    const scan = await src.block(277068625);
+    expect(scan?.touched).toContain("factory.arunafi.testnet");
+  });
+
+  it("keeps refusing an endpoint on another network", async () => {
+    const { fetch, calls } = replay((method) => (method === "status" ? { body: { jsonrpc: "2.0", id: 1, result: { chain_id: "mainnet" } } } : undefined));
+    const src = rpcSource({ url: URL_, fetch });
+    await expect(src.block(277068623)).rejects.toThrow(/testnet only/);
+    await expect(src.block(277068623)).rejects.toThrow(/testnet only/);
+    expect(calls).toEqual(["status"]);
+  });
+
+  it("reads the earliest block the node still holds from status", async () => {
+    const { fetch } = replay((method) => (method === "status" ? { body: { jsonrpc: "2.0", id: 1, result: { chain_id: "testnet", sync_info: { earliest_block_height: 277126855 } } } } : undefined));
+    expect(await rpcSource({ url: URL_, fetch }).earliestHeight()).toBe(277126855);
   });
 });

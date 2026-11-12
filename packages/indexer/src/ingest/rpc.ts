@@ -26,6 +26,14 @@ interface RpcErrorBody {
   cause?: { name?: string };
 }
 
+/** The endpoint is on another network. Not a passing failure: a retry or another check will not change it. */
+export class WrongNetworkError extends Error {
+  constructor(chainId: string) {
+    super(`the RPC endpoint is on ${chainId}; the indexer runs on testnet only`);
+    this.name = "WrongNetworkError";
+  }
+}
+
 /** The node answered with a JSON-RPC error that retrying will not fix, or exhausted the retries. */
 export class RpcError extends Error {
   constructor(
@@ -45,7 +53,17 @@ interface TxStatus {
   receipts_outcome: Array<{ id: string; block_hash: string; outcome: { executor_id: string; logs: string[]; status: Record<string, unknown> | string } }>;
 }
 
+/** The node does not hold this block (it prunes old blocks, as dRPC does), so another source must read it. */
+export class BlockNotServedError extends Error {
+  constructor(readonly height: number) {
+    super(`block ${height} is not held by this node`);
+    this.name = "BlockNotServedError";
+  }
+}
+
 const TX_CACHE_SIZE = 256;
+/** Later heights tried when proving a skip; consecutive skipped heights longer than this are not seen on testnet. */
+const SKIP_PROOF_SPAN = 3;
 const RETRYABLE_RPC_ERRORS = new Set(["TIMEOUT_ERROR", "INTERNAL_ERROR"]);
 
 export interface RpcSourceOptions {
@@ -54,12 +72,26 @@ export interface RpcSourceOptions {
   fetch?: typeof globalThis.fetch;
   retries?: number;
   backoffMs?: number;
+  /** A request still unanswered after this long is abandoned and retried (default 30 s). */
+  timeoutMs?: number;
+  /**
+   * Set for a node that prunes old blocks. Such a node answers UNKNOWN_BLOCK both for a height the chain skipped
+   * and for one it no longer holds, so a skip is accepted only when a later block's `prev_height` proves it.
+   * An archive node holds every block, so its UNKNOWN_BLOCK already means a skip.
+   */
+  proveSkips?: boolean;
 }
 
-export function rpcSource(o: RpcSourceOptions): BlockSource<RpcScan> {
+/** An RPC block source, plus the earliest height the node still holds. */
+export interface RpcBlockSource extends BlockSource<RpcScan> {
+  earliestHeight(): Promise<number>;
+}
+
+export function rpcSource(o: RpcSourceOptions): RpcBlockSource {
   const doFetch = o.fetch ?? globalThis.fetch.bind(globalThis);
   const retries = o.retries ?? 6;
   const backoff = o.backoffMs ?? 500;
+  const timeoutMs = o.timeoutMs ?? 30_000;
 
   let endpoint: URL;
   try {
@@ -78,7 +110,12 @@ export function rpcSource(o: RpcSourceOptions): BlockSource<RpcScan> {
     for (let attempt = 0; attempt <= retries; attempt++) {
       let res: Response | undefined;
       try {
-        res = await doFetch(o.url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
+        res = await doFetch(o.url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
         if (res.ok) {
           const body = (await res.json()) as { result?: T; error?: RpcErrorBody };
           if (body.error === undefined) return body.result as T;
@@ -103,11 +140,32 @@ export function rpcSource(o: RpcSourceOptions): BlockSource<RpcScan> {
   }
 
   // The indexer runs on testnet only (CLAUDE.md rule 3); an endpoint on another network fails before any read.
+  // A failed check is forgotten, so a source benched for a passing outage can be used again; a wrong network is not.
   let verified: Promise<void> | undefined;
   const ready = () =>
-    (verified ??= rpc<{ chain_id: string }>("status", []).then((s) => {
-      if (s.chain_id !== "testnet") throw new Error(`the RPC endpoint is on ${s.chain_id}; the indexer runs on testnet only`);
-    }));
+    (verified ??= rpc<{ chain_id: string }>("status", []).then(
+      (s) => {
+        if (s.chain_id !== "testnet") throw new WrongNetworkError(s.chain_id);
+      },
+      (e: unknown) => {
+        verified = undefined;
+        throw e;
+      },
+    ));
+
+  /** Whether `height` was skipped by the chain, judged from the next block this node holds. */
+  async function provenSkipped(height: number): Promise<boolean> {
+    for (let next = height + 1; next <= height + SKIP_PROOF_SPAN; next++) {
+      try {
+        const { header } = await rpc<{ header: { prev_height?: number } }>("block", { block_id: next });
+        return typeof header.prev_height === "number" && header.prev_height < height;
+      } catch (e) {
+        if (e instanceof RpcError && e.cause_name === "UNKNOWN_BLOCK") continue;
+        throw e;
+      }
+    }
+    return false;
+  }
 
   const txCache = new Map<string, Promise<TxStatus>>();
   const txStatus = (hash: string, sender: string): Promise<TxStatus> => {
@@ -151,8 +209,9 @@ export function rpcSource(o: RpcSourceOptions): BlockSource<RpcScan> {
         const touched = new Set(changes.filter((c) => c.type === "account_touched" || c.type === "data_touched").map((c) => c.account_id));
         return { height, touched: [...touched] };
       } catch (e) {
-        if (e instanceof RpcError && e.cause_name === "UNKNOWN_BLOCK") return null;
-        throw e;
+        if (!(e instanceof RpcError && e.cause_name === "UNKNOWN_BLOCK")) throw e;
+        if (!o.proveSkips || (await provenSkipped(height))) return null;
+        throw new BlockNotServedError(height);
       }
     },
 
@@ -171,6 +230,12 @@ export function rpcSource(o: RpcSourceOptions): BlockSource<RpcScan> {
       const outcomes: ReceiptOutcome[] = [];
       for (const id of receiptIds) outcomes.push(await outcomeOf(id, scan.height, header.hash));
       return { block: { header: { height: header.height, hash: header.hash, timestamp_nanosec: header.timestamp_nanosec } }, shards: [{ receipt_execution_outcomes: outcomes }] };
+    },
+
+    async earliestHeight() {
+      await ready();
+      const s = await rpc<{ sync_info: { earliest_block_height: number } }>("status", []);
+      return s.sync_info.earliest_block_height;
     },
 
     async finalHeight() {
