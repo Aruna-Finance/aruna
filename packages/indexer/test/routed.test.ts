@@ -2,11 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runIndexer } from "../src/indexer.js";
-import type { BlockSource } from "../src/ingest/neardata.js";
+import type { BlockSource } from "../src/ingest/blocks.js";
 import { routedSource, type Lane } from "../src/ingest/routed.js";
 import { rpcSource, type RpcScan } from "../src/ingest/rpc.js";
-import { openStore } from "../src/store.js";
-import { FIRST, LAST, SEEDS } from "./helpers.js";
+import { FIRST, LAST, SEEDS, testStore } from "./helpers.js";
 
 type Fake = BlockSource<RpcScan> & { calls: number[]; earliestHeight(): Promise<number>; inFlight: number; maxInFlight: number };
 
@@ -134,12 +133,12 @@ describe("routing and the ingest loop", () => {
   });
 
   it("commits heights in ascending order when a slow archive and a fast live node serve one window", async () => {
-    const store = openStore(":memory:");
+    const store = await testStore();
     const committed: number[] = [];
-    const commit = store.commitBlock.bind(store);
-    store.commitBlock = (h, records) => {
-      committed.push(h);
-      commit(h, records);
+    const commit = store.commitBlocks.bind(store);
+    store.commitBlocks = async (blocks) => {
+      committed.push(...blocks.map((b) => b.height));
+      await commit(blocks);
     };
     const src = routedSource({
       archive: laneOf(fake({ delayMs: 20 }), "QuickNode"),
@@ -162,9 +161,9 @@ describe("routing and the ingest loop", () => {
     }) as typeof globalThis.fetch;
     const endpoint = (u: string) => rpcSource({ url: u, fetch: replayFetch, backoffMs: 1 });
     const run = async (source: BlockSource<unknown>) => {
-      const store = openStore(":memory:");
+      const store = await testStore();
       await runIndexer({ store, source, seeds: SEEDS, startBlock: FIRST, stopAt: LAST, concurrency: 8 });
-      return store.export();
+      return await store.export();
     };
 
     const live = endpoint("https://live.example/rpc");

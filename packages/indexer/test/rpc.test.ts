@@ -5,8 +5,7 @@ import { runIndexer } from "../src/indexer.js";
 import { BlockNotServedError, rpcSource } from "../src/ingest/rpc.js";
 import { extractRecords, type RawRecord } from "../src/ingest/parse.js";
 import { WatchSet } from "../src/ingest/watch.js";
-import { openStore } from "../src/store.js";
-import { FIRST, LAST, memorySource, recordedBlocks, SEEDS } from "./helpers.js";
+import { FIRST, LAST, memorySource, recordedBlocks, SEEDS, testStore } from "./helpers.js";
 
 const DEMO2 = "demo2.factory.arunafi.testnet";
 const URL_ = "https://testnet.quiknode.example/abcdef1234567890token/";
@@ -61,14 +60,14 @@ describe("rpc source reads the same records as the NEAR Data blocks", () => {
 
   it("indexes the recorded window to a store identical to the NEAR Data run, with no event lost", async () => {
     const run = async (source: Parameters<typeof runIndexer>[0]["source"]) => {
-      const store = openStore(":memory:");
+      const store = await testStore();
       await runIndexer({ store, source, seeds: SEEDS, startBlock: FIRST, stopAt: LAST, concurrency: 8 });
       return store;
     };
     const viaRpc = await run(rpcSource({ url: URL_, fetch: replay().fetch, backoffMs: 1 }));
     const viaNeardata = await run(memorySource(recordedBlocks()));
-    expect(viaRpc.export()).toBe(viaNeardata.export());
-    const exported = JSON.parse(viaRpc.export()) as { exposure: unknown[]; activity: Array<{ kind: string }>; vaults: Array<{ operator: string }> };
+    expect(await viaRpc.export()).toBe(await viaNeardata.export());
+    const exported = JSON.parse(await viaRpc.export()) as { exposure: unknown[]; activity: Array<{ kind: string }>; vaults: Array<{ operator: string }> };
     expect(exported.exposure).toHaveLength(1);
     expect(exported.activity.map((a) => a.kind).sort()).toEqual(["auto_disabled", "class_refreshed", "exposure", "refused"]);
     expect(exported.vaults[0].operator).toBe("demo-company.arunafi.testnet");
@@ -131,7 +130,7 @@ describe("rpc source cost and safety", () => {
     expect(n).toBe(1);
   });
 
-  it("explains a value that is only a token, without printing it", () => {
+  it("explains a value that is only a token, without printing it", async () => {
     const token = "abcdef1234567890tokenonly";
     let message = "";
     try {

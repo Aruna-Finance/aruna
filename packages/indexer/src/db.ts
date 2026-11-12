@@ -72,6 +72,15 @@ export function toPositional(sql: string, params: Params = []): { text: string; 
   return { text, values: used ? values : Array.isArray(params) ? [...params] : [] };
 }
 
+/** The host of a database URI, for a log line: never the user or the password. */
+export function databaseHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "the configured database";
+  }
+}
+
 /** Replaces the URI and the parts of it that are secret in `text`. */
 export function redactor(url: string): (text: string) => string {
   const secrets = new Set<string>([url]);

@@ -6,7 +6,7 @@
 // coverage's `paid_out` on `claim_paid`; the registry settles BOTH reports of a dispute on `report_ruled`
 // and zeroes the loser's bond; a report's freeze is the registry's `set_frozen` when it accepts one.
 
-import type { DatabaseSync } from "node:sqlite";
+import type { Queryable } from "./db.js";
 import { tokenKey } from "./derive.js";
 import type { RawRecord } from "./ingest/parse.js";
 
@@ -17,7 +17,7 @@ const int = (x: unknown): number | null => (typeof x === "number" && Number.isIn
 const big = (x: unknown): bigint => (typeof x === "string" && /^\d+$/.test(x) ? BigInt(x) : 0n);
 const json = (x: unknown): string => JSON.stringify(x ?? null);
 
-export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRecord): void {
+export async function applyCoverageAndDrift(db: Queryable, seq: number, rec: RawRecord): Promise<void> {
   const d = rec.data;
   const chain = { $seq: seq, $block: rec.block, $ts: rec.timestamp_ms, $tx: rec.tx_hash, $receipt: rec.receipt_id };
   const registry = rec.contract;
@@ -27,12 +27,10 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
     case "coverage_purchased": {
       const c = obj(d.coverage);
       if (!c || int(c.id) === null) return;
-      db.prepare(
-        `INSERT OR IGNORE INTO coverages (seq, pool, id, owner, vault, agent, target, token, limit_amount, payout_ratio_bps, premium_paid, class, code_hash, upgrade_authority,
+      await db.run(`INSERT INTO coverages (seq, pool, id, owner, vault, agent, target, token, limit_amount, payout_ratio_bps, premium_paid, class, code_hash, upgrade_authority,
            start_block, waiting_period_ends, end_block, policy_version, daily_cap_priced, block, timestamp_ms, tx_hash, receipt_id)
          VALUES ($seq, $pool, $id, $owner, $vault, $agent, $target, $token, $limit, $ratio, $premium, $class, $code_hash, $authority,
-           $start, $waiting, $end, $policy_version, $cap, $block, $ts, $tx, $receipt)`,
-      ).run({
+           $start, $waiting, $end, $policy_version, $cap, $block, $ts, $tx, $receipt) ON CONFLICT DO NOTHING`, {
         ...chain,
         $pool: rec.contract,
         $id: int(c.id),
@@ -60,12 +58,10 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
       const coverage = int(d.coverage);
       if (coverage === null) return;
       const paid = rec.name === "claim_paid";
-      const cov = db.prepare("SELECT vault, target, owner FROM coverages WHERE pool = ? AND id = ?").get(rec.contract, coverage) as Row | undefined;
-      db.prepare(
-        `INSERT INTO claims (seq, pool, coverage, report, outcome, reason, payout, exposure_in_window, exposure_before_change, exposure_through_last_paid_block,
+      const cov = (await db.query("SELECT vault, target, owner FROM coverages WHERE pool = ? AND id = ?", [rec.contract, coverage]))[0] as Row | undefined;
+      await db.run(`INSERT INTO claims (seq, pool, coverage, report, outcome, reason, payout, exposure_in_window, exposure_before_change, exposure_through_last_paid_block,
            payout_ratio_bps, limit_amount, paid_before, to_account, token, vault, target, owner, block, timestamp_ms, tx_hash, receipt_id)
-         VALUES ($seq, $pool, $coverage, $report, $outcome, $reason, $payout, $in_window, $before_change, $through, $ratio, $limit, $paid_before, $to, $token, $vault, $target, $owner, $block, $ts, $tx, $receipt)`,
-      ).run({
+         VALUES ($seq, $pool, $coverage, $report, $outcome, $reason, $payout, $in_window, $before_change, $through, $ratio, $limit, $paid_before, $to, $token, $vault, $target, $owner, $block, $ts, $tx, $receipt)`, {
         ...chain,
         $pool: rec.contract,
         $coverage: coverage,
@@ -86,14 +82,14 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
         $owner: str(cov?.owner),
       });
       if (paid) {
-        const cur = db.prepare("SELECT paid_out FROM coverages WHERE pool = ? AND id = ?").get(rec.contract, coverage) as Row | undefined;
-        if (cur) db.prepare("UPDATE coverages SET paid_out = ?, claims_paid = claims_paid + 1 WHERE pool = ? AND id = ?").run((big(cur.paid_out) + big(d.payout)).toString(), rec.contract, coverage);
-      } else db.prepare("UPDATE coverages SET claims_rejected = claims_rejected + 1 WHERE pool = ? AND id = ?").run(rec.contract, coverage);
+        const cur = (await db.query("SELECT paid_out FROM coverages WHERE pool = ? AND id = ?", [rec.contract, coverage]))[0] as Row | undefined;
+        if (cur) await db.run("UPDATE coverages SET paid_out = ?, claims_paid = claims_paid + 1 WHERE pool = ? AND id = ?", [(big(cur.paid_out) + big(d.payout)).toString(), rec.contract, coverage]);
+      } else await db.run("UPDATE coverages SET claims_rejected = claims_rejected + 1 WHERE pool = ? AND id = ?", [rec.contract, coverage]);
       return;
     }
     case "coverage_released": {
       const id = int(d.coverage);
-      if (id !== null) db.prepare("UPDATE coverages SET released = 1 WHERE pool = ? AND id = ?").run(rec.contract, id);
+      if (id !== null) await db.run("UPDATE coverages SET released = 1 WHERE pool = ? AND id = ?", [rec.contract, id]);
       return;
     }
 
@@ -103,11 +99,9 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
       const id = int(d.id);
       if (!r || id === null) return;
       const state = str(d.state) ?? "pending";
-      db.prepare(
-        `INSERT OR IGNORE INTO reports (seq, registry, id, target, attestor, observed_at_block, changed_at_block, before_ref, after_ref, before_resolved_hash, after_resolved_hash,
+      await db.run(`INSERT INTO reports (seq, registry, id, target, attestor, observed_at_block, changed_at_block, before_ref, after_ref, before_resolved_hash, after_resolved_hash,
            channel, nonce, expires_at, reported_at_block, state, block, timestamp_ms, tx_hash, receipt_id)
-         VALUES ($seq, $registry, $id, $target, $attestor, $observed, $changed, $before_ref, $after_ref, $before_hash, $after_hash, $channel, $nonce, $expires, $reported, $state, $block, $ts, $tx, $receipt)`,
-      ).run({
+         VALUES ($seq, $registry, $id, $target, $attestor, $observed, $changed, $before_ref, $after_ref, $before_hash, $after_hash, $channel, $nonce, $expires, $reported, $state, $block, $ts, $tx, $receipt) ON CONFLICT DO NOTHING`, {
         ...chain,
         $registry: registry,
         $id: id,
@@ -128,36 +122,36 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
       // The registry emits `report_disputed` BEFORE the `drift_reported` of the report that disputes, so when
       // that event was applied this row did not exist yet: link it back to the report it disputes now.
       if (state === "disputed") {
-        const prev = db.prepare("SELECT id FROM reports WHERE registry = ? AND disputed_by = ? ORDER BY id LIMIT 1").get(registry, id) as Row | undefined;
-        if (prev) db.prepare("UPDATE reports SET disputed_by = ? WHERE registry = ? AND id = ?").run(Number(prev.id), registry, id);
+        const prev = (await db.query("SELECT id FROM reports WHERE registry = ? AND disputed_by = ? ORDER BY id LIMIT 1", [registry, id]))[0] as Row | undefined;
+        if (prev) await db.run("UPDATE reports SET disputed_by = ? WHERE registry = ? AND id = ?", [Number(prev.id), registry, id]);
       }
       // The registry freezes the target the moment it accepts a report.
-      freeze(db, chain, registry, str(r.target), "frozen", id, null, null, true);
-      db.prepare("UPDATE attestors SET reports_filed = reports_filed + 1 WHERE registry = ? AND attestor = ?").run(registry, str(r.attestor));
+      await freeze(db, chain, registry, str(r.target), "frozen", id, null, null, true);
+      await db.run("UPDATE attestors SET reports_filed = reports_filed + 1 WHERE registry = ? AND attestor = ?", [registry, str(r.attestor)]);
       return;
     }
     case "report_disputed": {
       const prev = int(d.report);
       const by = int(d.by);
       if (prev === null || by === null) return;
-      db.prepare("UPDATE reports SET state = 'disputed', disputed_by = ? WHERE registry = ? AND id = ?").run(by, registry, prev);
-      db.prepare("UPDATE reports SET state = 'disputed', disputed_by = ? WHERE registry = ? AND id = ?").run(prev, registry, by);
+      await db.run("UPDATE reports SET state = 'disputed', disputed_by = ? WHERE registry = ? AND id = ?", [by, registry, prev]);
+      await db.run("UPDATE reports SET state = 'disputed', disputed_by = ? WHERE registry = ? AND id = ?", [prev, registry, by]);
       return;
     }
     case "report_ruled": {
       const winner = int(d.winner);
       const loser = int(d.loser);
-      if (winner !== null) db.prepare("UPDATE reports SET state = 'verified' WHERE registry = ? AND id = ?").run(registry, winner);
-      if (loser !== null) db.prepare("UPDATE reports SET state = 'rejected' WHERE registry = ? AND id = ?").run(registry, loser);
-      const a = db.prepare("SELECT slashed FROM attestors WHERE registry = ? AND attestor = ?").get(registry, str(d.attestor)) as Row | undefined;
-      if (a) db.prepare("UPDATE attestors SET bond = '0', slashed = ? WHERE registry = ? AND attestor = ?").run((big(a.slashed) + big(d.slashed)).toString(), registry, str(d.attestor));
+      if (winner !== null) await db.run("UPDATE reports SET state = 'verified' WHERE registry = ? AND id = ?", [registry, winner]);
+      if (loser !== null) await db.run("UPDATE reports SET state = 'rejected' WHERE registry = ? AND id = ?", [registry, loser]);
+      const a = (await db.query("SELECT slashed FROM attestors WHERE registry = ? AND attestor = ?", [registry, str(d.attestor)]))[0] as Row | undefined;
+      if (a) await db.run("UPDATE attestors SET bond = '0', slashed = ? WHERE registry = ? AND attestor = ?", [(big(a.slashed) + big(d.slashed)).toString(), registry, str(d.attestor)]);
       return;
     }
     case "freeze_pushed":
-      freeze(db, chain, registry, str(d.target), "pushed", null, int(d.from), int(d.to), null);
+      await freeze(db, chain, registry, str(d.target), "pushed", null, int(d.from), int(d.to), null);
       return;
     case "freeze_lifted":
-      freeze(db, chain, registry, str(d.target), "lifted", null, null, null, false);
+      await freeze(db, chain, registry, str(d.target), "lifted", null, null, null, false);
       return;
 
     // ---- registry: attestors ----
@@ -165,27 +159,25 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
       const who = str(d.attestor);
       if (!who) return;
       // The registry sets the first heartbeat to the registration block.
-      db.prepare(
-        `INSERT OR IGNORE INTO attestors (seq, registry, attestor, signing_key, bond, registered_block, last_heartbeat_block, block, timestamp_ms, tx_hash, receipt_id)
-         VALUES ($seq, $registry, $attestor, $key, $bond, $block, $block, $block, $ts, $tx, $receipt)`,
-      ).run({ ...chain, $registry: registry, $attestor: who, $key: str(d.signing_key), $bond: str(d.bond) ?? "0" });
+      await db.run(`INSERT INTO attestors (seq, registry, attestor, signing_key, bond, registered_block, last_heartbeat_block, block, timestamp_ms, tx_hash, receipt_id)
+         VALUES ($seq, $registry, $attestor, $key, $bond, $block, $block, $block, $ts, $tx, $receipt) ON CONFLICT DO NOTHING`, { ...chain, $registry: registry, $attestor: who, $key: str(d.signing_key), $bond: str(d.bond) ?? "0" });
       return;
     }
     case "attestor_key_rotated":
-      db.prepare("UPDATE attestors SET signing_key = ? WHERE registry = ? AND attestor = ?").run(str(d.after), registry, str(d.attestor));
+      await db.run("UPDATE attestors SET signing_key = ? WHERE registry = ? AND attestor = ?", [str(d.after), registry, str(d.attestor)]);
       return;
     case "heartbeat": {
       const who = str(d.attestor);
       if (!who) return;
       const at = int(d.block) ?? rec.block;
-      db.prepare("INSERT INTO heartbeats (seq, registry, attestor, heartbeat_block, block, timestamp_ms, tx_hash, receipt_id) VALUES ($seq, $registry, $attestor, $at, $block, $ts, $tx, $receipt)").run({ ...chain, $registry: registry, $attestor: who, $at: at });
-      db.prepare("UPDATE attestors SET last_heartbeat_block = ? WHERE registry = ? AND attestor = ?").run(at, registry, who);
+      await db.run("INSERT INTO heartbeats (seq, registry, attestor, heartbeat_block, block, timestamp_ms, tx_hash, receipt_id) VALUES ($seq, $registry, $attestor, $at, $block, $ts, $tx, $receipt)", { ...chain, $registry: registry, $attestor: who, $at: at });
+      await db.run("UPDATE attestors SET last_heartbeat_block = ? WHERE registry = ? AND attestor = ?", [at, registry, who]);
       return;
     }
     case "attestor_assigned": {
       const target = str(d.target);
       const who = str(d.attestor);
-      if (target && who) db.prepare("INSERT OR REPLACE INTO assignments (registry, target, attestor, seq) VALUES (?, ?, ?, ?)").run(registry, target, who, seq);
+      if (target && who) await db.run("INSERT INTO assignments (registry, target, attestor, seq) VALUES (?, ?, ?, ?) ON CONFLICT (registry, target) DO UPDATE SET attestor = EXCLUDED.attestor, seq = EXCLUDED.seq", [registry, target, who, seq]);
       return;
     }
 
@@ -194,11 +186,9 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
       const target = str(d.target);
       const r = obj(d.record);
       if (!target || !r) return;
-      const prev = db.prepare("SELECT class FROM classes WHERE registry = ? AND target = ? ORDER BY seq DESC LIMIT 1").get(registry, target) as Row | undefined;
-      db.prepare(
-        `INSERT INTO classes (seq, registry, target, class, previous_class, evidence_hash, classified_at_block, classifier, frozen, resolved_code_hash, upgrade_authority, block, timestamp_ms, tx_hash, receipt_id)
-         VALUES ($seq, $registry, $target, $class, $previous, $evidence, $at, $classifier, $frozen, $resolved, $authority, $block, $ts, $tx, $receipt)`,
-      ).run({
+      const prev = (await db.query("SELECT class FROM classes WHERE registry = ? AND target = ? ORDER BY seq DESC LIMIT 1", [registry, target]))[0] as Row | undefined;
+      await db.run(`INSERT INTO classes (seq, registry, target, class, previous_class, evidence_hash, classified_at_block, classifier, frozen, resolved_code_hash, upgrade_authority, block, timestamp_ms, tx_hash, receipt_id)
+         VALUES ($seq, $registry, $target, $class, $previous, $evidence, $at, $classifier, $frozen, $resolved, $authority, $block, $ts, $tx, $receipt)`, {
         ...chain,
         $registry: registry,
         $target: target,
@@ -217,8 +207,8 @@ export function applyCoverageAndDrift(db: DatabaseSync, seq: number, rec: RawRec
 }
 
 /** One freeze row. `frozen` null means "unchanged": a push is only possible on a frozen target. */
-function freeze(
-  db: DatabaseSync,
+async function freeze(
+  db: Queryable,
   chain: { $seq: number; $block: number; $ts: number; $tx: string; $receipt: string },
   registry: string,
   target: string | null,
@@ -227,12 +217,10 @@ function freeze(
   from: number | null,
   to: number | null,
   frozen: boolean | null,
-): void {
+): Promise<void> {
   if (!target) return;
-  const last = db.prepare("SELECT frozen_after FROM freezes WHERE registry = ? AND target = ? ORDER BY seq DESC LIMIT 1").get(registry, target) as Row | undefined;
+  const last = (await db.query("SELECT frozen_after FROM freezes WHERE registry = ? AND target = ? ORDER BY seq DESC LIMIT 1", [registry, target]))[0] as Row | undefined;
   const after = frozen ?? (last ? Number(last.frozen_after) === 1 : true);
-  db.prepare(
-    `INSERT INTO freezes (seq, registry, target, kind, report_id, from_index, to_index, frozen_after, block, timestamp_ms, tx_hash, receipt_id)
-     VALUES ($seq, $registry, $target, $kind, $report, $from, $to, $after, $block, $ts, $tx, $receipt)`,
-  ).run({ ...chain, $registry: registry, $target: target, $kind: kind, $report: reportId, $from: from, $to: to, $after: after ? 1 : 0 });
+  await db.run(`INSERT INTO freezes (seq, registry, target, kind, report_id, from_index, to_index, frozen_after, block, timestamp_ms, tx_hash, receipt_id)
+     VALUES ($seq, $registry, $target, $kind, $report, $from, $to, $after, $block, $ts, $tx, $receipt)`, { ...chain, $registry: registry, $target: target, $kind: kind, $report: reportId, $from: from, $to: to, $after: after ? 1 : 0 });
 }

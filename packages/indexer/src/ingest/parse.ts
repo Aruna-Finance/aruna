@@ -2,7 +2,7 @@
 // successful receipts, the create_vault arguments of watched factories, and anything unrecognised kept
 // as `unparsed` so it is reported rather than dropped (R4).
 
-import type { NeardataBlock, ReceiptOutcome } from "./neardata.js";
+import type { NeardataBlock, ReceiptOutcome } from "./blocks.js";
 import type { WatchSet } from "./watch.js";
 
 export interface RawRecord {

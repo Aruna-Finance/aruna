@@ -1,6 +1,6 @@
 // Maps the read contract's routes onto the store (plan U3, KTD4). GET only, open CORS, no auth.
 
-import { ACTIVITY_KINDS, CLAIM_OUTCOMES, COVERAGE_STATUSES, REPORT_STATES, ROUTES, type ActivityKind } from "./api.js";
+import { ACTIVITY_KINDS, CLAIM_OUTCOMES, COVERAGE_STATUSES, REPORT_STATES, ROUTES, type ActivityKind, type Health } from "./api.js";
 import type { Store } from "./store.js";
 
 export interface Reply {
@@ -49,7 +49,31 @@ function oneOf<T extends string>(params: URLSearchParams, key: string, allowed: 
   return v as T | undefined;
 }
 
-export function handle(store: Store, method: string, rawUrl: string): Reply {
+/** How long /health waits for the database before it answers unhealthy (plan KTD7); a hung connection must not hang the healthcheck. */
+export const HEALTH_TIMEOUT_MS = 2_000;
+
+/** What /health says when the database is not open yet or does not answer: unhealthy, with nothing the database would have supplied. */
+const UNAVAILABLE: Health = { last_indexed_block: 0, head_block: null, lag_blocks: null, head_seen_ms_ago: null, unparsed_events: 0, healthy: false };
+
+async function healthOf(store: Store | null): Promise<Health> {
+  if (!store) return UNAVAILABLE;
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      store.health(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("the database did not answer in time")), HEALTH_TIMEOUT_MS);
+      }),
+    ]);
+  } catch (e) {
+    console.error(`health: ${e instanceof Error ? e.message : String(e)}`);
+    return UNAVAILABLE;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function handle(store: Store | null, method: string, rawUrl: string): Promise<Reply> {
   if (method === "OPTIONS") return { status: 204, headers: CORS, body: "" };
   if (method !== "GET") return json(405, { error: "the indexer API is read-only: GET only" });
 
@@ -57,26 +81,27 @@ export function handle(store: Store, method: string, rawUrl: string): Reply {
   const p = url.searchParams;
   try {
     const page = { after: int(p, "after"), limit: int(p, "limit") };
-    if (url.pathname === ROUTES.health) return json(200, store.health());
-    if (url.pathname === ROUTES.vaults) return json(200, store.vaults({ ...page, owner: text(p, "owner"), operator: text(p, "operator"), code_hash: text(p, "code_hash") }));
+    if (url.pathname === ROUTES.health) return json(200, await healthOf(store));
+    if (!store) return json(503, { error: "the database is not ready yet" });
+    if (url.pathname === ROUTES.vaults) return json(200, await store.vaults({ ...page, owner: text(p, "owner"), operator: text(p, "operator"), code_hash: text(p, "code_hash") }));
     if (url.pathname === ROUTES.events)
       return json(
         200,
-        store.events({ ...page, contract: text(p, "contract"), event: text(p, "event"), vault: text(p, "vault"), target: text(p, "target"), attestor: text(p, "attestor"), coverage: int(p, "coverage") }),
+        await store.events({ ...page, contract: text(p, "contract"), event: text(p, "event"), vault: text(p, "vault"), target: text(p, "target"), attestor: text(p, "attestor"), coverage: int(p, "coverage") }),
       );
     if (url.pathname === ROUTES.coverages)
-      return json(200, store.coverages({ ...page, pool: text(p, "pool"), vault: text(p, "vault"), owner: text(p, "owner"), agent: text(p, "agent"), target: text(p, "target"), token: text(p, "token"), status: oneOf(p, "status", COVERAGE_STATUSES) }));
-    if (url.pathname === ROUTES.claims) return json(200, store.claims({ ...page, pool: text(p, "pool"), vault: text(p, "vault"), coverage: int(p, "coverage"), outcome: oneOf(p, "outcome", CLAIM_OUTCOMES) }));
-    if (url.pathname === ROUTES.reports) return json(200, store.reports({ ...page, registry: text(p, "registry"), target: text(p, "target"), attestor: text(p, "attestor"), state: oneOf(p, "state", REPORT_STATES) }));
-    if (url.pathname === ROUTES.freezes) return json(200, store.freezes({ ...page, registry: text(p, "registry"), target: text(p, "target") }));
-    if (url.pathname === ROUTES.heartbeats) return json(200, store.heartbeats({ ...page, registry: text(p, "registry"), attestor: text(p, "attestor"), target: text(p, "target") }));
-    if (url.pathname === ROUTES.attestors) return json(200, store.attestors({ ...page, registry: text(p, "registry"), attestor: text(p, "attestor") }));
-    if (url.pathname === ROUTES.classes) return json(200, store.classes({ ...page, registry: text(p, "registry"), target: text(p, "target") }));
+      return json(200, await store.coverages({ ...page, pool: text(p, "pool"), vault: text(p, "vault"), owner: text(p, "owner"), agent: text(p, "agent"), target: text(p, "target"), token: text(p, "token"), status: oneOf(p, "status", COVERAGE_STATUSES) }));
+    if (url.pathname === ROUTES.claims) return json(200, await store.claims({ ...page, pool: text(p, "pool"), vault: text(p, "vault"), coverage: int(p, "coverage"), outcome: oneOf(p, "outcome", CLAIM_OUTCOMES) }));
+    if (url.pathname === ROUTES.reports) return json(200, await store.reports({ ...page, registry: text(p, "registry"), target: text(p, "target"), attestor: text(p, "attestor"), state: oneOf(p, "state", REPORT_STATES) }));
+    if (url.pathname === ROUTES.freezes) return json(200, await store.freezes({ ...page, registry: text(p, "registry"), target: text(p, "target") }));
+    if (url.pathname === ROUTES.heartbeats) return json(200, await store.heartbeats({ ...page, registry: text(p, "registry"), attestor: text(p, "attestor"), target: text(p, "target") }));
+    if (url.pathname === ROUTES.attestors) return json(200, await store.attestors({ ...page, registry: text(p, "registry"), attestor: text(p, "attestor") }));
+    if (url.pathname === ROUTES.classes) return json(200, await store.classes({ ...page, registry: text(p, "registry"), target: text(p, "target") }));
     const m = VAULT_SUBROUTE.exec(url.pathname);
     if (m) {
       const vault = decodeURIComponent(m[1]);
-      if (m[2] === "activity") return json(200, store.activity(vault, { ...page, agent: text(p, "agent"), kind: kind(p) }));
-      return json(200, store.exposure(vault, { ...page, agent: text(p, "agent"), target: text(p, "target"), token: text(p, "token") }));
+      if (m[2] === "activity") return json(200, await store.activity(vault, { ...page, agent: text(p, "agent"), kind: kind(p) }));
+      return json(200, await store.exposure(vault, { ...page, agent: text(p, "agent"), target: text(p, "target"), token: text(p, "token") }));
     }
     return json(404, { error: `no route ${url.pathname}` });
   } catch (e) {

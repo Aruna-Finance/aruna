@@ -7,7 +7,7 @@
 // The router only chooses which endpoint answers a call; every endpoint is an rpcSource, so a block decodes the
 // same whichever one served it (R10). Commit order stays with runIndexer.
 
-import type { BlockSource, NeardataBlock } from "./neardata.js";
+import type { BlockSource, NeardataBlock } from "./blocks.js";
 
 export interface Lane<S> {
   source: BlockSource<S>;
