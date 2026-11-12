@@ -31,6 +31,11 @@ pnpm -r build
 pnpm -r test
 ```
 
+On Windows, `pnpm -r test` stops at two tests that depend on the platform: `sdk` `abi-drift` fails if git
+checked the files out with CRLF line endings (`git config core.autocrlf false`, then check out again, and it
+passes), and `indexer` `cli.test.ts` "read-only directory" fails because Windows ignores the directory
+permission it relies on. `pnpm -r --no-bail test` runs the rest.
+
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
 skipped), `cli` (8), `attestor` (13), `sdk` (74), `mcp` (22), `indexer` (95, 3 skipped) and `apps/web` (244).
 
@@ -96,11 +101,11 @@ With the static host from step 5 still running, open `http://localhost:4173/cons
 of agents. Click an agent. Expected: a page listing what its key cannot do, its limits and usage, and a
 `curl` for `view_access_key_list` whose output you can compare by hand.
 
-Which console screens read the chain: Lookup and the public agent page (this step), Create a vault and
-Agents (step 5d), and Playground, which reads the demo vault live and gives the commands for the agents
-in step 11 rather than running them. Every other screen — Overview, Targets, Coverage, Claims,
-Migration, Pool, Simulation, Attestor and the Guided demo — still runs on sample data in v0. Treat the
-numbers on those screens as illustrations, not results; the results are in steps 9 to 13.
+Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
+Agents and agent detail (step 5d), the Playground (step 5e) and the Overview (step 5f). Every other
+screen — Targets, Coverage, Claims, Migration, Pool, Simulation, Attestor and the Guided demo — still
+runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
+results are in steps 9 to 13.
 
 ### 5c. Connect a testnet wallet
 
@@ -141,10 +146,73 @@ node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"swa
 Expected: `"class":"local_upgradeable"`, `"frozen":false`, `"classifier":"arunafi.testnet"`. So a vault
 created here can admit the swap target, at most `local_upgradeable`.
 
-What is not proven in v0: no agent of a console-created vault has spent into the swap yet; the spend
-path is shown on `demo2` and `demo4` in steps 11 to 13. Pause, resume and revoke were sent on testnet
-from the console's modules; policy changes, deposit, withdraw and operator and ceiling changes from
-these screens pass unit tests only.
+Sent from these screens on testnet: add agent, pause, resume, revoke, add a target to the ceiling and
+tighten a policy (Daily cap 0.4 to 0.2 NEAR on `arunaTest#1`, which then reads `policyVersion` 2). Deposit,
+withdraw, loosen, and changing the operator or the ceiling's limits were sent from a script that uses the same
+SDK calls, on a throwaway vault, not from these screens. Every scenario, with its transaction hashes and
+whether it was seen on a screen, is in [`docs/CONSOLE-TESTING.md`](docs/CONSOLE-TESTING.md).
+
+### 5e. Run an agent from the console
+
+You need a vault from step 5d whose ceiling holds `swap.arunafi.testnet`, an agent whose allowed targets
+include it (the wizard's Targets step), and about 0.5 NEAR in the vault. The agent's key must be in this
+browser, which it is if you created the agent here. Open
+`http://localhost:4173/console/playground/?vault=<your vault>`.
+
+1. Choose the agent and **Honest agent**. Expected: five lines marked **Ready** under "Before it starts".
+   Click **Run the scenario**. Expected: one line, `spend(swap.arunafi.testnet, 0.1 NEAR)`, marked **Settled**
+   with a transaction link, and the agent still Active.
+2. Choose **Injected agent** and click **Run the scenario**. Expected, in this order:
+   `TARGET_NOT_ALLOWED`, `MAX_PER_TX_EXCEEDED`, `SLIPPAGE_TOO_HIGH`, `TARGET_NOT_ALLOWED`, `TARGET_NOT_ALLOWED`, each as
+   **Refused** with a transaction link, then "The vault paused the agent", and the sixth attempt marked
+   **Not sent**. These are returned outcomes recorded on chain, not errors.
+3. Check it on chain, without trusting the page:
+
+```bash
+node fixtures/tools.mjs view <your vault> get_agents '{}'
+```
+
+Expected: the agent has `"status":"Paused"` and `"auto_disabled":true`. Only the owner can resume it
+(`Agents`, then **Resume**). A check that fails shows its reason and a link: for example, an agent whose own
+allowed targets lack the swap would be refused `TARGET_NOT_ALLOWED` on every swap, so the page says so before it sends.
+
+Seen on a screen on 12 November 2026 on `l2ocbae.factory2.arunafi.testnet`: both scenarios, with these
+results. The same flow, driven by a script with the same modules, is on `f1pbr5p.factory2.arunafi.testnet`:
+create `Msk9MYW7RHHDpr8bNejGG2uhdvg4e51ErY54PuiHsXB`, add agent `3D4rqmUowjZsfrmktiwEayPvnZbBuhCoUueU1CuJUYEK`, honest swap `9ogGGWj3T1aNBtfkaDvdbkN4utkPtYxQiDLucP9nRif2`, tighten `9uRdLXuRYU3dfKDA2KRxGVyphPCs6SUyFw8SN1yDt1K2`, and the five
+refusals `AYrRFG5kr4nUk3Ptpvvb1BpAgimB1adb6c9B2J8vq5Nh`, `EsvLAuGQ7jh4fKtDJHztQxADZ5GcB3DUp7ydsNNjT7Rm`, `fJEGUuexAmCQnzkBMjFCJ2jybfZ9ncbGwt89eKBovLb`, `4z31Cg3oZKM9qSpbARKJ3R3QWHGYfLyaAeHsfHsW7Cei`, `7t8n3b1uhUc4kybcURHeGUf2BKDYGD31eF74iLEUjTxg`. Check it with `node fixtures/tools.mjs view f1pbr5p.factory2.arunafi.testnet get_agents '{}'`: expected
+`"status":"Paused"`, `"auto_disabled":true`. The Stop button and the "previous run was interrupted" notice pass unit
+tests only.
+
+### 5f. The overview, and what a policy costs
+
+Open `http://localhost:4173/console/dashboard/?vault=<your vault>`. Expected: tiles for the vault balance,
+active agents and recorded exposure, a table of your agents, and the contracts they touch with the exposure
+recorded to each and the class recorded with it. Exposure is what was sent through the vault, not the value of a
+position. These numbers come from `readVault`; they do not depend on the indexer.
+
+Then open an agent (`Agents`, click its name), the **Policy** tab, and the panel **What this policy costs**. It
+shows, for each allowed target, the pool's premium with the policy as it is on chain and with the draft you are
+editing, the draft labelled "proposed, not yet signed", and "Testnet, assumed numbers". Change **Daily cap** from
+0.4 to 0.2 NEAR. Expected: the draft premium falls to about half and the on-chain one does not move. The price is
+the pool contract's own; compare it by hand, for a `global_by_account` target at a 0.2 NEAR cap:
+
+```bash
+node fixtures/tools.mjs view pool2.arunafi.testnet quote '{"class":"global_by_account","limit":"6400000000000000000000000","payout_ratio_bps":8000,"window_blocks":1296000,"daily_cap":"200000000000000000000000"}'
+```
+
+Expected: `"premium":"666293333333333333333332"` (0.6662 NEAR) and `"reachable_payout":"4960000000000000000000000"`,
+which is the cap times 31 days times 80%. The sum insured is set above that bound, so the price follows the cap.
+Click **Save the policy** and sign: the panel then reads "No change from the current policy" and both columns match.
+
+### 5g. History from the indexer: not met in v0
+
+The Activity tab and the Overview list refusals and exposure rows from `@aruna/indexer`, with the reason, the
+class at refusal and a transaction link. This build has no indexer URL (`NEXT_PUBLIC_INDEXER_URL` is unset), so
+those panels say "History is not connected in this build" instead of showing data. The hosted indexer
+(`https://aruna-near-indexer.up.railway.app`) answered on 12 November 2026 but had stopped at block 277,003,378,
+about 370,000 blocks behind, so it held nothing for the vaults in these steps. To run the indexer yourself, see
+[`packages/indexer`](packages/indexer/README.md); a backfill takes hours. Rebuild `apps/web` with
+`NEXT_PUBLIC_INDEXER_URL=<your indexer>` to read it.
 
 ### 6. Ask from an agent (MCP)
 
@@ -352,7 +420,7 @@ Aruna is verifiable and reproducible. It is not trustless.
 | In v0 | Not yet |
 |---|---|
 | `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | a hosted indexer, and console history read from it |
-| console: wallet, transaction preview, create a vault, add agents (steps 5c, 5d) | console overview, coverage, claims, pool and targets on chain data; agents run from the console |
+| console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price (steps 5c to 5f) | console coverage, claims, pool and targets on chain data; console history from the indexer (step 5g) |
 | `@aruna/indexer`: testnet events into SQLite behind a read API, runnable yourself ([`packages/indexer`](packages/indexer/README.md)) | |
 | coverage on testnet: pool, registry drift path, attestor, vault v3 (step 12) | pool simulation, and `k` and the concentration limit derived from it |
 | live classifier page (`apps/web`) | migration tooling between vault versions |
@@ -389,8 +457,9 @@ docs/                      architecture, decisions, protocol facts
 ## Credits
 
 Built with Claude Code (Anthropic) as a coding agent; AI-generated code is reviewed and tested as
-described above. Libraries: `@modelcontextprotocol/sdk`, `zod`, `vitest`, `typescript`, Next.js and
-React (web), `near-sdk`, `near-primitives`, `near-sandbox` (contracts and lab), `near-cli-rs`
+described above. Libraries: `@modelcontextprotocol/sdk`, `zod`, `vitest`, `typescript`, Next.js,
+React, Tailwind CSS, Radix UI, Phosphor Icons, Framer Motion, Sonner, `near-api-js` and
+`@hot-labs/near-connect` (web), `near-sdk`, `near-primitives`, `near-sandbox` (contracts and lab), `near-cli-rs`
 (fixtures). Data: the NEAR public BigQuery dataset.
 
 MIT License.
