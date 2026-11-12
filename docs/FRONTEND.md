@@ -9,6 +9,19 @@ an example. `prototype/` shows the flows, and this document wins any conflict wi
 
 ---
 
+## Browser agent keys (R18)
+
+An agent is a function-call key on the vault, limited to `spend` and `refresh_class`, with a gas allowance. The
+console makes its ed25519 key pair in the tab when you add an agent, saves it in `localStorage` under
+`aruna.agentkey|network|vault|publicKey` before the transaction is signed, and removes it again if the call is
+declined, refused or fails. The private key leaves the browser only through the **Export the key** button.
+
+- It is a testnet key limited to one vault, and the screen labels it so ("testnet agent key, limited to this vault").
+- Clearing site data loses it. The agent then shows **Not in this browser**; its Pause and Revoke buttons stay
+  enabled, because they are vault calls signed by the owner or operator, not by the agent.
+- The Playground signs with this key and no other, so it can only do what the vault allows that agent to do.
+- Code: `apps/web/src/console/agent-keys.ts`, `agent-actions.ts`. Tests: `agent-keys.test.ts`.
+
 ## Context in one page
 
 Aruna answers one question — *can this contract change under me?* — and builds three

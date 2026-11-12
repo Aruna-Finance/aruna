@@ -196,6 +196,21 @@ Open the agent detail Policy tab: `/console/agents/detail?agent=<key>&vault=<id>
 | C5 | A class ceiling below the target's class shows "Not allowed: this draft's class ceiling excludes the target" | [x] by script and unit test | script run of 12 November; `data/price.test.ts` |
 | C6 | After Save the policy is signed, the on-chain price equals the draft price shown before | [x] hash not recorded | pasted screen of 12 November: "No change from the current policy", On chain now = Draft = 0.6662 NEAR, payout 4.96 NEAR, Daily cap 0,2; chain read: `arunaTest#1` `policyVersion` 2, `dailyCap` 0.2 NEAR, Active |
 
+## 5c. F1 by script (L6)
+
+The console's whole first flow, driven by a script with the same modules the screens use (`createVaultArgs`, `buildCeiling`, `classifiedTargets`, `generateAgentKey`, `draftToPolicy`, the Playground's checks and `runAttempts`), from a throwaway account, on 12 November 2026. It is a chain proof, not a wallet run: nobody clicked a screen, and the wallet prompt was not part of it. Vault `f1pbr5p.factory2.arunafi.testnet`, owner and operator the throwaway account.
+
+| ID | Step | Result | Transaction |
+|---|---|---|---|
+| F1-1 | `create_vault` with a ceiling of `swap.arunafi.testnet` (class `local_upgradeable` from the registry), deposit 1 NEAR | [x] | `Msk9MYW7RHHDpr8bNejGG2uhdvg4e51ErY54PuiHsXB` |
+| F1-2 | Add an agent allowed to call the swap; five pre-run checks Ready | [x] | `3D4rqmUowjZsfrmktiwEayPvnZbBuhCoUueU1CuJUYEK` |
+| F1-3 | Honest scenario: one swap of 0.1 NEAR, Settled, agent still Active | [x] | `9ogGGWj3T1aNBtfkaDvdbkN4utkPtYxQiDLucP9nRif2` |
+| F1-4 | Tighten Daily cap 0.4 to 0.2 NEAR; `policyVersion` 1 to 2 | [x] | `9uRdLXuRYU3dfKDA2KRxGVyphPCs6SUyFw8SN1yDt1K2` |
+| F1-5 | Injected scenario: `TARGET_NOT_ALLOWED`, `MAX_PER_TX_EXCEEDED`, `SLIPPAGE_TOO_HIGH`, `TARGET_NOT_ALLOWED`, `TARGET_NOT_ALLOWED`; sixth not sent; agent Paused, `auto_disabled` true | [x] | `AYrRFG5kr4nUk3Ptpvvb1BpAgimB1adb6c9B2J8vq5Nh`, `EsvLAuGQ7jh4fKtDJHztQxADZ5GcB3DUp7ydsNNjT7Rm`, `fJEGUuexAmCQnzkBMjFCJ2jybfZ9ncbGwt89eKBovLb`, `4z31Cg3oZKM9qSpbARKJ3R3QWHGYfLyaAeHsfHsW7Cei`, `7t8n3b1uhUc4kybcURHeGUf2BKDYGD31eF74iLEUjTxg` |
+| F1-6 | Final read: `fullAccessKeys` 0, recorded exposure 0.1 NEAR at `swap.arunafi.testnet` (`local_upgradeable`), daily cap 0.2 NEAR | [x] | `readVault` |
+
+Check it yourself: `node fixtures/tools.mjs view f1pbr5p.factory2.arunafi.testnet get_agents '{}'`. The F1 run by a person with a fresh wallet, on screens, for the demo video, is still to do.
+
 ## 6. Gaps and gotchas
 
 - **Unproven from the screens (L3):** T1b, T2e, T3a loosen, T3b to T3d, T5, T6, T7. Their chain behaviour is proven by S4 to S8; only the screen wiring is not.

@@ -154,6 +154,15 @@ Done when: after an L4 run the vault's activity lists each refusal within one mi
 
 Done when: a Claude Code or Codex run following the README on a clean clone gets every expected result, or the missing step is stated.
 
+**Status (12 November 2026).** Partly done. In: README steps 5e (run an agent from the console), 5f (overview and policy price, with a `quote` command that reproduces the price by hand) and 5g (history, stated as not met), the 5b and 5d wording where mock data is gone, the "In v0" table, `docs/FRONTEND.md` (browser agent keys, R18), `docs/BUILD-PLAN.md` status, and `NEXT_PUBLIC_INDEXER_URL` in `.env.example`. Each new README claim was seen on a screen on 12 November on `l2ocbae.factory2.arunafi.testnet`, or has a command: `get_agents` and `quote` were run against testnet. Not done, and why:
+
+**Update, later on 12 November.** Done since: the F1 flow by script from a throwaway account, with every transaction in `docs/CONSOLE-TESTING.md` section 5c and in README step 5e (vault `f1pbr5p.factory2.arunafi.testnet`); the secret scan, history search and licence check, and a clean clone of `main` (install and build pass; two Windows-only test failures, explained in README step 1), all recorded in `docs/SUBMISSION.md`. Vercel settings for the owner: Root Directory `./`, Application Preset **Other**, Build Command `pnpm --filter "@aruna/web..." build` (it builds the packages the site imports, then the site; run here in about 14 seconds), Output Directory `apps/web/out`, Install Command `pnpm install --frozen-lockfile`, no environment variables until an indexer is live. Unverified: whether Vercel's Hobby plan accepts a repository owned by the `Aruna-Finance` organisation.
+
+- **Publish `apps/web/out` to a static host.** It publishes the site under the owner's account and is outward-facing; it needs the owner to say where (the plan names Vercel). The build itself works (`pnpm --filter @aruna/web build`).
+- **Build with the hosted indexer URL.** There is none that works: the hosted indexer is stopped about 370,000 blocks behind, so step 5g stays "not met".
+- **Run F1 once with a fresh testnet wallet and record every link in `examples/README.md`.** It needs a fresh wallet and a person at the browser, and `examples/` is the other lane's.
+- **`docs/SUBMISSION.md` checklist** (secret scan, public repo, demo video, X post, tracks): after the cut, as the plan says.
+
 **Cut rule (13 Nov 23:59 UTC+7):** stop building; L6 runs from then. If the hosted indexer is not live by 13 Nov midday, record the run against the site as it stands and report the history step as not met.
 
 ---
