@@ -60,6 +60,9 @@ export function loadConfig(path?: string): IndexerConfig {
 /** Blocks read at a time from a QuickNode testnet endpoint. Measured on 11 November 2026: 12.5 blocks/s at 8, and slower above
  * it (10.6 at 16, 5.5 at 48) because the endpoint rate-limits and the retries cost more than the parallelism gains. */
 const RPC_CONCURRENCY = 8;
+/** A QuickNode trial rate-limits per second (15 requests/s on the free plan) and a block costs several requests, so the
+ * archive lane starts lower than RPC_CONCURRENCY; QUICKNODE_CONCURRENCY overrides it. */
+const ARCHIVE_CONCURRENCY = 3;
 /** dRPC's free tier: 733 calls a minute at 4 in flight on 12 November 2026, with an occasional 429 the retries absorb. */
 const LIVE_CONCURRENCY = 4;
 /** NEAR's archival RPC: about 19 calls a minute one at a time, with no 429, on 12 November 2026. */
@@ -78,7 +81,7 @@ export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = pro
   if (env.FASTNEAR_API_KEY) console.error("FASTNEAR_API_KEY is set but not used: the RPC sources need no key (set ARUNA_BLOCK_SOURCE=neardata to use it)");
   const quicknode = env.QUICKNODE_RPC_URL || undefined;
   const source = routedSource({
-    archive: quicknode ? { source: rpcSource({ url: quicknode }), label: "QuickNode", concurrency: RPC_CONCURRENCY } : undefined,
+    archive: quicknode ? { source: rpcSource({ url: quicknode }), label: "QuickNode", concurrency: Number(env.QUICKNODE_CONCURRENCY) || ARCHIVE_CONCURRENCY } : undefined,
     live: { source: rpcSource({ url: config.live_rpc, proveSkips: true }), label: "dRPC", concurrency: LIVE_CONCURRENCY },
     // The fallback can trail the head that dRPC reported, and answers UNKNOWN_BLOCK for a final block it has not
     // synced yet, so it proves skips too. QuickNode reads only deep history, where UNKNOWN_BLOCK is a real skip.

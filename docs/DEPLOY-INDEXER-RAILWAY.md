@@ -31,6 +31,7 @@ builder, the healthcheck and the restart policy.
    | Variable | Value | Why |
    |---|---|---|
    | `QUICKNODE_RPC_URL` | the full endpoint URL, or unset | optional archive for blocks older than dRPC keeps |
+   | `QUICKNODE_CONCURRENCY` | a number, default 3 | blocks read at once from QuickNode; lower it to 2 if the log shows `QuickNode failed (... HTTP 429)` |
    | `RAILWAY_RUN_UID` | `0` | a volume is mounted root-owned and the image runs as `node`; Railway's documented fix |
    | `PORT` | `8080` | the port the API listens on. Set it so the domain's target port is unambiguous |
 
