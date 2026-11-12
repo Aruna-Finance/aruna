@@ -22,14 +22,17 @@ import { relationOf } from "../walletRole";
 import { ClassTag } from "../ui/ClassTag";
 import { CopyBlock } from "../ui/CopyBlock";
 import { NumberField } from "../ui/Field";
-import { historyNotice } from "../ui/Freshness";
+import { ActivityList } from "../ui/ActivityList";
+import { ExposureHistory } from "../ui/ExposureHistory";
+import { HistoryBlock } from "../ui/HistoryBlock";
+import { newestFirst, useVaultHistory } from "../useVaultHistory";
 import { NoVault } from "../ui/NoVault";
+import { PricePanel } from "../ui/PricePanel";
 import { Panel } from "../ui/Panel";
 import { ClassPicker } from "../ui/PolicyFields";
 import { StatusChip } from "../ui/StatusChip";
 import { Tabs } from "../ui/Tabs";
 import { TokenIcon } from "../ui/Token";
-import type { ActivityItem } from "@aruna/indexer/client";
 
 type Tab = "overview" | "policy" | "activity" | "funding" | "access";
 const TABS: { id: Tab; label: string }[] = [
@@ -280,6 +283,8 @@ function PolicyTab({ live, a, actor, reason }: { live: Extract<LiveVault, { stat
         {message && <p className="mt-3 text-sm text-dawn-ink">{message}</p>}
       </Panel>
 
+      <PricePanel live={live} a={a} draft={{ cap: d.cap, maxClass: d.maxClass, targets: d.targets }} />
+
       <Panel title="Economic limits">
         <div className="grid gap-6">
           <div className="grid gap-4 sm:grid-cols-3">
@@ -315,82 +320,50 @@ function PolicyTab({ live, a, actor, reason }: { live: Extract<LiveVault, { stat
   );
 }
 
-const kindLabel = (i: ActivityItem) => i.event || i.kind;
-
 function ActivityTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView }) {
-  const history = useMemo(() => defaultHistory(), []);
-  const [h, setH] = useState<HistoryState<ActivityItem> | null>(null);
+  const { history, activity, exposure } = useVaultHistory(live.vault, { agent: a.publicKey, refreshKey: live.view });
   const [f, setF] = useState<"all" | "refused" | "other">("all");
-
-  useEffect(() => {
-    let alive = true;
-    history.activity(live.vault, { agent: a.publicKey }).then((r) => alive && setH(r));
-    return () => {
-      alive = false;
-    };
-  }, [history, live.vault, a.publicKey, live.view]);
-
-  const items = h && h.state !== "unavailable" ? h.items : [];
-  const list = items.filter((e) => f === "all" || (f === "refused" ? e.kind === "refused" : e.kind !== "refused")).slice().reverse();
-  const notice = h ? historyNotice(h, history.source) : null;
-  const pending = h?.pending ?? [];
+  const list = newestFirst(activity).filter((e) => f === "all" || (f === "refused" ? e.kind === "refused" : e.kind !== "refused"));
 
   return (
-    <Panel
-      title="On-chain events"
-      aside={
-        <div role="group" aria-label="Filter events" className="flex border border-line-2">
-          {(
-            [
-              ["all", "All"],
-              ["refused", "Refusals"],
-              ["other", "Everything else"],
-            ] as const
-          ).map(([k, l]) => (
-            <button
-              key={k}
-              type="button"
-              aria-pressed={f === k}
-              onClick={() => setF(k)}
-              className="cursor-pointer px-3 py-1.5 text-sm transition-colors hover:bg-wash aria-pressed:bg-ink aria-pressed:text-paper"
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-      }
-    >
-      <p className="-mt-2 mb-4 max-w-[70ch] text-sm text-muted">
-        NEP-297 events with standard &quot;aruna&quot;. A refusal is the product working, so it is recorded like any other event.
-      </p>
-      {notice && <p className="mb-4 border-l-[3px] border-line-2 bg-fog px-4 py-3 text-sm leading-[1.6]">{notice}</p>}
-      {pending.map((p) => (
-        <p key={p.hash} className="mb-2 text-sm text-muted">
-          Pending: {p.label} <span className="mono">{p.hash}</span>
+    <div className="grid gap-6">
+      <Panel
+        title="On-chain events"
+        aside={
+          <div role="group" aria-label="Filter events" className="flex border border-line-2">
+            {(
+              [
+                ["all", "All"],
+                ["refused", "Refusals"],
+                ["other", "Everything else"],
+              ] as const
+            ).map(([k, l]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={f === k}
+                onClick={() => setF(k)}
+                className="cursor-pointer px-3 py-1.5 text-sm transition-colors hover:bg-wash aria-pressed:bg-ink aria-pressed:text-paper"
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        }
+      >
+        <p className="-mt-2 mb-4 max-w-[70ch] text-sm text-muted">
+          NEP-297 events with standard &quot;aruna&quot;. A refusal is the product working, so it is recorded like any other event.
         </p>
-      ))}
-      {h === null ? (
-        <p className="text-sm text-muted">Reading history.</p>
-      ) : list.length ? (
-        <ul className="grid gap-3 text-sm">
-          {list.map((e) => (
-            <li key={e.seq} className="grid gap-0.5 border-t border-line pt-3">
-              <span className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className={`mono text-xs ${e.kind === "refused" ? "text-dawn-ink" : "text-muted"}`}>{kindLabel(e)}</span>
-                <span className="mono text-xs text-muted">{block(e.block)}</span>
-              </span>
-              <span>
-                {e.target && <span className="mono break-all text-muted">to {e.target} </span>}
-                {e.reason && <span className="mono text-dawn-ink">{e.reason} </span>}
-                {e.amount && <span className="text-muted">{yoctoToNear(e.amount)} {e.token && e.token !== "near" ? e.token : "NEAR"}</span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : h.state === "unavailable" ? null : (
-        <p className="text-sm text-muted">No events match this filter.</p>
-      )}
-    </Panel>
+        <HistoryBlock h={activity} source={history.source}>
+          <ActivityList items={list} empty="No events match this filter." />
+        </HistoryBlock>
+      </Panel>
+      <Panel title="Exposure of this agent">
+        <HistoryBlock h={exposure} source={history.source}>
+          <ExposureHistory rows={newestFirst(exposure)} empty="This agent has not sent anything that settled." />
+        </HistoryBlock>
+      </Panel>
+    </div>
   );
 }
 

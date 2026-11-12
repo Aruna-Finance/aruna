@@ -74,4 +74,34 @@ describe("quoteCoverage", () => {
     const { d } = deps({ record: { ...rec, class: "unknown" }, quote: null, vault: vaultView([agent({ limits: [{ token: "near", maxPerTx: "1", dailyCap: "7" }] })]) });
     expect(await quoteCoverage(d, req)).toMatchObject({ ok: false, reason: "class_not_insurable" });
   });
+  describe("a proposed policy", () => {
+    const onChain = () => deps({ record: rec, quote: q, vault: vaultView([agent({ limits: [{ token: "near", maxPerTx: "1", dailyCap: "7" }] })]) });
+
+    it("passes the proposed cap to the pool's own quote, not the vault's, and says it is not signed", async () => {
+      const { d, poolCalls } = onChain();
+      const r = await quoteCoverage(d, { ...req, proposed: { dailyCap: "3" } });
+      expect(poolCalls).toEqual([{ class: "global_by_account", limit: "10", payout_ratio_bps: 8000, window_blocks: 100, daily_cap: "3" }]);
+      expect(r).toMatchObject({ ok: true, quote: q, inputs: { dailyCap: "3" } });
+      if (r.ok) expect(r.inputs.dailyCapSource).toContain("not yet signed");
+    });
+
+    it("without a proposal the vault's cap is used, so the on-chain quote is unchanged", async () => {
+      const { d, poolCalls } = onChain();
+      await quoteCoverage(d, req);
+      expect(poolCalls[0]?.daily_cap).toBe("7");
+    });
+
+    it("a proposed cap of zero is a refusal with its reason, and asks the pool nothing", async () => {
+      const { d, poolCalls } = onChain();
+      expect(await quoteCoverage(d, { ...req, proposed: { dailyCap: "0" } })).toMatchObject({ ok: false, reason: "no_daily_cap" });
+      expect(poolCalls).toHaveLength(0);
+    });
+
+    it("a proposed class ceiling filters targets by their recorded class, and never classifies", async () => {
+      const { d, poolCalls } = onChain();
+      expect(await quoteCoverage(d, { ...req, proposed: { maxRiskClass: "local_upgradeable" } })).toMatchObject({ ok: false, reason: "class_above_proposed" });
+      expect(poolCalls).toHaveLength(0);
+      expect(await quoteCoverage(onChain().d, { ...req, proposed: { maxRiskClass: "global_by_account" } })).toMatchObject({ ok: true });
+    });
+  });
 });
