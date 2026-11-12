@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { chooseSource, ingestForever, loadConfig, main, type IndexerConfig } from "../src/cli.js";
 import type { IndexerOptions } from "../src/indexer.js";
-import { testStore } from "./helpers.js";
+import { readFileSync } from "node:fs";
+import { runIndexer } from "../src/indexer.js";
+import { FIRST, LAST, memorySource, recordedBlocks, SEEDS, testStore } from "./helpers.js";
 
 const config: IndexerConfig = { network: "testnet", live_rpc: "https://live.example/rpc", fallback_rpc: "https://fallback.example/rpc", start_block: 1, factories: [], contracts: [] };
 
@@ -96,6 +98,36 @@ describe("serve keeps one source and one store across ingest restarts", () => {
     expect(onOpen).toEqual([store]);
     expect(ran.length).toBeGreaterThan(0);
     expect(ran.every((s) => s === store)).toBe(true);
+  });
+});
+
+describe("a database that fails in the middle of ingest (AE3)", () => {
+  it("resumes from the stored cursor, with no block missing and none stored twice", async () => {
+    const baseline = readFileSync(new URL("./fixtures/baseline/recorded-window.json", import.meta.url), "utf8").trimEnd();
+    const store = await testStore();
+    const commit = store.commitBlocks.bind(store);
+    let failures = 0;
+    store.commitBlocks = async (blocks) => {
+      // The connection drops on the third window, after the transaction began: nothing of that window may remain.
+      if (failures === 0 && blocks[0].height >= FIRST + 16) {
+        failures++;
+        throw new Error("connection terminated unexpectedly");
+      }
+      await commit(blocks);
+    };
+    let finished = false;
+    const run = async (o: IndexerOptions) => {
+      if (finished) throw new Error("stop");
+      await runIndexer({ ...o, follow: false, stopAt: LAST });
+      finished = true;
+    };
+    const wait = async () => {
+      if (finished) throw new Error("stop");
+    };
+    const open = async () => store;
+    await expect(ingestForever({ open, source: memorySource(recordedBlocks()), seeds: SEEDS, startBlock: FIRST, concurrency: 8 }, run, wait)).rejects.toThrow("stop");
+    expect(failures).toBe(1);
+    expect(await store.export()).toBe(baseline);
   });
 });
 
