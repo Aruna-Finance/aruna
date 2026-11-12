@@ -14,7 +14,7 @@ same people and tools that wrote the code.
 | M2 | Medium | `vault/src/agents.rs` | The operator could add agents without bound (a daily cap of 0 fits any ceiling), each carrying a gas allowance and state paid by the vault | **Fixed**: at most `MAX_AGENTS` (32) agents that are not revoked (D-52) |
 | L1 | Low | `vault/src/spend.rs` `available()` | Subtracts in-flight reservations from the balance, although an attached deposit likely leaves the balance when the receipt is created. Errs toward refusing (`ARUNA_INSUFFICIENT_BALANCE`) under parallel load; never toward overspending | Open: measure before changing |
 | L2 | Low | `vault/src/spend.rs` `cb_settle` | A settlement after midnight added to the previous day's total, which the next check then reset | **Fixed**: `cb_settle` rolls the day first |
-| I1 | Info | `vault/src/spend.rs` | `Exposure.class_at_record` keeps only the latest class per target | Stage 5: exposure checkpoints |
+| I1 | Info | `vault/src/spend.rs` | `Exposure.class_at_record` keeps only the latest class per target | Answered by events, 12 November: each `exposure_recorded` event carries the class, and the indexer keeps one row per event (`packages/indexer/test/exposure-class-history.test.ts`). The vault's on-chain `class_at_record` still holds only the latest class, so the history lives in the indexer, not in a view method |
 | I2 | Info | several | `u64` block heights in JSON | Acceptable: far below 2^53 |
 
 ## Checked and holding
