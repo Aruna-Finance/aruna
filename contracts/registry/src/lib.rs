@@ -43,6 +43,17 @@ pub struct VaultRecord {
     pub registered_at_block: u64,
 }
 
+/// Most `vault_list` entries one `vaults_by_code_hash` call examines.
+pub const MAX_VAULT_SCAN: u32 = 200;
+
+/// One page of `vaults_by_code_hash`. `next` is the `from` for the following call, or `None` at the end.
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct VaultPage {
+    pub items: Vec<VaultRecord>,
+    pub next: Option<u32>,
+}
+
 #[near]
 #[derive(BorshStorageKey)]
 enum Key {
@@ -213,6 +224,27 @@ impl Registry {
         self.vault_list.len()
     }
 
+    /// The vaults that run `code_hash`, with the owner recorded at registration (plan R35). A view
+    /// over `vault_list` and `vaults`: no state of its own, so it deploys in place.
+    ///
+    /// One call examines at most `MAX_VAULT_SCAN` entries of `vault_list`, starting at index `from`
+    /// (default 0), so its gas does not grow with the registry. `limit` lowers that bound. When
+    /// entries remain, `next` is the index to pass as `from`; follow it until it is `None` to see
+    /// every match exactly once. An unknown hash gives an empty page, never an error.
+    pub fn vaults_by_code_hash(&self, code_hash: String, from: Option<u32>, limit: Option<u32>) -> VaultPage {
+        let len = self.vault_list.len();
+        let from = from.unwrap_or(0);
+        let window = limit.unwrap_or(MAX_VAULT_SCAN).clamp(1, MAX_VAULT_SCAN);
+        let end = from.saturating_add(window).min(len);
+        let items = (from..end)
+            .filter_map(|i| self.vault_list.get(i))
+            .filter_map(|v| self.vaults.get(v))
+            .filter(|r| r.code_hash == code_hash)
+            .cloned()
+            .collect();
+        VaultPage { items, next: if end < len { Some(end) } else { None } }
+    }
+
     pub fn arbiter(&self) -> AccountId {
         self.arbiter.clone()
     }
@@ -314,3 +346,5 @@ mod tests {
 
 #[cfg(test)]
 mod tests_drift;
+#[cfg(test)]
+mod tests_vaults;

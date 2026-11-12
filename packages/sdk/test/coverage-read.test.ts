@@ -27,6 +27,49 @@ describe("Registry (keyless reads)", () => {
   });
 });
 
+describe("Registry.vaultsByCodeHash (R35)", () => {
+  const rec = (vault: string, owner: string, block: number) => ({ vault, owner, code_hash: "H1", registered_at_block: block });
+
+  it("follows `next` until it is null and returns every vault once, in order", async () => {
+    const pages: Record<number, { items: ReturnType<typeof rec>[]; next: number | null }> = {
+      0: { items: [rec("a.f", "alice", 1)], next: 200 },
+      200: { items: [], next: 400 }, // a window with no match is not the end
+      400: { items: [rec("c.f", "carol", 9)], next: null },
+    };
+    const t = fake((_c, m, a) => (m === "vaults_by_code_hash" ? pages[a.from as number] : null));
+    const r = new Registry({ registry: "reg", transport: t });
+    expect((await r.vaultsByCodeHash("H1")).map((v) => [v.vault, v.owner, v.registered_at_block])).toEqual([["a.f", "alice", 1], ["c.f", "carol", 9]]);
+    expect(t.calls.map((c) => c[2])).toEqual([
+      { code_hash: "H1", from: 0, limit: null },
+      { code_hash: "H1", from: 200, limit: null },
+      { code_hash: "H1", from: 400, limit: null },
+    ]);
+  });
+
+  it("an unknown hash is an empty list after one call", async () => {
+    const t = fake(() => ({ items: [], next: null }));
+    expect(await new Registry({ registry: "reg", transport: t }).vaultsByCodeHash("NOPE")).toEqual([]);
+    expect(t.calls).toHaveLength(1);
+  });
+
+  it("an absent `next` (the contract omits None) also ends the walk", async () => {
+    const t = fake(() => ({ items: [rec("a.f", "alice", 1)] }));
+    expect(await new Registry({ registry: "reg", transport: t }).vaultsByCodeHash("H1")).toHaveLength(1);
+    expect(t.calls).toHaveLength(1);
+  });
+
+  it("refuses a cursor that does not advance instead of looping forever", async () => {
+    const t = fake(() => ({ items: [], next: 0 }));
+    await expect(new Registry({ registry: "reg", transport: t }).vaultsByCodeHash("H1")).rejects.toThrow(/non-advancing cursor/);
+  });
+
+  it("vaultsByCodeHashPage passes from and limit through", async () => {
+    const t = fake(() => ({ items: [], next: null }));
+    await new Registry({ registry: "reg", transport: t }).vaultsByCodeHashPage("H1", { from: 5, limit: 10 });
+    expect(t.calls[0][2]).toEqual({ code_hash: "H1", from: 5, limit: 10 });
+  });
+});
+
 describe("Pool (keyless reads)", () => {
   it("coverages({ owner }) returns only that owner's, in id order", async () => {
     const all = [cov(0, "a.testnet", "v1"), cov(1, "b.testnet", "v1"), cov(2, "a.testnet", "v2")];
