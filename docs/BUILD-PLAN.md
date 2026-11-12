@@ -30,7 +30,7 @@ on testnet, if time allows. Everything else follows v0.
 | 5 Exposure, indexer, console | Partly done | `exposure_before` in vault v3; a failed callback releases its reservation (step 10); `@aruna/indexer` built and tested (70) but not hosted; console lanes L0–L5 live (wallet, preview, create a vault, agents, running the two agents from the Playground, the Overview and the policy price); the history half of L5 (activity and exposure rows from the indexer) is not met because the hosted indexer stopped about 370,000 blocks behind on 12 November. `class_at_record` keeps only the latest class per target (`AUDIT-v0.md` I1) |
 | 6 Migration | Not started | planned after v0: U14–U16 in `plans/2026-11-11-1645-…` |
 | 7 Coverage on testnet | Done on testnet | see the status under stage 7; README step 12 |
-| 8 Simulation | Not started | `packages/sim` is empty; the console's Simulation screen runs an in-browser sample model |
+| 8 Simulation | Done; console screen owed | `@aruna/sim`: five scenarios plus a labelled counterfactual, golden vectors from the real pool, `pnpm --filter @aruna/sim sim` regenerates every result and chart from `raw/`, published in `packages/sim/results/2026-11-12/`; derived values in D-66 (concentration 1.4 x, `k` not identified at the declared P(event)) and not locked, as gate B requires measured drift frequency. Owed: the console's Simulation screen still runs its in-browser prototype (U18, lane B) |
 
 **Out of order.** Stage 7 was built before stages 5 and 6 were green, against the rule above.
 It runs on testnet only and holds no real value, so no gate is affected, but stage 5's
