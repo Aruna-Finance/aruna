@@ -2,7 +2,12 @@
   "schema_version": "0.4.0",
   "metadata": {
     "name": "aruna-registry",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "build": {
+      "compiler": "rustc 1.96.0",
+      "builder": "cargo-near cargo-near-build 0.11.5"
+    },
+    "wasm_hash": "6MN8ThaohU3h15Rnw4P6Y1yeDtcbGFAaNAn2uZdFsPEc"
   },
   "body": {
     "functions": [
@@ -716,6 +721,50 @@
             "minimum": 0.0
           }
         }
+      },
+      {
+        "name": "vaults_by_code_hash",
+        "doc": " The vaults that run `code_hash`, with the owner recorded at registration (plan R35). A view\n over `vault_list` and `vaults`: no state of its own, so it deploys in place.\n\n One call examines at most `MAX_VAULT_SCAN` entries of `vault_list`, starting at index `from`\n (default 0), so its gas does not grow with the registry. `limit` lowers that bound. When\n entries remain, `next` is the index to pass as `from`; follow it until it is `None` to see\n every match exactly once. An unknown hash gives an empty page, never an error.",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "code_hash",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "from",
+              "type_schema": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "limit",
+              "type_schema": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/VaultPage"
+          }
+        }
       }
     ],
     "root_schema": {
@@ -998,6 +1047,29 @@
                   "$ref": "#/definitions/ReportState"
                 }
               ]
+            }
+          }
+        },
+        "VaultPage": {
+          "description": "One page of `vaults_by_code_hash`. `next` is the `from` for the following call, or `None` at the end.",
+          "type": "object",
+          "required": [
+            "items"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/VaultRecord"
+              }
+            },
+            "next": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
             }
           }
         },

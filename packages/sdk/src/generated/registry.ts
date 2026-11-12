@@ -9,6 +9,7 @@ export type RegistryDriftReport = { after_ref: RegistryCodeRef; after_resolved_h
 export type RegistryReportState = "pending" | "disputed" | "verified" | "rejected";
 export type RegistryRiskClass = "immutable_verified" | "local_upgradeable" | "global_by_account" | "unknown";
 export type RegistryStoredReport = { disputed_by?: number | null; id: number; report: RegistryDriftReport; reported_at_block: number; state: RegistryReportState; };
+export type RegistryVaultPage = { items: RegistryVaultRecord[]; next?: number | null; };
 export type RegistryVaultRecord = { code_hash: string; owner: string; registered_at_block: number; vault: string; };
 
 export interface RegistryMethods {
@@ -46,6 +47,7 @@ export interface RegistryMethods {
   set_factory: { kind: "call"; payable: false; args: { factory: string }; result: null };
   set_pool: { kind: "call"; payable: false; args: { pool: string }; result: null };
   vault_count: { kind: "view"; payable: false; args: {  }; result: number };
+  vaults_by_code_hash: { kind: "view"; payable: false; args: { code_hash: string; from: number | null; limit: number | null }; result: RegistryVaultPage };
 }
 
-export const REGISTRY_METHODS = ["add_classifier","allow_vault_code_hash","allowed_vault_code_hashes","arbiter","assign_attestor","assigned_attestor","classifiers","contract_source_metadata","factory","get_allowed_vault","get_attestor","get_class","get_report","get_vault","heartbeat","heartbeat_fresh","is_classifier","latest_report","lift_freeze","new","owner","pool","push_freeze","register_attestor","register_vault","remove_classifier","report_drift","rotate_signing_key","rule","set_arbiter","set_class","set_factory","set_pool","vault_count"] as const;
+export const REGISTRY_METHODS = ["add_classifier","allow_vault_code_hash","allowed_vault_code_hashes","arbiter","assign_attestor","assigned_attestor","classifiers","contract_source_metadata","factory","get_allowed_vault","get_attestor","get_class","get_report","get_vault","heartbeat","heartbeat_fresh","is_classifier","latest_report","lift_freeze","new","owner","pool","push_freeze","register_attestor","register_vault","remove_classifier","report_drift","rotate_signing_key","rule","set_arbiter","set_class","set_factory","set_pool","vault_count","vaults_by_code_hash"] as const;
