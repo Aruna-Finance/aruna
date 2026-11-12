@@ -114,7 +114,30 @@ pass `after=<next_after>`. `limit` defaults to 100, and the server clamps it to 
 | `GET /v1/vaults/:vault/exposure` | `Page<ExposureRow>`: one row per `exposure_recorded`, with the target's class at the time it was recorded | `agent`, `target`, `token` |
 | `GET /v1/events` | `Page<EventItem>`: any event from a watched contract. Covers coverage, claims, drift reports, freezes, heartbeats and class changes | `contract`, `event` (comma-separated), `vault`, `target`, `attestor`, `coverage` |
 
+| `GET /v1/coverages` | `Page<CoverageItem>`: each coverage with its terms, what claims paid out of it, and a `status` (`waiting`, `active`, `expired`, `released`) | `pool`, `vault`, `owner`, `agent`, `target`, `token`, `status` |
+| `GET /v1/claims` | `Page<ClaimItem>`: every claim attempt, paid or refused with the pool's reason; a paid one carries every term of `min(exposure x ratio, remaining limit)` | `pool`, `vault`, `coverage`, `outcome` (`paid`, `rejected`) |
+| `GET /v1/reports` | `Page<ReportItem>`: signed drift reports with their state (`pending`, `disputed`, `verified`, `rejected`), the report they dispute, and the end of the challenge window | `registry`, `target`, `attestor`, `state` |
+| `GET /v1/freezes` | `Page<FreezeItem>`: `frozen` (a report was accepted), `pushed` (sent to a batch of vaults), `lifted`; the last item for a target says whether it is frozen (`frozen_after`) | `registry`, `target` |
+| `GET /v1/heartbeats` | `Page<HeartbeatItem>` | `registry`, `attestor`, `target` (the attestor assigned to it now) |
+| `GET /v1/attestors` | `Page<AttestorItem>`: bond, last heartbeat, `alive`, assigned targets, reports filed, bond slashed | `registry`, `attestor` |
+| `GET /v1/classes` | `Page<ClassItem>`: the registry's class records for a target, oldest first, each with the class before it | `registry`, `target` |
+
 Every list route also takes `after` and `limit`.
+
+The last seven routes serve state derived from the contracts' events. A few fields depend on the
+chain's clock: a coverage's `status`, a `pending` report that becomes `verified` when its challenge
+window passes (as the registry reads it), an attestor being `alive`. They are computed against
+`last_indexed_block`, which every page reports, so they are as of that block and never ahead of it.
+`CHALLENGE_WINDOW_BLOCKS` and `HEARTBEAT_STALE_BLOCKS` in `src/api.ts` are copies of
+`contracts/common/src/params.rs`; a test fails if they differ. An unknown filter value (`status=bogus`)
+is a 400 that lists the allowed values; an unknown account is an empty page.
+
+**An existing store is migrated on its next start.** The derived tables are a function of the raw
+table, so when a store made by an older version opens, every derived table is rebuilt from the raw
+events it already holds, in one transaction, before the first request is served. No block is read
+again. The time is that of replaying the stored events: 100,000 of them took 6.8 seconds on a laptop
+(measured 12 November 2026, a synthetic store of heartbeats and claims; the hosted store's size has not
+been checked). `rebuild` is only for reading the chain again.
 
 An `ActivityItem` keeps the event's own payload in `data`, beside the fields the console reads
 directly (`agent`, `target`, `amount`, `token`, `reason`, `class`). Amounts are decimal strings in the
@@ -127,7 +150,13 @@ import { createIndexerClient, IndexerUnavailableError } from "@aruna/indexer/cli
 
 const indexer = createIndexerClient({ baseUrl: "https://<indexer host>" });
 const page = await indexer.activity("demo2.factory.arunafi.testnet", { kind: "refused" });
+const coverages = await indexer.coverages({ vault: "demo4.factory2.arunafi.testnet" });
+const target = await indexer.reports({ target: "drift-target.arunafi.testnet", state: "verified" });
 ```
+
+`IndexerClient` has the first routes and `CoverageDriftClient` the seven above; `createIndexerClient`
+returns both. They are separate so that a test double or the console's recorded fixture that implements
+only the first keeps compiling.
 
 The client needs only `fetch`, so it runs in the browser. An unreachable indexer, a non-200 answer,
 or a body that is not a valid page all throw `IndexerUnavailableError`. Its `reason` is `network`,
@@ -135,4 +164,4 @@ or a body that is not a valid page all throw `IndexerUnavailableError`. Its `rea
 "history unavailable" apart from "nothing happened".
 
 Until the live indexer is up, `apps/web/src/console/data/indexer-fixture.ts` answers with the same
-types. Its data is the real events of the recorded `demo2` runs in `examples/README.md`.
+types (the first routes only). Its data is the real events of the recorded `demo2` runs in `examples/README.md`.

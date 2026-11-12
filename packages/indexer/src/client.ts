@@ -3,7 +3,32 @@
 // caller can always tell "history unavailable" from "no history" (R10).
 
 import { ROUTES } from "./api.js";
-import type { ActivityItem, ActivityQuery, EventItem, EventsQuery, ExposureQuery, ExposureRow, Health, Page, VaultSummary, VaultsQuery } from "./api.js";
+import type {
+  ActivityItem,
+  ActivityQuery,
+  AttestorItem,
+  AttestorsQuery,
+  ClaimItem,
+  ClaimsQuery,
+  ClassItem,
+  ClassesQuery,
+  CoverageItem,
+  CoveragesQuery,
+  EventItem,
+  EventsQuery,
+  ExposureQuery,
+  ExposureRow,
+  FreezeItem,
+  FreezesQuery,
+  Health,
+  HeartbeatItem,
+  HeartbeatsQuery,
+  Page,
+  ReportItem,
+  ReportsQuery,
+  VaultSummary,
+  VaultsQuery,
+} from "./api.js";
 
 export * from "./api.js";
 
@@ -26,9 +51,28 @@ export interface IndexerClient {
   events(q?: EventsQuery): Promise<Page<EventItem>>;
 }
 
+/**
+ * Coverage, claims, drift reports, freezes, heartbeats, attestors and class changes (R7). A separate interface from
+ * `IndexerClient`, so a caller that only knows the first routes (the console's recorded fixture, a test double) keeps
+ * compiling: `createIndexerClient` returns both.
+ */
+export interface CoverageDriftClient {
+  /** Coverage sold by a pool, with what claims did to it and its status as of `last_indexed_block`. */
+  coverages(q?: CoveragesQuery): Promise<Page<CoverageItem>>;
+  /** Claim attempts, paid and refused, with every term of a payout. */
+  claims(q?: ClaimsQuery): Promise<Page<ClaimItem>>;
+  /** Signed drift reports with their state after any dispute and ruling. */
+  reports(q?: ReportsQuery): Promise<Page<ReportItem>>;
+  freezes(q?: FreezesQuery): Promise<Page<FreezeItem>>;
+  heartbeats(q?: HeartbeatsQuery): Promise<Page<HeartbeatItem>>;
+  attestors(q?: AttestorsQuery): Promise<Page<AttestorItem>>;
+  /** The registry's class records for a target, oldest first; a changed `class` is a class change. */
+  classes(q?: ClassesQuery): Promise<Page<ClassItem>>;
+}
+
 type Query = Record<string, string | number | undefined>;
 
-export function createIndexerClient(o: { baseUrl: string; fetch?: typeof globalThis.fetch }): IndexerClient {
+export function createIndexerClient(o: { baseUrl: string; fetch?: typeof globalThis.fetch }): IndexerClient & CoverageDriftClient {
   const base = o.baseUrl.replace(/\/+$/, "");
   const doFetch = o.fetch ?? globalThis.fetch.bind(globalThis);
 
@@ -68,5 +112,12 @@ export function createIndexerClient(o: { baseUrl: string; fetch?: typeof globalT
     activity: (vault, q = {}) => page<ActivityItem>(ROUTES.activity(vault), { ...q }),
     exposure: (vault, q = {}) => page<ExposureRow>(ROUTES.exposure(vault), { ...q }),
     events: (q = {}) => page<EventItem>(ROUTES.events, { ...q }),
+    coverages: (q = {}) => page<CoverageItem>(ROUTES.coverages, { ...q }),
+    claims: (q = {}) => page<ClaimItem>(ROUTES.claims, { ...q }),
+    reports: (q = {}) => page<ReportItem>(ROUTES.reports, { ...q }),
+    freezes: (q = {}) => page<FreezeItem>(ROUTES.freezes, { ...q }),
+    heartbeats: (q = {}) => page<HeartbeatItem>(ROUTES.heartbeats, { ...q }),
+    attestors: (q = {}) => page<AttestorItem>(ROUTES.attestors, { ...q }),
+    classes: (q = {}) => page<ClassItem>(ROUTES.classes, { ...q }),
   };
 }

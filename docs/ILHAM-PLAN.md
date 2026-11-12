@@ -184,7 +184,7 @@ Order by value to a judge or first customer: L7, then L9, L8, L10, then L11 and 
 ## Open questions for Aris
 
 1. Who hosts the indexer container and holds the FastNear key, and by when? (blocks L5 live history and L6)
-2. Will the API gain routes for coverages, claims, drift reports, freezes, heartbeats and class changes (R7)? The shipped routes are `vaults`, `activity`, `exposure`, `events`. Needed by L7 and L9, not by v0.
+2. ~~Will the API gain routes for coverages, claims, drift reports, freezes, heartbeats and class changes (R7)?~~ **Yes, built 12 November 2026:** `/v1/coverages`, `/v1/claims`, `/v1/reports`, `/v1/freezes`, `/v1/heartbeats`, `/v1/attestors`, `/v1/classes`, typed in `packages/indexer/src/api.ts` and read by `createIndexerClient`. They are in a separate `CoverageDriftClient` interface, so `data/indexer-fixture.ts` (yours) compiles unchanged; add the new methods to it when L7 and L9 start. Needed by L7 and L9, not by v0. The hosted indexer serves them after its next deploy (it migrates its store on start, see the indexer README).
 3. Does the indexer URL for the default build exist yet, and what is it?
 4. Is the plan's judging end date (R48) known?
 
