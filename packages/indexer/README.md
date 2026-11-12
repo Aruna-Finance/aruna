@@ -9,8 +9,18 @@ U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
 ## How it reads the chain
 
 - **Source.** Block by block, starting at block 276952600, just before `registry.arunafi.testnet` was
-  created. Set `QUICKNODE_RPC_URL` to a QuickNode testnet endpoint (archive, no pruning), and the indexer
-  reads over JSON-RPC:
+  created, over JSON-RPC from three endpoints, chosen per height (`src/ingest/routed.ts`):
+  - **dRPC** (`live_rpc` in `config/testnet.json`), free with no key. It keeps only about the last two days
+    of blocks (191,000 on 12 November 2026, from its `status` field `earliest_block_height`), and reads
+    those and the head.
+  - **QuickNode** (`QUICKNODE_RPC_URL`, optional), an archive. It reads only the heights below dRPC's
+    earliest block plus 2,000, and once a height above that is read it is never called again.
+  - **NEAR's archival RPC** (`fallback_rpc`), free and slow, about 19 calls a minute. It reads older blocks
+    when no QuickNode URL is set, and any read another endpoint failed; the failing endpoint is skipped for
+    5 minutes, then tried again.
+
+  dRPC answers `UNKNOWN_BLOCK` both for a height the chain skipped and for one it no longer holds, so a
+  height read there counts as skipped only when a later block's `prev_height` shows it. Each read:
   1. `EXPERIMENTAL_changes_in_block` lists every account a block touched. A block that touches no
      watched account costs this one call.
   2. For the watched accounts it asks for the receipts that changed them (`EXPERIMENTAL_changes`), the
@@ -23,17 +33,14 @@ U2 ingest, U3 server). Every route answers with the types in `src/api.ts`.
 - **The endpoint URL is a secret.** A QuickNode URL carries its token in the path. It is read from the
   environment, never logged, and removed from every error message. The indexer refuses an endpoint whose
   `status` reports a chain other than testnet.
-- **Cost.** At least one call per block, so a full backfill is about 260,000 calls as of 11 November
-  2026, plus a handful for each block that touches an Aruna account. The per-method credit cost is not in
-  the QuickNode documentation I read, so check your plan's credits and request rate. The default
-  `--concurrency` for an RPC endpoint is 8, where throughput peaked in a measurement on 11 November 2026
-  (12.5 blocks/s on blocks with no Aruna activity, about 6 hours for the whole backfill). Higher values were
-  slower, 10.6 at 16 and 5.5 at 48, because the endpoint rate-limits and the retries cost more than the
-  parallelism gains. Another plan may peak elsewhere, so pass `--concurrency` to change it.
-- **Without a QuickNode URL** the indexer falls back to `testnet.neardata.xyz`. Without a key, that
-  serves 30 blocks a minute (measured 11 November 2026), below testnet's block rate. Set
-  `FASTNEAR_API_KEY` to a FastNear key to speed it up; it is sent as `Authorization: Bearer` and never
-  logged.
+- **Cost.** At least one call per block, plus a handful for each block that touches an Aruna account.
+  QuickNode charges 50 credits per NEAR call (quicknode.com/api-credits/near), so it costs about 50
+  credits per block it reads, and only blocks older than dRPC's window go to it. `--concurrency` (default 8)
+  is the window of heights read at once; each endpoint has its own limit inside it: QuickNode 8 (its
+  throughput peaked there on 11 November 2026, 12.5 blocks/s), dRPC 4, NEAR archival 1.
+- **neardata.** `ARUNA_BLOCK_SOURCE=neardata` reads `testnet.neardata.xyz` instead, with
+  `FASTNEAR_API_KEY` when set (sent as `Authorization: Bearer`, never logged). Without a key it serves 30
+  blocks a minute, below testnet's block rate. A `FASTNEAR_API_KEY` alone no longer selects it.
 - **Which events count.** Only receipts that succeeded and were executed by a watched account. The
   watched set starts from the registries, factories and pools in `config/testnet.json`. A vault joins
   it when one of those factories emits `vault_created` for it. A look-alike event from any other
@@ -52,14 +59,16 @@ Requires Node 22.13 or later, for `node:sqlite`.
 
 ```bash
 pnpm --filter @aruna/indexer build
-cp packages/indexer/.env.example packages/indexer/.env   # then fill in QUICKNODE_RPC_URL
+cp packages/indexer/.env.example packages/indexer/.env   # QUICKNODE_RPC_URL is optional
 node --env-file=packages/indexer/.env packages/indexer/dist/cli.js serve --db aruna-indexer.sqlite --port 8080
 curl -s localhost:8080/health
 ```
 
-`QUICKNODE_RPC_URL` is the full "HTTP Provider" URL from the QuickNode dashboard,
-`https://<name>.<network>.quiknode.pro/<token>/`, not only the token. The CLI does not read `.env` by
-itself, so pass it with `--env-file`. Expected: JSON with `last_indexed_block` rising toward `head_block`. `"healthy"` becomes `true` once
+With no environment the indexer reads from dRPC and NEAR's archival RPC. `QUICKNODE_RPC_URL`, when set,
+is the full "HTTP Provider" URL from the QuickNode dashboard, `https://<name>.<network>.quiknode.pro/<token>/`,
+not only the token. The CLI does not read `.env` by itself, so pass it with `--env-file`. Expected: JSON
+with `last_indexed_block` rising toward `head_block`, `source` naming the endpoint serving blocks, and
+`mode` `catching_up` or `following`. `"healthy"` becomes `true` once
 the lag is 60 blocks or less, and only while the indexer has read the chain's head in the last two
 minutes (`head_seen_ms_ago`). An indexer that stopped reading is never reported as caught up.
 
@@ -77,7 +86,7 @@ To run it on Railway, follow [`docs/DEPLOY-INDEXER-RAILWAY.md`](../../docs/DEPLO
 ## Rebuild from nothing
 
 ```bash
-QUICKNODE_RPC_URL=... node packages/indexer/dist/cli.js rebuild --db a.sqlite
+QUICKNODE_RPC_URL=... node packages/indexer/dist/cli.js rebuild --db a.sqlite   # without it, older blocks read slowly
 node packages/indexer/dist/cli.js export --db a.sqlite --out a.json
 ```
 

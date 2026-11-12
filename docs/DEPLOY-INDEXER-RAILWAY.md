@@ -10,8 +10,10 @@ builder, the healthcheck and the restart policy.
 
 - A Railway project, and the Railway GitHub app granted access to `Aruna-Finance/aruna` (a private repository).
   Railway's docs say autodeploy needs a project member with a connected GitHub account and contributor access.
-- The QuickNode testnet endpoint URL, the full "HTTP Provider" URL: `https://<name>.<network>.quiknode.pro/<token>/`.
-  It carries the token, so it is a secret. Paste it into Railway's variables, never into the repo.
+- Optional: a QuickNode testnet endpoint URL, the full "HTTP Provider" URL: `https://<name>.<network>.quiknode.pro/<token>/`.
+  It carries the token, so it is a secret. Paste it into Railway's variables, never into the repo. The indexer
+  runs without it on dRPC and NEAR's archival RPC, which need no key; QuickNode only speeds up blocks older
+  than dRPC keeps (see "The credit check").
 
 ## Steps
 
@@ -28,11 +30,12 @@ builder, the healthcheck and the restart policy.
 
    | Variable | Value | Why |
    |---|---|---|
-   | `QUICKNODE_RPC_URL` | the full endpoint URL | the block source |
+   | `QUICKNODE_RPC_URL` | the full endpoint URL, or unset | optional archive for blocks older than dRPC keeps |
    | `RAILWAY_RUN_UID` | `0` | a volume is mounted root-owned and the image runs as `node`; Railway's documented fix |
    | `PORT` | `8080` | the port the API listens on. Set it so the domain's target port is unambiguous |
 
    `ARUNA_INDEXER_DB` is already `/data/aruna-indexer.sqlite` in the image, so the volume must mount at `/data`.
+   A `FASTNEAR_API_KEY` left from an earlier setup is ignored (the logs say so); you may delete it.
 6. **Volume.** Add a volume to the service with mount path `/data`. Do this in the dashboard: the Dockerfile has no
    `VOLUME` instruction, because Railway rejects one when it validates the file. A service can have one volume, and Railway's
    docs say replicas cannot be used with volumes, so this is a single instance by design.
@@ -40,15 +43,44 @@ builder, the healthcheck and the restart policy.
    another origin.
 8. **Deploy.**
 
+## The credit check
+
+Do this before you paste a QuickNode URL. QuickNode charges 50 credits per NEAR call, and the indexer spends
+about one call per block it reads there. It reads there only the blocks between its cursor and dRPC's earliest
+block plus 2,000:
+
+```bash
+EARLIEST=$(curl -s -X POST https://near-testnet.drpc.org -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"status","params":[]}' | jq .result.sync_info.earliest_block_height)
+CURSOR=$(curl -s https://<domain>/health | jq .last_indexed_block)
+echo $(( (EARLIEST + 2000 - CURSOR) * 55 ))   # credits needed, with 10% to spare
+```
+
+If that number is above the credits the key has left, do not spend the key: the run would stop partway, and
+the rest of the gap would be read from NEAR's archival RPC at about 19 blocks a minute, slower than the chain.
+The gap grows by about 3,600 blocks (180,000 credits) an hour, because dRPC's window moves with the chain.
+Check the QuickNode dashboard an hour into the run and compare the credits spent with the blocks covered.
+
 ## What you should see
 
-- Deploy logs: `block source: RPC endpoint (QUICKNODE_RPC_URL)`, then `serving on :8080`, then
-  `indexed through <block> of <head>` lines.
+The run goes through three phases. `/health` names the endpoint serving blocks in `source`:
+
+| Phase | Logs | `/health` |
+|---|---|---|
+| 1. QuickNode, up to dRPC's window (only with `QUICKNODE_RPC_URL`) | `block source now: QuickNode` | `"source":"QuickNode","mode":"catching_up"` |
+| 2. dRPC, catching up inside its window | `block source now: dRPC` | `"source":"dRPC","mode":"catching_up"` |
+| 3. following the head | `indexed through <block> of <head>` | `"source":"dRPC","mode":"following","healthy":true` |
+
+A line `dRPC failed (...); using NEAR archival for 5 min` means an endpoint was benched; `source` then reads
+`NEAR archival` until it recovers.
+
+- Deploy logs: `block source: QuickNode to dRPC's edge, then dRPC; NEAR archival as fallback` (or, without
+  QuickNode, `block source: dRPC; NEAR archival for older blocks and as fallback`), then `serving on :8080`.
 - `curl https://<domain>/health` answers HTTP 200 with JSON:
   `{"last_indexed_block":…,"head_block":…,"lag_blocks":…,"healthy":false,…}`.
-  During the first backfill `healthy` is `false` and `last_indexed_block` rises. That backfill is about 270,000
-  blocks, roughly six hours at the default 8 blocks at a time (12.5 blocks/s measured on 11 November 2026).
-  `healthy` turns `true` once the lag is 60 blocks or less and the head was read in the last two minutes.
+  During a backfill `healthy` is `false` and `last_indexed_block` rises. QuickNode reads about 12.5 blocks/s
+  (11 November 2026). `healthy` turns `true` once the lag is 60 blocks or less and the head was read in the
+  last two minutes.
 - `curl https://<domain>/v1/vaults?operator=demo-company.arunafi.testnet` lists `demo2` after the backfill
   passes block 277068625, and `.../v1/vaults/<vault>/activity` lists its events.
 
@@ -87,7 +119,8 @@ backfill again (about six hours). `aruna-indexer rebuild` does the same on purpo
 | build fails with "The Dockerfile failed validation" | the Dockerfile has a `VOLUME` instruction; it must not (a test guards this) |
 | build cannot find `package.json` or `src` | Root Directory is not `/packages/indexer`, so the build runs from the repository root |
 | deploy fails its healthcheck | the app is not on the port Railway expects; set `PORT=8080` |
-| `last_indexed_block` barely moves | the endpoint is rate-limiting; check QuickNode's dashboard, and keep `--concurrency` at its default of 8 unless you measured better |
+| `last_indexed_block` barely moves, `source` is `NEAR archival` | the endpoint before it is failing. If it is QuickNode, its credits have likely run out: the index stays correct but reads about 19 blocks a minute, slower than the chain, so it will not catch up alone. Not built yet: a sparse backfill that reads only the blocks with Aruna transactions (see the plan of 12 November 2026) |
+| `last_indexed_block` barely moves, `source` is `dRPC` | dRPC is rate-limiting; keep `--concurrency` at its default of 8 |
 | a rebuild starts from block 276952600 again | the volume is not mounted at `/data`, so the store is in the container's own filesystem |
 
 ## Not confirmed in Railway's documentation
