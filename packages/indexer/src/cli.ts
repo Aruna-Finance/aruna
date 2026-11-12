@@ -9,6 +9,7 @@ import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { runIndexer, type IndexerOptions } from "./indexer.js";
 import { neardataSource, type BlockSource } from "./ingest/neardata.js";
+import { routedSource } from "./ingest/routed.js";
 import { rpcSource } from "./ingest/rpc.js";
 import { startServer } from "./server.js";
 import { sleep } from "./sleep.js";
@@ -28,15 +29,21 @@ Usage:
       Write every derived table as canonical JSON. Two stores built from the same blocks export the same bytes.
 
 Environment: ARUNA_INDEXER_DB (default ./aruna-indexer.sqlite) and ARUNA_INDEXER_CONFIG.
-Block source, in this order:
-  QUICKNODE_RPC_URL   a testnet JSON-RPC archive endpoint (the URL carries the token, so it is a secret).
-                      One call per block, plus a few for a block that touches an Aruna account.
-  otherwise neardata  testnet.neardata.xyz, with FASTNEAR_API_KEY when set. Without a key it serves 30 blocks a
-                      minute, too slow to backfill or to follow the head.
---concurrency is how many blocks are read at a time. The default is 8 for an RPC endpoint and 16 for neardata.`;
+Block sources, chosen per height (no key needed):
+  live (config live_rpc)          dRPC, free. Holds about the last two days of blocks; reads them and the head.
+  QUICKNODE_RPC_URL               optional paid archive (the URL carries the token, so it is a secret). Reads only
+                                  the heights live no longer holds, then is never called again. 50 credits a call.
+  fallback (config fallback_rpc)  NEAR's archival RPC, free and slow (about 19 calls a minute). Reads what the
+                                  others cannot; a failing endpoint is benched for 5 minutes.
+  ARUNA_BLOCK_SOURCE=neardata     the older neardata path instead (testnet.neardata.xyz, FASTNEAR_API_KEY when set).
+--concurrency is how many blocks are read at a time. The default is 8 for the RPC sources and 16 for neardata.`;
 
 export interface IndexerConfig {
   network: string;
+  /** A free RPC endpoint that prunes old blocks, for recent blocks and the head. */
+  live_rpc: string;
+  /** A free archival RPC endpoint, slow, for whatever the others cannot read. */
+  fallback_rpc: string;
   neardata: string;
   start_block: number;
   factories: string[];
@@ -53,16 +60,48 @@ export function loadConfig(path?: string): IndexerConfig {
 /** Blocks read at a time from a QuickNode testnet endpoint. Measured on 11 November 2026: 12.5 blocks/s at 8, and slower above
  * it (10.6 at 16, 5.5 at 48) because the endpoint rate-limits and the retries cost more than the parallelism gains. */
 const RPC_CONCURRENCY = 8;
+/** dRPC's free tier: 733 calls a minute at 4 in flight on 12 November 2026, with an occasional 429 the retries absorb. */
+const LIVE_CONCURRENCY = 4;
+/** NEAR's archival RPC: about 19 calls a minute one at a time, with no 429, on 12 November 2026. */
+const FALLBACK_CONCURRENCY = 1;
 const NEARDATA_CONCURRENCY = 16;
 
 export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = process.env): { source: BlockSource<unknown>; label: string; defaultConcurrency: number } {
-  if (env.QUICKNODE_RPC_URL) return { source: rpcSource({ url: env.QUICKNODE_RPC_URL }), label: "RPC endpoint (QUICKNODE_RPC_URL)", defaultConcurrency: RPC_CONCURRENCY };
-  const apiKey = env.FASTNEAR_API_KEY || undefined;
-  return {
-    source: neardataSource({ baseUrl: config.neardata, apiKey }),
-    label: apiKey ? "neardata with a FastNear key" : "neardata without a key (30 blocks a minute)",
-    defaultConcurrency: NEARDATA_CONCURRENCY,
-  };
+  if (env.ARUNA_BLOCK_SOURCE === "neardata") {
+    const apiKey = env.FASTNEAR_API_KEY || undefined;
+    return {
+      source: neardataSource({ baseUrl: config.neardata, apiKey }),
+      label: apiKey ? "neardata with a FastNear key" : "neardata without a key (30 blocks a minute)",
+      defaultConcurrency: NEARDATA_CONCURRENCY,
+    };
+  }
+  if (env.FASTNEAR_API_KEY) console.error("FASTNEAR_API_KEY is set but not used: the RPC sources need no key (set ARUNA_BLOCK_SOURCE=neardata to use it)");
+  const quicknode = env.QUICKNODE_RPC_URL || undefined;
+  const source = routedSource({
+    archive: quicknode ? { source: rpcSource({ url: quicknode }), label: "QuickNode", concurrency: RPC_CONCURRENCY } : undefined,
+    live: { source: rpcSource({ url: config.live_rpc, proveSkips: true }), label: "dRPC", concurrency: LIVE_CONCURRENCY },
+    // The fallback can trail the head that dRPC reported, and answers UNKNOWN_BLOCK for a final block it has not
+    // synced yet, so it proves skips too. QuickNode reads only deep history, where UNKNOWN_BLOCK is a real skip.
+    fallback: { source: rpcSource({ url: config.fallback_rpc, proveSkips: true }), label: "NEAR archival", concurrency: FALLBACK_CONCURRENCY },
+    onSwitch: (label) => console.error(`block source now: ${label}`),
+  });
+  const label = quicknode ? "QuickNode to dRPC's edge, then dRPC; NEAR archival as fallback" : "dRPC; NEAR archival for older blocks and as fallback";
+  return { source, label, defaultConcurrency: RPC_CONCURRENCY };
+}
+
+/**
+ * Keeps ingest running in `serve`: a failed run is retried after 10 s with the same options, so the source keeps
+ * what it learned (the edge latch, benched endpoints) across retries (plan KTD3, KTD4).
+ */
+export async function ingestForever(options: IndexerOptions, run: typeof runIndexer = runIndexer, wait: (ms: number) => Promise<unknown> = sleep): Promise<never> {
+  for (;;) {
+    try {
+      await run({ ...options, follow: true });
+    } catch (e) {
+      console.error(`ingest stopped: ${e instanceof Error ? e.message : String(e)}; resuming in 10 s`);
+      await wait(10_000);
+    }
+  }
 }
 
 function ingestOptions(config: IndexerConfig, store: IndexerOptions["store"], concurrency: string | undefined): IndexerOptions {
@@ -131,14 +170,7 @@ async function main(argv: string[]): Promise<number> {
     const port = Number(values.port ?? process.env.PORT ?? 8080);
     await startServer({ store, port, host: values.host });
     console.error(`serving on :${port}, store ${dbPath}`);
-    for (;;) {
-      try {
-        await runIndexer({ ...ingestOptions(config, store, values.concurrency), follow: true });
-      } catch (e) {
-        console.error(`ingest stopped: ${e instanceof Error ? e.message : String(e)}; resuming in 10 s`);
-        await sleep(10_000);
-      }
-    }
+    await ingestForever(ingestOptions(config, store, values.concurrency));
   }
 
   if (cmd !== "index" && cmd !== "rebuild") {
