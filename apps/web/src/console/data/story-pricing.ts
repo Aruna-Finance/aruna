@@ -1,8 +1,8 @@
 import type { RiskClass } from "@/landing/lib/classifier-types";
-import { premium, type PricedClass } from "../landing/lib/premium-model";
-import { CLASS_RANK, type Policy } from "./data/vault";
+import { premium, type PricedClass } from "../../landing/lib/premium-model";
+import { CLASS_RANK, type Policy } from "./vault";
 
-// MOCK pricing for the console, on top of the landing's assumption table. Replace with the SDK's simulate().
+// MOCK pricing, used only by the guided story (data/story.ts). The live console never calls it: live prices come from the pool, see quote-live.ts.
 
 export type PolicyPrice =
   | { priced: false; reason: string }

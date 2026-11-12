@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RiskClass } from "@/landing/lib/classifier-types";
-import { policyPrice, tighteningOptions } from "./pricing";
+import { policyPrice, tighteningOptions } from "./story-pricing";
 
 const classes: Record<string, RiskClass> = {
   "vault.testnet": "immutable_verified",

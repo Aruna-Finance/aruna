@@ -4,7 +4,7 @@ import { coverageStore, quoteCoverage } from "./coverage-mock";
 import { claimsStore } from "./claims-mock";
 import { mockTargets } from "./mock";
 import { vaultStore } from "./vault-mock";
-import { policyPrice } from "../pricing";
+import { policyPrice } from "./story-pricing";
 import { n0, n2 } from "../fmt";
 
 // The guided demo. Each step runs against the same mock stores the screens read, so a visitor can leave at any

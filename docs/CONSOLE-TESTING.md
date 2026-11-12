@@ -138,7 +138,7 @@ Automated coverage: `agent-keys.test.ts`, `agent-actions.test.ts`, `data/agent-d
 | T2c | Resume `Ciz1uYRC...` (owner) from the list | [x] | tx `DYPDEnTnxmALhemqZzV2erBUBxwryrw4jPERPRS5P44D`: `resume_agent`, deposit 1 yocto, event Paused to Active |
 | T2d | Resume `arunaTest#1` (owner) from the list | [x] hash not recorded | chain: `arunaTest#1` is Active again and the vault balance rose by 1 yocto |
 | T2e | Pausing, then cancelling in the wallet: "Cancelled. Nothing was sent.", status unchanged | [ ] | not reported |
-| T3a | Agent detail, Policy tab: tighten Max per transaction 0.1 to 0.05, then loosen back, from the screen | [ ] | every agent still has `policyVersion` 1 |
+| T3a | Agent detail, Policy tab: tighten from the screen (Daily cap 0.4 to 0.2 on `arunaTest#1`) | [x] tighten, hash not recorded; loosen back not done | chain read of 12 November: `arunaTest#1` `policyVersion` 2, `dailyCap` 0.2 NEAR. The planned Max per transaction change was not the one made |
 | T3b | Policy as Operator: loosening is disabled with "An operator can only tighten a policy." | [ ] | unit test only |
 | T3c | Policy values above the ceiling or a per-transaction limit above the daily cap are refused before the wallet opens, naming the field | [ ] | unit tests only (`agent-actions.test.ts`) |
 | T3d | Add `swap.arunafi.testnet` to an agent's allowed targets | [ ] | all agents still allow only `drift-target` |
@@ -167,9 +167,38 @@ Throwaway account `434401c8f270e164674d6cfdd3057282a2505734bf7d07e2256eedfca935a
 
 ---
 
+## 5b. L4 and L5: playground, activity, overview
+
+Routes: `/console/playground/?vault=<id>`, `/console/dashboard/?vault=<id>` (the Overview), and the Activity tab of `/console/agents/detail?agent=<key>&vault=<id>`. History comes from `NEXT_PUBLIC_INDEXER_URL`; without it the recorded sample is shown and labelled.
+
+| ID | Scenario | Result | Evidence |
+|---|---|---|---|
+| P1 | Injected scenario on an agent whose own list holds the swap: five refusals (`TARGET_NOT_ALLOWED`, `MAX_PER_TX_EXCEEDED`, `SLIPPAGE_TOO_HIGH`, `TARGET_NOT_ALLOWED`, `TARGET_NOT_ALLOWED`), then Paused, auto-disabled, sixth attempt not sent | [x] | pasted screen output of 12 November on `l2ocbae`; also by script on `l3tjrlou` (add_agent `J4rMRqbDG7sMmfW1eginoVPMR4k99dnbnREcAwoR5LdB`, refusals `CVF8NVfbfY8DqWqmwkmQLvpJwKgneMxuFG6isQk9dMy3`, `ZdN6QWgk6iShf72H7G6ngVDecdmkqpdxXdpSRpmypAf`, `AvKHKNemzcwUM5A1D8qqkcSw8BPny8noYeKwHeY1eYZG`, `FPQ1uvRNKy2CNxhh6Sne22G6E8EysPDTiBxYUMSuwazF`, `GaKPcZq3VFGKZmL58ri9BBXLFQeaa5okwYrs11suyGsZ`) |
+| P2 | Honest scenario: one in-policy swap settles, agent stays Active | [x] hash not recorded | pasted screen output |
+| P3 | Agent whose list lacks the swap: the fifth check fails with a link to the agent | [x] | the first run showed `TARGET_NOT_ALLOWED` on every swap; the check was added after |
+| P4 | Stop pressed mid-run sends no further attempt | [ ] unit test only | `data/playground.test.ts` |
+| P5 | Reload mid-run shows "A previous run was interrupted" with the on-chain status | [ ] unit test only | `data/playground.test.ts` |
+| A1 | After a P1 run, the agent Activity tab lists each refusal with reason, class at refusal and a transaction link within one minute | [ ] | needs a healthy indexer |
+| A2 | Overview shows tiles, agents, contracts touched, exposure history and recent activity for a vault | [x] tiles, agents and contracts read from the chain; the two history panels showed the "History is not connected" message, since no indexer URL was set | pasted screen output of 12 November on `l2ocbae` (1 of 2 active, 0.9928 NEAR, exposure 0.2 NEAR at `swap.arunafi.testnet`, class `local_upgradeable`) |
+| A3 | With the indexer unreachable, the Overview totals still render and history says "unavailable since block N" | [ ] unit tests only | `ui/History.test.tsx`, `data/overview.test.ts` |
+| A4 | An exposure row shows the class recorded with it, which may differ from the target's class today | [ ] unit test only | `ui/History.test.tsx` |
+
+### Policy price (L5, second half)
+
+Open the agent detail Policy tab: `/console/agents/detail?agent=<key>&vault=<id>`. The "What this policy costs" panel asks `pool2.arunafi.testnet` for each allowed target.
+
+| ID | Scenario | Result | Evidence |
+|---|---|---|---|
+| C1 | Panel shows, per allowed target, the price on chain and the draft price, the draft labelled "proposed, not yet signed", and "Testnet, assumed numbers" | [x] | pasted screen output of 12 November on `l2ocbae`, agent with `drift-target` (class `global_by_account`): both columns 1.3325 NEAR with no change, can pay out up to 9.92 NEAR (0.4 NEAR x 31 days x 80%) |
+| C2 | Editing Daily cap moves the draft premium within about a second, nothing signed | [x] indirect | the intermediate screen was not pasted; the saved result matches the predicted draft (0.4 NEAR cap 1.3325 NEAR, 0.2 NEAR cap 0.6662 NEAR, payout 9.92 then 4.96 NEAR) |
+| C3 | Same cap change against the real pool by script: 2 NEAR gives 3.5877 NEAR, 1 NEAR gives 1.7939 NEAR, reachable payout bound by the cap, limit 64 NEAR | [x] | script run of 12 November on `l2ocbae`, agent `arunaTest#1`, target `swap.arunafi.testnet` |
+| C4 | Daily cap 0 shows "Not priced: a daily cap of zero leaves the exposure unbounded" for the draft, not a price | [x] by script and unit test | script run of 12 November; `data/price.test.ts` |
+| C5 | A class ceiling below the target's class shows "Not allowed: this draft's class ceiling excludes the target" | [x] by script and unit test | script run of 12 November; `data/price.test.ts` |
+| C6 | After Save the policy is signed, the on-chain price equals the draft price shown before | [x] hash not recorded | pasted screen of 12 November: "No change from the current policy", On chain now = Draft = 0.6662 NEAR, payout 4.96 NEAR, Daily cap 0,2; chain read: `arunaTest#1` `policyVersion` 2, `dailyCap` 0.2 NEAR, Active |
+
 ## 6. Gaps and gotchas
 
-- **Unproven from the screens (L3):** T1b, T2e, T3a to T3d, T5, T6, T7. Their chain behaviour is proven by S4 to S8; only the screen wiring is not.
+- **Unproven from the screens (L3):** T1b, T2e, T3a loosen, T3b to T3d, T5, T6, T7. Their chain behaviour is proven by S4 to S8; only the screen wiring is not.
 - **Not tested at all:** the real `/console/create/` screen (L2-6); any wallet other than the ones used; the indexer-backed Activity tab against a healthy hosted indexer.
 - **Frozen targets** can be chosen in the creator, the wizard and the policy editor. They are only marked.
 - **A frozen or unclassified target in an old ceiling:** the Ceiling panel drops a target that has no registry class on save and says so.

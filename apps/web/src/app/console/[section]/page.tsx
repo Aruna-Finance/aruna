@@ -29,7 +29,12 @@ export async function generateMetadata({ params }: { params: Promise<{ section: 
 export default async function Page({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
   if (!(section in SCREENS)) notFound();
-  if (section === "dashboard") return <Overview />;
+  if (section === "dashboard")
+    return (
+      <Suspense fallback={<p className="text-muted">Loading.</p>}>
+        <Overview />
+      </Suspense>
+    );
   if (section === "create") return <CreateVault />;
   if (section === "migrate") return <Migration />;
   if (section === "developers") return <Developers />;
