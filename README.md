@@ -37,7 +37,7 @@ passes), and `indexer` `cli.test.ts` "read-only directory" fails because Windows
 permission it relies on. `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (8), `attestor` (13), `sdk` (79), `mcp` (22), `indexer` (121, 3 skipped), `sim` (36) and `apps/web` (244).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (121, 3 skipped), `sim` (36) and `apps/web` (244).
 
 ### 2. Classify any NEAR contract
 
@@ -349,6 +349,41 @@ keyless half of `@aruna/sdk/coverage`. With an agent key, `node examples/mcp-smo
 starts the MCP server as a client would and calls `aruna_watch_target`, `aruna_budget`,
 `aruna_simulate` (with a coverage shape: verdict `block: TARGET_FROZEN` and the coverage premium),
 `aruna_spend` (the same refusal), `aruna_pool_book` and `aruna_drift_report` against the real vault.
+
+### 14. Move a vault to the current version
+
+Vaults are immutable, so a new version is a new vault. A vault made by the v0 factory (vault v2) was
+moved to the current version on 12 November 2026 with `aruna migrate`. Read the result, no key needed:
+
+```bash
+node packages/cli/dist/index.js classify mig1.factory2.arunafi.testnet --network testnet
+node fixtures/tools.mjs view mig1.factory2.arunafi.testnet get_agents
+node fixtures/tools.mjs view mig1.factory.arunafi.testnet get_agents
+```
+
+Expected: the new vault is `immutable_verified` with `"fullAccessKeyCount": 0`, `"functionCallKeyCount": 2` and
+resolved code hash `6fqp3des9ZNAdV3NfAWz8RDrXsqDnpRwqJ4BJAqzuFEh`; it holds the agents `trader` (`Active`) and
+`injected` (`Paused`), with the same public keys and limits as before; the old vault lists both as `Revoked`,
+has no access key, and keeps about 0.0138 NEAR for its storage. `registry2` lists the new vault under that hash:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet vaults_by_code_hash '{"code_hash":"6fqp3des9ZNAdV3NfAWz8RDrXsqDnpRwqJ4BJAqzuFEh","from":null,"limit":null}'
+```
+
+To move a vault of your own (testnet, and you must be its owner, with its key saved by near-cli-rs
+`save-to-legacy-keychain`; the key is never taken from an argument):
+
+```bash
+node packages/cli/dist/index.js migrate <old-vault> --name <new-name> --factory factory2.arunafi.testnet --as <owner> --dry-run
+node packages/cli/dist/index.js migrate <old-vault> --name <new-name> --factory factory2.arunafi.testnet --as <owner>
+```
+
+Expected: the dry run prints the agents carried (each with its state), the funds to move and a warning if
+coverage stays behind, and signs nothing. The real run asks before each transaction, then prints each
+transaction hash. Run the same command again: every step prints `skipped` and nothing is sent. What the move
+does not carry: active coverage (it stays with the old vault), each agent's daily usage and recorded
+exposure. Test USDC and other tokens move too (sandbox: `contracts/integration/tests/migrate.rs`); the testnet
+run above moved NEAR only. Decision: `docs/DECISIONS.md` D-65.
 
 ### 15. The pool simulation
 

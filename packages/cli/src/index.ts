@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// aruna — read-only operations. Never signs, never sends a transaction.
+// aruna — read-only, except `aruna migrate`, which signs with the owner's key (plan KTD14).
 
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { classify, parseImports, SCANNED_IMPORTS } from "@aruna/classifier-core";
 import { createFetchReader, type Network } from "@aruna/rpc";
 import { aggregate, readAccounts, runMeasure, writeMeasurement } from "./measure-cmd.js";
+import { MIGRATE_USAGE } from "./migrate-cmd.js";
 
 const USAGE = `aruna — can this NEAR contract still change?
 
@@ -17,6 +18,8 @@ Usage:
       Writes results.jsonl, aggregate.json and meta.json. Failed reads are listed apart, never as unknown.
   aruna imports <file.wasm>
       List a module's imports and the scanned host functions among them.
+
+${MIGRATE_USAGE}
 
 Environment: ARUNA_RPC_MAINNET / ARUNA_RPC_TESTNET override the endpoints (comma-separated).`;
 
@@ -96,6 +99,24 @@ async function main(argv: string[]): Promise<number> {
     const scanned = funcs.filter((f) => SCANNED_IMPORTS.includes(f));
     console.log(JSON.stringify({ imports: funcs, scannedPresent: scanned }, null, 2));
     return 0;
+  }
+
+  if (cmd === "migrate") {
+    // Loaded only here: it pulls in the SDK and a signer, which `classify` and `measure` never need.
+    const { runMigrateCommand } = await import("./migrate-cmd.js");
+    const { planMigration, runMigration, nearApiTransport } = await import("@aruna/sdk/vault");
+    const { createInterface } = await import("node:readline/promises");
+    const rl = createInterface({ input: process.stdin, output: process.stderr });
+    try {
+      return await runMigrateCommand(rest, {
+        sdk: { planMigration, runMigration },
+        makeTransport: (o) => nearApiTransport(o),
+        ask: (q) => rl.question(q),
+        out: (l) => console.log(l),
+      });
+    } finally {
+      rl.close();
+    }
   }
 
   console.error(`unknown command ${cmd}\n\n${USAGE}`);
