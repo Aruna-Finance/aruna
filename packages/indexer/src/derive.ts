@@ -3,6 +3,7 @@
 
 import type { DatabaseSync } from "node:sqlite";
 import type { ActivityKind, TokenKey } from "./api.js";
+import { applyCoverageAndDrift } from "./derive-coverage.js";
 import type { RawRecord } from "./ingest/parse.js";
 
 const KIND: Record<string, ActivityKind> = {
@@ -83,7 +84,11 @@ export function applyRecord(db: DatabaseSync, seq: number, rec: RawRecord): void
     return;
   }
 
-  if (!isVault) return;
+  if (!isVault) {
+    // Pools and registries: coverage, claims, drift reports, freezes, attestors and classes (R7).
+    applyCoverageAndDrift(db, seq, rec);
+    return;
+  }
   if (event === "owner_changed") db.prepare("UPDATE vaults SET owner = ? WHERE vault = ?").run(str(d.after), rec.contract);
   if (event === "operator_changed") db.prepare("UPDATE vaults SET operator = ? WHERE vault = ?").run(str(d.after), rec.contract);
 
