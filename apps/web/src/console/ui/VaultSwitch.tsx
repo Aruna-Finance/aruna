@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Check } from "@phosphor-icons/react";
 import { switchHref, switchOptions, type SwitchOption } from "../data/vault-switch";
+import { useOperatedVaults } from "../useOperatedVaults";
 import { useOwnedVaults } from "../useOwnedVaults";
 import { useWallet } from "../WalletContext";
 
@@ -11,13 +12,14 @@ import { useWallet } from "../WalletContext";
 export function VaultSwitch({ vault }: { vault: string }) {
   const { accountId } = useWallet();
   const owned = useOwnedVaults(accountId ?? null);
+  const operated = useOperatedVaults(accountId ?? null);
   const pathname = usePathname();
   const search = useSearchParams().toString();
   const router = useRouter();
   return (
     <VaultSwitchView
       vault={vault}
-      options={switchOptions(vault, owned.state === "ok" ? owned.list : [])}
+      options={switchOptions(vault, [...(owned.state === "ok" ? owned.list : []), ...(operated.state === "ok" ? operated.list : [])])}
       onPick={(v) => router.push(switchHref(pathname, search ? `?${search}` : "", v))}
     />
   );
