@@ -402,7 +402,9 @@ function CreatedVault({
   );
 }
 
-function MyVaults({ account, history }: { account: string | null; history: ReturnType<typeof defaultHistory> }) {
+export const vaultListNeedsIndexer = "Your vault list comes from the indexer, which is not connected in this build, so it cannot say which vaults you own.";
+
+export function MyVaults({ account, history }: { account: string | null; history: ReturnType<typeof defaultHistory> }) {
   const [rows, setRows] = useState<{ vault: string; role: string }[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -429,6 +431,16 @@ function MyVaults({ account, history }: { account: string | null; history: Retur
   if (!account) return null;
   return (
     <Panel title="Your vaults">
+      {history.source === "fixture" ? (
+        <p className="text-sm text-muted">
+          {vaultListNeedsIndexer}{" "}
+          <Link href="/console/lookup/" className="underline underline-offset-4">
+            Open a vault by name in Lookup
+          </Link>
+          .
+        </p>
+      ) : (
+        <>
       {rows && rows.length === 0 && <p className="text-sm text-muted">No vaults found for this account.</p>}
       {rows && rows.length > 0 && (
         <ul className="grid gap-2">
@@ -444,6 +456,8 @@ function MyVaults({ account, history }: { account: string | null; history: Retur
       )}
       {rows === null && !notice && <p className="text-sm text-muted">Reading your vaults.</p>}
       {notice && <p className="mt-3 text-sm text-muted">{notice}</p>}
+        </>
+      )}
     </Panel>
   );
 }
