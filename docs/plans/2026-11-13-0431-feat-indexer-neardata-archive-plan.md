@@ -24,6 +24,8 @@ execution: code
 
 ## Product Contract
 
+**Superseded in part (13 November 2026, user-directed):** QuickNode is the archive and neardata its backup, not the other way round, while the user waits on review of the FastNear key. Where this plan says neardata is the archive and QuickNode its backup (R4, R5, KTD1, the Key Decision on both keys set), read the roles swapped: with both set, QuickNode reads below dRPC's edge and neardata reads what QuickNode fails to serve; with only a key, neardata is the archive; without a key nothing changes. The router fix (KTD3) is unchanged.
+
 ### Summary
 
 With `FASTNEAR_API_KEY` set, the indexer reads every height below dRPC's lower edge from neardata, then switches to dRPC for the rest and the head, as it does with QuickNode today. Without the key nothing changes.

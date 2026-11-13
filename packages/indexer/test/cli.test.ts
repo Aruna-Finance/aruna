@@ -21,17 +21,18 @@ describe("which block source the CLI uses", () => {
     expect(label).not.toContain("quiknode.pro");
   });
 
-  it("uses neardata as the archive when FASTNEAR_API_KEY is set, and names it without printing the key", () => {
+  it("uses neardata as the archive when only FASTNEAR_API_KEY is set, and names it without printing the key", () => {
     const { label, defaultConcurrency } = chooseSource(config, { FASTNEAR_API_KEY: "fastnear-secret-key-123456" });
     expect(label).toBe("neardata to dRPC's edge, then dRPC; NEAR archival as fallback");
     expect(label).not.toContain("fastnear-secret-key-123456");
     expect(defaultConcurrency).toBe(8);
   });
 
-  it("puts QuickNode behind neardata as its backup when both are set", () => {
-    const { label } = chooseSource(config, { FASTNEAR_API_KEY: "k", QUICKNODE_RPC_URL: "https://x.quiknode.pro/secrettoken123/" });
-    expect(label).toBe("neardata (QuickNode as its backup) to dRPC's edge, then dRPC; NEAR archival as fallback");
+  it("keeps QuickNode as the archive and puts neardata behind it as its backup when both are set", () => {
+    const { label } = chooseSource(config, { FASTNEAR_API_KEY: "fastnear-secret-key-123456", QUICKNODE_RPC_URL: "https://x.quiknode.pro/secrettoken123/" });
+    expect(label).toBe("QuickNode (neardata as its backup) to dRPC's edge, then dRPC; NEAR archival as fallback");
     expect(label).not.toContain("secrettoken123");
+    expect(label).not.toContain("fastnear-secret-key-123456");
   });
 
   it("ignores the retired source switch and an empty key", () => {
