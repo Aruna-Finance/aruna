@@ -28,7 +28,7 @@ export function PoolView({ data, account }: { data: PoolLive; account: string | 
   const meta = useTokenMeta(tokens);
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">How much of the pool rests on one implementation</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Pool</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         Capital in the pool and the coverage it backs. Deposits and withdrawals aren&apos;t in the console yet.
       </p>
@@ -106,7 +106,7 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
                   <th className={th}>{by === "code_hash" ? "Code hash" : "Upgrade authority"}</th>
                   <th className={`${th} text-right`}>Limits</th>
                   <th className={`${th} text-right`}>Of the cap</th>
-                  <th className={th}>Targets</th>
+                  <th className={th}>Contracts</th>
                 </tr>
               </thead>
               <tbody>

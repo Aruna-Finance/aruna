@@ -1,5 +1,6 @@
 "use client";
 
+import { classLabelOf } from "@/landing/lib/class-labels";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AUTO_DISABLE_REASONS, readVault } from "@aruna/sdk";
@@ -33,7 +34,7 @@ const stepText = (s: StepState): string => {
     case "settled":
       return "Settled";
     case "refused":
-      return `Refused: ${s.reason}${s.targetClass ? ` (target class ${s.targetClass})` : ""}`;
+      return `Refused: ${s.reason}${s.targetClass ? ` (contract risk: ${classLabelOf(s.targetClass)})` : ""}`;
     case "failed":
       return `Failed: ${s.message}`;
     case "skipped":
@@ -124,7 +125,7 @@ function LivePlayground({ live }: { live: Extract<ReturnType<typeof useLiveVault
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Simulate and injection</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Playground</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         Send real testnet calls from an agent key in this browser and watch the vault allow or refuse them. Enough refusals stop the agent
         automatically.

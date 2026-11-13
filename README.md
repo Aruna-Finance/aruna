@@ -89,8 +89,8 @@ pnpm --filter @aruna/web build
 python3 -m http.server 4173 --directory apps/web/out
 ```
 
-Open `http://localhost:4173`, click `fx-guser.arunafi.testnet`. Expected: class
-`global_by_account` and a side-by-side table: `view_account.code_hash` marked wrong, `view_code.hash`
+Open `http://localhost:4173`, click `fx-guser.arunafi.testnet`. Expected: "Can change silently", with the
+technical class `global_by_account` beside it, and a side-by-side table: `view_account.code_hash` marked wrong, `view_code.hash`
 marked as the code that runs. The tab reads public RPC directly — no backend, no wallet. Switch
 the selector to mainnet and type `wrap.near` for a mainnet read.
 
@@ -156,7 +156,7 @@ whether it was seen on a screen, is in [`docs/CONSOLE-TESTING.md`](docs/CONSOLE-
 ### 5e. Run an agent from the console
 
 You need a vault from step 5d whose ceiling holds `swap.arunafi.testnet`, an agent whose allowed targets
-include it (the wizard's Targets step), and about 0.5 NEAR in the vault. The agent's key must be in this
+include it (the wizard's Contracts step), and about 0.5 NEAR in the vault. The agent's key must be in this
 browser, which it is if you created the agent here. Open
 `http://localhost:4173/console/playground/?vault=<your vault>`.
 
@@ -187,11 +187,11 @@ tests only.
 ### 5f. The overview, and what a policy costs
 
 Open `http://localhost:4173/console/dashboard/?vault=<your vault>`. Expected: tiles for the vault balance,
-active agents and recorded exposure, a table of your agents, and the contracts they touch with the exposure
-recorded to each and the class recorded with it. Exposure is what was sent through the vault, not the value of a
+active agents and the amount sent through the vault, a table of your agents, and the contracts they touch with the
+exposure recorded to each and its risk when last sent to (for example "Upgradeable by owner"; hover for the technical class). Exposure is what was sent through the vault, not the value of a
 position. These numbers come from `readVault`; they do not depend on the indexer.
 
-Then open an agent (`Agents`, click its name), the **Policy** tab, and the panel **What this policy costs**. It
+Then open an agent (`Agents`, click its name), the **Limits** tab, and the panel **What these limits cost**. It
 shows, for each allowed target, the pool's premium with the policy as it is on chain and with the draft you are
 editing, the draft labelled "proposed, not yet signed", and "Testnet, assumed numbers". Change **Daily cap** from
 0.4 to 0.2 NEAR. Expected: the draft premium falls to about half and the on-chain one does not move. The price is
@@ -303,9 +303,9 @@ node fixtures/tools.mjs view pool2.arunafi.testnet get_book '{"token":"near"}'
 ### 5k. Targets, read from the registry
 
 1. Open `https://www.arunafi.xyz/console/targets/`. Expected: a table of the seeded targets and every target the pool has
-   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded `global_by_account`, attestor
+   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded "Can change silently" (`global_by_account`, in the tooltip), attestor
    `attestor-a.arunafi.testnet` with its heartbeat state, not frozen once the keeper has released it after report 2 (it was frozen
-   from that report until 13 November 2026); `swap.arunafi.testnet` recorded `local_upgradeable`, with the same attestor assigned.
+   from that report until 13 November 2026); `swap.arunafi.testnet` recorded "Upgradeable by owner" (`local_upgradeable`), with the same attestor assigned.
 2. Open `https://www.arunafi.xyz/console/targets/detail/?id=drift-target.arunafi.testnet`. Expected: the registry's record
    (class, block, classifier, evidence hash, resolved code hash, upgrade authority) beside a fresh run of
    `@aruna/classifier-core` over public RPC, a sentence saying whether the two classes agree, and the latest drift report.

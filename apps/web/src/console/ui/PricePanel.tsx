@@ -44,7 +44,7 @@ export function PricePanel({ live, a, draft }: { live: Ok; a: AgentView; draft: 
   const assumptions = rows?.map((r) => (r.draft.ok ? r.draft.quote.assumptions.label : r.onChain.ok ? r.onChain.quote.assumptions.label : null)).find((x) => x) ?? null;
 
   return (
-    <Panel title="What this policy costs" aside={<span className="text-sm text-muted">Testnet, assumed numbers</span>}>
+    <Panel title="What these limits cost" aside={<span className="text-sm text-muted">Testnet, assumed numbers</span>}>
       {failure ? (
         <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not get a price from the pool. {failure}</p>
       ) : rows === null ? (

@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ROLES, SCREEN_IDS, roleById, roleFor, type ScreenId } from "./nav";
+import { usePathname, useRouter } from "next/navigation";
+import { Select } from "@/shared/Select";
+import { LISTED_ROLES, SCREEN_IDS, roleById, roleFor, type RoleId, type ScreenId } from "./nav";
 import { useRole } from "./RoleContext";
 import { WalletButton } from "./ui/WalletButton";
 
@@ -15,16 +16,18 @@ const screenOf = (path: string): ScreenId | null => {
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const screen = screenOf(path);
-  const { role, setRole } = useRole();
+  const router = useRouter();
+  const { role, setRole, ready } = useRole();
 
-  // A deep link to a screen the current role does not have switches to the role that does.
+  // A deep link to a screen the current role does not have switches to the role that does. It runs again once the
+  // stored role is read, so a role restored from storage never shows a sidebar the page is not in.
   useEffect(() => {
-    if (screen) {
+    if (screen && ready) {
       const next = roleFor(screen, role);
       if (next !== role) setRole(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen]);
+  }, [screen, ready]);
 
   const current = roleById(role);
 
@@ -36,20 +39,20 @@ export function Shell({ children }: { children: ReactNode }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/logo.png" alt="" width={40} height={40} className="size-10" />
           </Link>
-          <nav aria-label="Role" className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
-            {ROLES.map((r) => (
-              <Link
-                key={r.id}
-                href={`/console/${r.home}/`}
-                onClick={() => setRole(r.id)}
-                aria-current={r.id === role ? "true" : undefined}
-                className="label shrink-0 border border-transparent px-3 py-2 text-[13px] transition-colors hover:border-line-2 aria-[current=true]:border-ink aria-[current=true]:bg-ink aria-[current=true]:text-paper"
-              >
-                {r.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="label hidden shrink-0 text-xs text-muted sm:inline">View as</span>
+            <Select<RoleId>
+              label="View as"
+              value={role}
+              options={[...LISTED_ROLES, ...(current.unlisted ? [current] : [])].map((r) => ({ value: r.id, label: r.label }))}
+              onValueChange={(id) => {
+                setRole(id);
+                router.push(`/console/${roleById(id).home}/`);
+              }}
+              className="w-full max-w-[260px] min-w-0! truncate py-2.5! [&>span]:truncate"
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
             <span className="label hidden border border-line-2 px-2 py-0.5 text-xs sm:inline">testnet</span>
             <WalletButton />
           </div>
@@ -72,9 +75,17 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           <Link
+            href="/console/developers/"
+            onClick={() => setRole("developer")}
+            aria-current={screen === "developers" ? "page" : undefined}
+            className="shrink-0 px-3 py-2 text-[13px] text-muted transition-colors hover:bg-wash aria-[current=page]:bg-fog lg:mt-auto"
+          >
+            Developers
+          </Link>
+          <Link
             href="/console/story/"
             aria-current={screen === "story" ? "page" : undefined}
-            className="shrink-0 px-3 py-2 text-[13px] text-muted transition-colors hover:bg-wash aria-[current=page]:bg-fog lg:mt-auto"
+            className="shrink-0 px-3 py-2 text-[13px] text-muted transition-colors hover:bg-wash aria-[current=page]:bg-fog"
           >
             Demo (mock data)
           </Link>

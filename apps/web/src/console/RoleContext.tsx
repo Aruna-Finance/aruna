@@ -3,11 +3,13 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { ROLES, type RoleId } from "./nav";
 
 const KEY = "aruna.console.role";
-const Ctx = createContext<{ role: RoleId; setRole: (r: RoleId) => void }>({ role: "owner", setRole: () => {} });
+const Ctx = createContext<{ role: RoleId; setRole: (r: RoleId) => void; ready: boolean }>({ role: "owner", setRole: () => {}, ready: false });
 
 /** The active role. A per-viewer convenience kept in localStorage; the page works without it. */
 export function RoleProvider({ children }: { children: ReactNode }) {
   const [role, setRoleState] = useState<RoleId>("owner");
+  // True once the stored role has been read, so a deep link is matched against the role the viewer will actually see.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -16,6 +18,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     } catch {
       /* storage blocked: keep the default */
     }
+    setReady(true);
   }, []);
 
   const setRole = (r: RoleId) => {
@@ -27,7 +30,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return <Ctx.Provider value={{ role, setRole }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ role, setRole, ready }}>{children}</Ctx.Provider>;
 }
 
 export const useRole = () => useContext(Ctx);

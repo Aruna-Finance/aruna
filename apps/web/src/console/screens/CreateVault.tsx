@@ -225,7 +225,7 @@ export function CreateVault() {
           <div className="mt-5 sm:max-w-xl">
             <div className="flex items-end gap-3">
               <div className="min-w-0 flex-1">
-                <TextField label="Add a classified target" value={extra} onChange={setExtra} mono />
+                <TextField label="Add a checked contract" value={extra} onChange={setExtra} mono />
               </div>
               <Button type="button" variant="outline" className="inline-flex h-[51px] items-center py-0!" onClick={addExtra} disabled={!info || !extra.trim()}>
                 Check

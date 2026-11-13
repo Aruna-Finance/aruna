@@ -37,7 +37,7 @@ export function Lookup() {
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Look up an agent before you transact with it</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Check an agent</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         See what an agent&apos;s vault allows before you deal with it. No login needed.
       </p>
@@ -53,7 +53,7 @@ export function Lookup() {
           >
             <div className="w-full flex-1 sm:min-w-72 sm:max-w-xl">
               <TextField
-                label="Vault account"
+                label="Vault"
                 value={draft}
                 onChange={setDraft}
                 mono
@@ -130,7 +130,7 @@ export function Lookup() {
                 </div>
                 {state.view.ceiling && (
                   <div>
-                    <dt className="text-muted">Owner ceiling</dt>
+                    <dt className="text-muted">Vault limits</dt>
                     <dd className="mono">
                       {yoctoToNear(state.view.ceiling.maxPerTx)} NEAR per tx, {yoctoToNear(state.view.ceiling.dailyTotal)} NEAR per day
                     </dd>
@@ -159,7 +159,7 @@ export function Lookup() {
                             </Link>
                           </td>
                           <td className={`${td} ${a.status !== "Active" || a.autoDisabled ? "text-dawn-ink" : ""}`}>
-                            {a.autoDisabled ? "Auto-disabled" : a.status}
+                            {a.autoDisabled ? "Stopped by vault" : a.status}
                           </td>
                           <td className={`${td} mono text-sm break-all`}>{a.publicKey}</td>
                         </tr>

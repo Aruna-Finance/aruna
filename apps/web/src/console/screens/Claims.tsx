@@ -33,7 +33,7 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Reports and claims</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Change reports and claims</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         Code-change reports and claims are public. A report freezes the contract.
       </p>
@@ -43,7 +43,7 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
         {data.state === "error" && <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the reports and claims. {data.message}</p>}
         {data.state === "ok" && (
           <>
-            <Panel title="Drift reports on your covered targets">
+            <Panel title="Code changes on your covered contracts">
               {data.reports.length ? (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[640px] border-collapse text-[15px]">

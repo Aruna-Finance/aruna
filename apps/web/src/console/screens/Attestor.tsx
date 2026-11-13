@@ -19,7 +19,7 @@ export function Attestor() {
 export function AttestorView({ data }: { data: AttestorsLive }) {
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Attestors</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Who reports code changes</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         You trust one attestor to report code changes, and an arbiter to settle conflicting reports. Aruna runs both on testnet. This page shows
         what they are doing.
@@ -73,7 +73,7 @@ function Body({ data }: { data: Extract<AttestorsLive, { state: "ok" }> }) {
               </dl>
             )}
 
-            <h3 className="mt-6 text-base font-medium">Targets it watches</h3>
+            <h3 className="mt-6 text-base font-medium">Contracts it watches</h3>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-[15px]">
                 <thead>

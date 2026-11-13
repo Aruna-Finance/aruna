@@ -37,7 +37,7 @@ import { TokenIcon } from "../ui/Token";
 type Tab = "overview" | "policy" | "activity" | "funding" | "access";
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "policy", label: "Policy" },
+  { id: "policy", label: "Limits" },
   { id: "activity", label: "Activity" },
   { id: "funding", label: "Funds and allowance" },
   { id: "access", label: "Key and proof" },
@@ -197,7 +197,7 @@ function OverviewTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; 
           <p className="text-sm text-muted">This agent has no NEAR limit.</p>
         )}
       </Panel>
-      <Panel title="Recorded exposure on this vault">
+      <Panel title="Sent through this vault">
         <p className="-mt-2 mb-4 max-w-[70ch] text-sm text-muted">
           This is what passed through the vault, not the position&apos;s current value. The vault cannot read the target&apos;s state, and payouts use this
           figure. It is counted per vault and target, not per agent.
@@ -294,7 +294,7 @@ function PolicyTab({ live, a, actor, reason }: { live: Extract<LiveVault, { stat
           </div>
           <ClassPicker value={d.maxClass} onChange={(maxClass) => setD({ ...d, maxClass })} />
           <fieldset>
-            <legend className="text-sm font-medium">Allowed targets</legend>
+            <legend className="text-sm font-medium">Allowed contracts</legend>
             <ul className="mt-2 grid gap-2 sm:grid-cols-2">
               {ceiling.allowedTargets.map((t) => {
                 const o = options.find((x) => x.target === t);
@@ -405,7 +405,7 @@ function FundingTab({ live, a, actor, reason }: { live: Extract<LiveVault, { sta
         </div>
       </Panel>
 
-      <Panel title="Gas allowance" aside={<span className="text-[28px] leading-none">{allowance === null ? "none" : yoctoToNear(allowance)} <small className="text-base text-muted">NEAR</small></span>}>
+      <Panel title="Fee allowance" aside={<span className="text-[28px] leading-none">{allowance === null ? "none" : yoctoToNear(allowance)} <small className="text-base text-muted">NEAR</small></span>}>
         <p className="-mt-2 mb-5 text-sm leading-[1.6] text-muted">
           A classic allowance on the key, paid from the vault&apos;s balance. The owner&apos;s ceiling sets it when an agent is added. This console cannot change it
           on an existing key.

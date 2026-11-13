@@ -1,5 +1,6 @@
 "use client";
 
+import { classLabelOf } from "@/landing/lib/class-labels";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createTestnetReads } from "../chain-reads";
@@ -56,7 +57,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Agents and what they have at stake</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Overview</h1>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <p className="border-l-[3px] border-line-2 bg-fog px-5 py-4 text-[15px] leading-[1.6]">
@@ -75,7 +76,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
             {balance === null ? <span className="text-base text-muted">unknown</span> : yoctoToNear(balance.toString())}
             <small className="ml-1 text-base text-muted">NEAR</small>
           </Tile>
-          <Tile label="Recorded exposure">
+          <Tile label="Sent through vault">
             {yoctoToNear(o.exposureNear.toString())}
             <small className="ml-1 text-base text-muted">NEAR</small>
           </Tile>
@@ -137,7 +138,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
                 <thead>
                   <tr>
                     <th className={th}>Target</th>
-                    <th className={th}>Class when last sent to</th>
+                    <th className={th}>Risk when last sent to</th>
                     <th className={`${th} text-right`}>Your exposure</th>
                     <th className={`${th} text-right`}>Agents allowed</th>
                   </tr>
@@ -146,7 +147,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
                   {o.targets.map((r) => (
                     <tr key={r.target}>
                       <td className={`${td} mono break-all text-sm`}>{r.target}</td>
-                      <td className={`${td} text-sm`}>{r.classAtRecord ?? <span className="text-muted">Nothing sent yet</span>}</td>
+                      <td className={`${td} text-sm`}>{(r.classAtRecord && classLabelOf(r.classAtRecord)) ?? <span className="text-muted">Nothing sent yet</span>}</td>
                       <td className={`${td} mono whitespace-nowrap text-right`}>{yoctoToNear(r.exposure.toString())} NEAR</td>
                       <td className={`${td} mono text-right`}>{r.allowedBy}</td>
                     </tr>

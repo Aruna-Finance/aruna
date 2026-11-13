@@ -104,7 +104,7 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
       <h1 className="mt-3 break-all text-[clamp(28px,4vw,44px)]">{id}</h1>
       <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
         {rec ? <ClassTag c={rec.class} /> : <span className="mono text-sm text-muted">not recorded</span>}
-        {rec?.frozen && <span className="text-sm text-dawn-ink">Frozen by a drift report</span>}
+        {rec?.frozen && <span className="text-sm text-dawn-ink">Frozen by a change report</span>}
         <span className="text-sm text-muted">Read at block {blk(head)}.</span>
       </p>
 
@@ -199,7 +199,7 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
           </Panel>
         )}
 
-        <Panel title="Latest drift report">
+        <Panel title="Latest change report">
           {t.latest ? (
             <p className="text-[15px]">
               <Link href={`/console/claims/detail/?id=${t.latest.id}`} className="underline underline-offset-4">
@@ -208,7 +208,7 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
               <span className="mono text-sm text-muted">{STATE_TEXT[t.latest.state] ?? t.latest.state}</span>, changed at block {blk(t.latest.changedAtBlock)}.
             </p>
           ) : (
-            <p className="text-sm text-muted">No drift report has been made on this target.</p>
+            <p className="text-sm text-muted">No code change has been reported on this contract.</p>
           )}
         </Panel>
 

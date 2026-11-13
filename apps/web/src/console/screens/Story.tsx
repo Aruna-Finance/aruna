@@ -88,11 +88,11 @@ export function Story() {
               <dd className="mono">{n0(poolCapital)} USDC</dd>
             </div>
             <div>
-              <dt className="text-muted">Your coverage policies</dt>
+              <dt className="text-muted">Coverage bought</dt>
               <dd className="mono">{policies.length}</dd>
             </div>
             <div>
-              <dt className="text-muted">Drift reports</dt>
+              <dt className="text-muted">Change reports</dt>
               <dd className="mono">{reports.length}</dd>
             </div>
             <div>

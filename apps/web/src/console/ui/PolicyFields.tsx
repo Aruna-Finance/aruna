@@ -58,7 +58,7 @@ export function LimitFields({ d, set }: { d: PolicyDraft; set: (d: PolicyDraft) 
 export function ClassPicker({ value, onChange }: { value: RiskClass; onChange: (c: RiskClass) => void }) {
   return (
     <fieldset>
-      <legend className="text-sm font-medium">Riskiest class the agent may touch</legend>
+      <legend className="text-sm font-medium">Riskiest contracts the agent may use</legend>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         {CLASS_ORDER.map((c) => (
           <label key={c} className="flex cursor-pointer items-start gap-3 border border-line p-3 has-[:checked]:border-ink">
@@ -91,7 +91,7 @@ export function TargetPicker({
 }) {
   return (
     <fieldset>
-      <legend className="text-sm font-medium">Allowed targets</legend>
+      <legend className="text-sm font-medium">Allowed contracts</legend>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         {targets.map((t) => {
           const c = classes[t.id];

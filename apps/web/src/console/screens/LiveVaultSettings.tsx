@@ -1,5 +1,6 @@
 "use client";
 
+import { classLabelOf } from "@/landing/lib/class-labels";
 import { isValidAccountId } from "@aruna/rpc";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/Button";
@@ -130,24 +131,24 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
   return (
     <Panel
       className="mt-6"
-      title="Ceiling"
+      title="Vault limits"
       aside={
         <Button type="button" disabled={!v.enabled || !!problem} onClick={save}>
-          Save the ceiling
+          Save vault limits
         </Button>
       }
     >
       <p className="max-w-[70ch] text-sm leading-[1.6] text-muted">
         The most any agent on this vault can be given. Now: {yoctoToNear(c.maxPerTx)} NEAR per transaction, {yoctoToNear(c.dailyTotal)} NEAR a day, riskiest
-        class <span className="mono">{c.maxRiskClass}</span>.
+        contracts allowed: {classLabelOf(c.maxRiskClass)}.
       </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
         <NumberField label="Max per transaction" suffix={<TokenIcon t="NEAR" />} step={0.1} value={maxTx} onChange={setMaxTx} />
         <NumberField label="Daily total" suffix={<TokenIcon t="NEAR" />} step={0.5} value={daily} onChange={setDaily} />
-        <NumberField label="Gas allowance for new agents" suffix={<TokenIcon t="NEAR" />} step={0.1} value={allowance} onChange={setAllowance} />
+        <NumberField label="Fee allowance per new agent" suffix={<TokenIcon t="NEAR" />} step={0.1} value={allowance} onChange={setAllowance} />
       </div>
       <fieldset className="mt-6">
-        <legend className="text-sm font-medium">Allowed targets</legend>
+        <legend className="text-sm font-medium">Allowed contracts</legend>
         <ul className="mt-2 grid gap-2">
           {options.map((o) => (
             <li key={o.target} className="flex flex-wrap items-center gap-3">
@@ -180,7 +181,7 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
         <div className="mt-4 sm:max-w-xl">
           <div className="flex items-end gap-3">
             <div className="min-w-0 flex-1">
-              <TextField label="Add a classified target" mono value={extra} onChange={setExtra} />
+              <TextField label="Add a checked contract" mono value={extra} onChange={setExtra} />
             </div>
             <Button type="button" variant="outline" className="inline-flex h-[51px] items-center py-0!" onClick={addExtra} disabled={!extra.trim()}>
               Check

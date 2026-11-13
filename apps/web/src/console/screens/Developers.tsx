@@ -63,7 +63,7 @@ function ToolTable({ rows }: { rows: { tool: string; input: string; returns: str
 export function Developers() {
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">MCP tools and the SDK</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">SDK and MCP</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         Tools for agents whose framework speaks tool-calling. They wrap <span className="mono">@aruna/sdk</span>.
       </p>

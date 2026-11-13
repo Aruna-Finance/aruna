@@ -1,5 +1,6 @@
 "use client";
 
+import { classLabelOf } from "@/landing/lib/class-labels";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/Button";
 import { yoctoToNear } from "../fmt";
@@ -61,7 +62,7 @@ export function PhaseView({ phase }: { phase: TxPhase }) {
       return (
         <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]" role="status">
           The vault refused it: <span className="mono">ARUNA_{phase.reason}</span>
-          {phase.targetClass && <> (target class {phase.targetClass})</>}. This is a recorded outcome, not an error.{" "}
+          {phase.targetClass && <> (contract risk: {classLabelOf(phase.targetClass)})</>}. This is a recorded outcome, not an error.{" "}
           {phase.hash && (
             <a href={explorerTxUrl(phase.hash)} target="_blank" rel="noreferrer" className="mono underline underline-offset-4">
               View transaction

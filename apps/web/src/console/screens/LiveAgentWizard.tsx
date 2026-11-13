@@ -24,7 +24,7 @@ import { Panel } from "../ui/Panel";
 import { ClassPicker } from "../ui/PolicyFields";
 import { TokenIcon } from "../ui/Token";
 
-const STEPS = ["Identity", "Policy", "Targets", "Review"] as const;
+const STEPS = ["Identity", "Limits", "Contracts", "Review"] as const;
 const NETWORK = "testnet";
 
 const CONNECT = `const check = await mcp.call("aruna_simulate", params);

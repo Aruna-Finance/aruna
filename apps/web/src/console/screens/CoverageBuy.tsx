@@ -1,5 +1,6 @@
 "use client";
 
+import { classLabelOf } from "@/landing/lib/class-labels";
 import { quoteCoverage, type QuoteResult } from "@aruna/sdk/coverage";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -123,7 +124,7 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
   return (
     <article>
       <Crumb vault={vault} />
-      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Buy coverage on one target</h1>
+      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Buy coverage</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         Pick an agent and a contract, then a limit and a payout ratio. The price is the pool&apos;s own quote. Testnet, in NEAR.
       </p>
@@ -152,8 +153,8 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
                 <small className="ml-1 text-base text-muted">NEAR</small>
               </p>
               <p className="text-sm text-muted">
-                For a {days} day window, class {cell.cls}. The coverage can pay out up to {cell.reachable} NEAR, bounded by the agent&apos;s daily
-                cap. P(event) is an assumption of the pool, not a measurement.
+                For a {days} day window, risk &ldquo;{cell.cls ? classLabelOf(cell.cls) : "not recorded"}&rdquo;. The coverage can pay out up to {cell.reachable} NEAR, bounded by the agent&apos;s daily
+                cap. The chance of a code change is an assumption of the pool, not a measurement.
               </p>
               {quote?.ok && <p className="mono text-xs text-muted">{quote.quote.assumptions.label}</p>}
             </div>
@@ -171,7 +172,7 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
           </div>
         </Panel>
 
-        <Panel title="Policy">
+        <Panel title="What to cover">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <p className="text-sm font-medium">Agent</p>

@@ -23,7 +23,7 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
   const problem = other.trim() === "" ? null : targetIdProblem(other);
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Targets and their risk classes</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Contracts</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         Contracts your agents may use, and whether their code can still change.
       </p>
@@ -44,7 +44,7 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
                     <th className={th}>Target</th>
                     <th className={th}>Recorded class</th>
                     <th className={th}>Attestor</th>
-                    <th className={th}>Latest drift report</th>
+                    <th className={th}>Latest change report</th>
                     <th className={`${th} text-right`}>Recorded</th>
                   </tr>
                 </thead>
@@ -90,7 +90,7 @@ function Row({ t, head }: { t: RegistryTarget; head: number }) {
         <Link href={targetHref(t.target)} className="mono block break-all underline-offset-4 hover:underline">
           {t.target}
         </Link>
-        {rec?.frozen && <span className="mono text-xs text-dawn-ink">frozen by a drift report</span>}
+        {rec?.frozen && <span className="mono text-xs text-dawn-ink">frozen by a change report</span>}
       </td>
       <td className={td}>{rec ? <ClassTag c={rec.class} /> : <span className="text-sm text-muted">Not recorded</span>}</td>
       <td className={`${td} text-sm`}>

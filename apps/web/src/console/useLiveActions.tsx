@@ -183,12 +183,12 @@ export function useLiveActions(vault: string, refresh: () => void) {
 
   const setCeiling = (ceiling: Record<string, unknown>, summary: string[]) =>
     ask({
-      title: "Change the ceiling?",
-      label: "Change ceiling",
+      title: "Change the vault limits?",
+      label: "Change vault limits",
       method: "set_ceiling",
       depositYocto: "1",
       actions: summary,
-      note: "The ceiling limits every agent on this vault. Only the owner can change it.",
+      note: "Vault limits apply to every agent on this vault. Only the owner can change them.",
       okLabel: "Save the ceiling",
       send: (c) => c.owner.setCeiling(ceiling),
     });
