@@ -76,6 +76,11 @@ historical `view_code`; without history, the block after the last unchanged obse
 lag is the polling interval; a change older than the lookback bound can no longer be reported. Reports are signed over a domain
 prefix plus the report's borsh encoding (D-58), fixed by `fixtures/golden/drift-report.json`.
 
+**Hosted.** The attestor follows the targets the registry assigns to it (the indexer lists them, a seed list covers a
+lagging indexer, and each is confirmed with `assigned_attestor`), sends a heartbeat about every three minutes, and
+reads its keys from the environment, so it runs as a service with its state on a volume
+(`docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`).
+
 ## Report shape
 
 ```ts
@@ -133,6 +138,14 @@ arbiter decides       parametric payout from pool, to the owner
    ├─ report upheld   → claim approved, payout
    └─ report rejected → claim rejected, bond slashed
 ```
+
+## Releasing the freeze
+
+A freeze ends only with the registry owner's `lift_freeze`, which needs the latest report to be final. A hosted keeper
+(`packages/keeper`, D-67) does it once the target's new code is classified: it lifts the freeze and writes the new class
+when that class is no riskier than the recorded one, and leaves the freeze for a person when it is riskier. Claims do not
+depend on it; they read the report's state. The keeper is Aruna's, run as the registry owner; it is separate from the
+attestor so an attestor run by someone else never carries its code or key.
 
 ## Payout
 

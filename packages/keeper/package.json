@@ -1,0 +1,30 @@
+{
+  "name": "@aruna/keeper",
+  "version": "0.1.0",
+  "description": "Aruna freeze keeper: after a drift report is final, re-classifies the target with the shared classifier, writes its class to the registry and lifts the freeze when the new class is no riskier. Testnet only.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "aruna-keeper": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aruna/classifier-core": "workspace:*",
+    "@aruna/indexer": "workspace:*",
+    "@aruna/rpc": "workspace:*",
+    "@aruna/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

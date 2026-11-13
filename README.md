@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (314).
+ skipped), `cli` (28), `attestor` (38), `keeper` (29), `sdk` (110), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (314).
 
 ### 2. Classify any NEAR contract
 
@@ -516,6 +516,21 @@ and the derived concentration limit. To regenerate everything from nothing (abou
 `cargo test -p aruna-pool golden` (in `contracts/`) and `pnpm --filter @aruna/sim test`. Nothing here is
 measured: how often contracts really change is still open (`docs/DECISIONS.md`, question 1).
 
+### 16. Are the attestor and the keeper alive?
+
+After the two services are deployed (`docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`):
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"swap.arunafi.testnet"}'
+node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"drift-target.arunafi.testnet"}'
+node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"drift-target.arunafi.testnet"}'
+```
+
+No key needed. Expected with both services running: `true`, `true`, and a class record with `"frozen":false`. Without the
+attestor, `heartbeat_fresh` reads `false` once its last heartbeat is more than 600 blocks old (on 13 November 2026 it did,
+for `drift-target`). The rules of both services run against a fake registry, with no key and no network:
+`pnpm --filter @aruna/attestor --filter @aruna/keeper test`.
+
 ---
 
 ## The measurement
@@ -568,6 +583,12 @@ before its challenge window closes: with one attestor, one party can freeze any 
 any time, bounded only by its bond and the arbiter's slashing. That is deliberate, so agents stop
 spending into a target whose code changed (`docs/DECISIONS.md` D-59).
 
+A third piece of Aruna's own automation is not a trust assumption but is worth naming: a keeper
+(`packages/keeper`) that, once a drift report is final, re-classifies the target and lifts its freeze when the new
+class is no riskier, or leaves it for a person when it is riskier. It acts as the registry owner through a
+function-call key limited to `set_class` and `lift_freeze`, and the key can record any target as any class
+(`docs/DECISIONS.md` D-67). It is Aruna's, run by Aruna, and not independent of it.
+
 Aruna is verifiable and reproducible. It is not trustless.
 
 ## Limits
@@ -592,7 +613,7 @@ Aruna is verifiable and reproducible. It is not trustless.
 | live classifier page (`apps/web`) | migration tooling between vault versions |
 | keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | an attestor independent of Aruna |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
-| testnet fixtures and the drift demo | |
+| testnet fixtures and the drift demo | the attestor and the keeper running as hosted services (`docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`) |
 | lab evidence T0–T9 | |
 | vault, registry and factory on testnet; vault self-classified `immutable_verified` | |
 | spend path, reservations, auto-disable and one swap adapter, proven on a sandbox | |
@@ -608,7 +629,8 @@ packages/rpc               fetch-based RpcReader with endpoint fallback, browser
 packages/cli               aruna classify | measure | imports
 packages/sdk               Classifier (check, watch), readVault, vault role clients, coverage clients and quote, ABI-generated types
 packages/mcp               MCP server: aruna_check_target, aruna_watch_target, aruna_explain_class, aruna_read_vault, coverage reads, agent tools
-packages/attestor          drift attestor: watches targets, files signed reports and heartbeats
+packages/attestor          drift attestor: follows the registry's assignments, files signed reports and heartbeats
+packages/keeper            freeze keeper: after a final report, re-classifies and lifts the freeze when the class is no riskier
 packages/indexer           testnet aruna events into Postgres, served over a read-only HTTP API
 packages/sim               empty in v0: the pool simulation follows
 contracts/                 vault, registry, factory, pool, common; integration tests on a sandbox

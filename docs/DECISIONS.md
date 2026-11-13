@@ -447,6 +447,24 @@ for every value tried and constrain nothing; claims refused for want of capital 
 makes "unpaid at the end" forgiving, so the peak owed at once is reported beside it; and the selection rule
 was fixed after an exploratory run, not before.
 
+### D-67 — A keeper releases a freeze after re-classification, when the class is no riskier
+Supersedes D-59's practice of an owner review before every `lift_freeze`. Once a target's latest report is final
+(Verified or Rejected) and its class record is older than that report, a keeper service re-classifies the target with
+the same engine, then lifts the freeze and writes the new class; when the new class is riskier than the recorded one
+(`immutable_verified < local_upgradeable < global_by_account < unknown`) it writes the class and leaves the freeze for a
+person. It never acts while the latest report is Pending or Disputed. The chain is its only memory: a record newer than
+the report means the target is handled, and the lift comes before the write, so a run that stops between them is
+finished by the next. Run by Aruna, as the registry owner, with a function-call key limited to the registry and to
+`set_class` and `lift_freeze`, in a service of its own (`packages/keeper`) so an attestor run by someone else, a
+condition of release gate B, never carries this code or key. It is Aruna's automation of the registry owner's authority,
+not a third trust party.
+Costs accepted. Spending into the changed code reopens without a person having read it; what still protects an owner
+is the class order here and each agent's `max_risk_class`. The key can record any target as any class, so a leak could
+record a dangerous target as `immutable_verified`: guard it as a secret, keep the owner's full-access key off the
+host, and revisit before mainnet. Corrects D-59: the registry keeps a freeze after the arbiter's ruling, on either
+side; only `lift_freeze` ends it (`contracts/registry/src/drift.rs`). Plan:
+`docs/plans/2026-11-13-2018-feat-hosted-attestor-keeper-plan.md`.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

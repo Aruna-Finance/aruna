@@ -1,0 +1,20 @@
+# The build context of packages/attestor/Dockerfile and packages/keeper/Dockerfile is the repository root, so keep
+# secrets, installed modules and build output out of it.
+.git
+.env
+**/.env
+**/.env.*
+!.env.example
+**/node_modules
+**/dist
+**/.vitest
+apps
+examples
+fixtures
+measurement
+lab
+contracts
+docs
+prototype
+packages/sim/results
+packages/indexer/test/fixtures
