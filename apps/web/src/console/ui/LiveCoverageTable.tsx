@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { amountText, blocksTo, STAGE_TEXT, type CoverageRow } from "../data/coverage-live";
+import type { TokenMeta } from "../data/token-amount";
 import { block, n0 } from "../fmt";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
@@ -12,7 +13,8 @@ function when(row: CoverageRow, head: number): string {
 }
 
 /** The owner's coverages as the pool holds them. Amounts are the pool's, unchanged. */
-export function LiveCoverageTable({ rows, head, agentLabel }: { rows: CoverageRow[]; head: number; agentLabel: (publicKey: string) => string | null }) {
+export function LiveCoverageTable({ rows, head, agentLabel, meta }: { rows: CoverageRow[]; head: number; agentLabel: (publicKey: string) => string | null; meta: ReadonlyMap<string, TokenMeta> }) {
+  const amt = (token: string, amount: string) => amountText(token, amount, meta.get(token));
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] border-collapse text-[15px]">
@@ -35,13 +37,13 @@ export function LiveCoverageTable({ rows, head, agentLabel }: { rows: CoverageRo
                 </Link>
                 <span className="mono block text-xs text-muted">coverage #{r.id}</span>
               </td>
-              <td className={`${td} mono text-right`}>{amountText(r.token, r.limit)}</td>
+              <td className={`${td} mono text-right`}>{amt(r.token, r.limit)}</td>
               <td className={`${td} mono text-right`}>{r.payoutRatioBps / 100}%</td>
-              <td className={`${td} mono text-right`}>{amountText(r.token, r.premiumPaid)}</td>
+              <td className={`${td} mono text-right`}>{amt(r.token, r.premiumPaid)}</td>
               <td className={td}>
                 <span className="mono text-sm">{STAGE_TEXT[r.stage]}</span>
                 <span className="block text-sm text-muted">{when(r, head)}</span>
-                {BigInt(r.paidOut) > 0n && <span className="mono block text-sm">Paid out {amountText(r.token, r.paidOut)}</span>}
+                {BigInt(r.paidOut) > 0n && <span className="mono block text-sm">Paid out {amt(r.token, r.paidOut)}</span>}
               </td>
             </tr>
           ))}

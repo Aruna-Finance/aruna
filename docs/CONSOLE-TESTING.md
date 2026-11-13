@@ -211,6 +211,29 @@ The console's whole first flow, driven by a script with the same modules the scr
 
 Check it yourself: `node fixtures/tools.mjs view f1pbr5p.factory2.arunafi.testnet get_agents '{}'`. The F1 run by a person with a fresh wallet, on screens, for the demo video, is still to do.
 
+## 5d. L7: coverage, buy, claims, report page, exposure
+
+Read-only pages first, then the one that needs a wallet. Use the vault `demo4.factory2.arunafi.testnet` (coverage already bought and claimed by the coverage demo) unless a row says otherwise. Run the app with `pnpm --filter @aruna/web dev` and open `http://localhost:3000`, or use `https://www.arunafi.xyz`. A box is ticked only where the result was seen on a screen.
+
+| # | Page and steps | Expected | Seen |
+|---|---|---|---|
+| C1 | `/console/coverage/?vault=demo4.factory2.arunafi.testnet` | "Coverage held for this vault", four rows on `drift-target.arunafi.testnet`: #0 and #1 Ended, #2 and #3 Paid; "Paid out 0.08 NEAR" on #2; "Paid out 0.8 tUSDC" on #3 | [x] 12 Nov for amounts in the smallest unit; units line [ ] |
+| C2 | `/console/claims/?vault=demo4.factory2.arunafi.testnet` | Drift report 2 `verified`; coverage #2 has two claim rows ("challenge window still open" paid 0, then "paid" 0.08 NEAR) whose formula column ends `= 0.08 NEAR`; no Start a claim for #2 | [x] |
+| C3 | Same page, find "Start a claim" | Offered for coverage #0 and #1 only (report verified, no paid claim). Do not press it unless you accept that the pool may pay from its capital | [x] |
+| C4 | Click report `2` in the table | Report page: state Verified, timeline `drift_reported`, `challenge_window`, `claims_open` all done; attestor `attestor-a.arunafi.testnet`; changed at #277,193,145; both code hashes; a `get_report` command | [ ] |
+| C5 | On the report page, "Claims on this report for demo4..." | Rows for coverage #2 (two) and #3 (one), with the pool's outcome and amount | [ ] |
+| C6 | `/console/claims/detail/?id=99` | "Report not found", "The registry has no report 99" | [ ] |
+| C7 | `/console/claims/detail/?id=abc` | "Report not found", "A report is named by the number the registry gave it" | [ ] |
+| C8 | Claims page, panel "Exposure before a block": agent `covered-1794387124682`, target `drift-target.arunafi.testnet`, token `near`, block `277193145`, Ask the vault | "Before block #277,193,145: 0.1 NEAR". Block `277193101` gives `0 NEAR` | [ ] |
+| C9 | Same panel, block `0`, then an empty target | The button stays off and the reason names the field; nothing is sent | [ ] |
+| C10 | `/console/coverage/buy/?vault=l2ocbae.factory2.arunafi.testnet`, wallet of the owner connected | A premium from the pool (about 0.13 NEAR for 1 NEAR, 30 days, 80%); the message "has not sent a fresh heartbeat"; Buy this coverage off | [x] 13 Nov |
+| C11 | Same page with no wallet connected | Same, plus "Connect the owner's wallet to buy" | [x] 13 Nov |
+| C12 | Same page, wallet of a vault's operator | "The owner buys coverage" | [ ] |
+| C13 | Buy, once an attestor's heartbeat is fresh (`heartbeat_fresh` true): tick the box, Buy this coverage, sign | Preview shows the premium as the attached deposit; after signing the coverage appears in `/console/coverage/` | [ ] blocked: no fresh heartbeat (`docs/FOR-ARIS.md` item 1) |
+| C14 | Start a claim on a coverage with a verified report | A claim inside the challenge window is refused and recorded; after it, the pool pays or says why not | [ ] blocked: needs C13 or a deliberate claim on #0 or #1 |
+
+Check C1 to C3 on chain: `node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":2}'` and `node fixtures/tools.mjs view registry2.arunafi.testnet get_report '{"id":2}'`, as in README step 5h.
+
 ## 6. Gaps and gotchas
 
 - **Unproven from the screens (L3):** T1b, T2e, T3a loosen, T3b to T3d, T5, T6, T7. Their chain behaviour is proven by S4 to S8; only the screen wiring is not.

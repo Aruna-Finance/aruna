@@ -10,6 +10,7 @@ import { REGISTRY } from "../data/price";
 import { CHALLENGE_WINDOW_BLOCKS, STATE_TEXT, timelineOf } from "../data/report-live";
 import { block } from "../fmt";
 import { useLiveVault } from "../useLiveVault";
+import { useTokenMeta } from "../useTokenMeta";
 import { useVaultClaims } from "../useVaultClaims";
 import { CopyBlock } from "../ui/CopyBlock";
 import { Panel } from "../ui/Panel";
@@ -158,6 +159,7 @@ function Report({ r, head, crumb }: { r: ReportRow; head: number; crumb: React.R
 
 function ClaimsOnReport({ vault, reportId }: { vault: string; reportId: number }) {
   const data = useVaultClaims(vault);
+  const meta = useTokenMeta(data.state === "ok" ? data.claims.map((c) => c.token) : []);
   return (
     <Panel title={`Claims on this report for ${vault}`}>
       {data.state === "loading" && <p className="text-sm text-muted">Reading the pool.</p>}
@@ -184,7 +186,7 @@ function ClaimsOnReport({ vault, reportId }: { vault: string; reportId: number }
                         <span className="block text-xs text-muted">at {block(c.block)}</span>
                       </td>
                       <td className={`${td} text-sm`}>{c.outcome}</td>
-                      <td className={`${td} mono text-right`}>{amountText(c.token, c.paid)}</td>
+                      <td className={`${td} mono text-right`}>{amountText(c.token, c.paid, meta.get(c.token))}</td>
                     </tr>
                   ))}
                 </tbody>

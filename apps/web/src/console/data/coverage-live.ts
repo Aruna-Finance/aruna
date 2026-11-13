@@ -1,5 +1,6 @@
 import type { Coverage } from "@aruna/sdk/coverage";
 import { yoctoToNear } from "../fmt";
+import { formatUnits, type TokenMeta } from "./token-amount";
 
 // Coverage as the pool reports it, for the list on /console/coverage. Block heights, not dates: the pool counts in blocks
 // and a block time is not a promise. Nothing here prices anything or decides a claim; it names where a coverage is.
@@ -63,9 +64,10 @@ export function coverageRows(list: readonly Coverage[], head: number): CoverageR
   }));
 }
 
-/** NEAR in whole units; a fungible token's amount stays in its smallest unit, because its decimals are not read here. */
-export function amountText(token: string, amount: string): string {
-  return token === "near" ? `${yoctoToNear(amount)} NEAR` : `${amount} (smallest unit of ${token})`;
+/** NEAR in whole units; a fungible token in its own units once its metadata is read, and in its smallest unit, named, until then. */
+export function amountText(token: string, amount: string, meta?: TokenMeta | null): string {
+  if (token === "near") return `${yoctoToNear(amount)} NEAR`;
+  return meta ? `${formatUnits(amount, meta.decimals)} ${meta.symbol}` : `${amount} (smallest unit of ${token})`;
 }
 
 /** Blocks left to a height, for a screen to say "in 1,234 blocks". Negative means it has passed. */
