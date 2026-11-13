@@ -59,12 +59,12 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
   const tiles: [string, string, string?][] = [
     ["Capital", amt(f.capital)],
     ["Coverage outstanding", amt(f.totalLimits), `up to ${amt(f.maxLimits)} allowed by capital; room for ${amt(f.headroom)} more`],
-    ["Withdrawals", f.locked ? "Locked" : "Open", f.locked ? `until block ${block(f.lockedUntil)}, ${f.blocksToUnlock.toLocaleString("en-US")} blocks from now` : `lock ended at block ${block(f.lockedUntil)}`],
+    ["Withdrawals", f.locked ? "Locked" : "Open", f.locked ? `for ${f.blocksToUnlock.toLocaleString("en-US")} more blocks` : "Capital can be withdrawn"],
     ["Coverage", `${counts.active} active`, `${counts.ended} ended and not yet released, ${counts.paid} paid, ${counts.claimInFlight} in a claim, ${counts.released} released`],
   ];
 
   return (
-    <Panel title={`${label} book`} aside={<span className="text-sm text-muted">Read at block {block(data.head)}</span>}>
+    <Panel title={`${label} book`}>
       <dl className="grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map(([k, v, sub]) => (
           <div key={k} className="bg-paper p-5">

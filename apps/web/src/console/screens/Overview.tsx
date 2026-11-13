@@ -1,5 +1,6 @@
 "use client";
 
+import { STACK_ON_MOBILE } from "../ui/stack";
 import { classLabelOf } from "@/landing/lib/class-labels";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -66,7 +67,10 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
 
         <dl className="grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2 lg:grid-cols-4 [&>div]:border-0">
           <Tile label="Vault" sub={<VaultSwitch vault={vault} />}>
-            <span className="mono text-lg">{view.fullAccessKeys === 0 ? "No full-access key" : `${view.fullAccessKeys} full-access`}</span>
+            <span className="text-lg">{vault.split(".")[0]}</span>
+            <small className="mt-1 block text-xs text-muted">
+              {view.fullAccessKeys === 0 ? "No admin (full-access) key" : `${view.fullAccessKeys} admin (full-access) keys`}
+            </small>
           </Tile>
           <Tile label="Agents">
             {o.agentsActive}
@@ -94,7 +98,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
             <p className="text-sm text-muted">This vault has no agents yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-[15px]">
+              <table className={`w-full min-w-[520px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
                 <thead>
                   <tr>
                     <th className={th}>Agent</th>
@@ -117,7 +121,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
                         <td className={td}>
                           <StatusChip a={a} />
                         </td>
-                        <td className={`${td} mono whitespace-nowrap text-right text-sm`}>
+                        <td data-label="Today" className={`${td} mono whitespace-nowrap text-right text-sm`}>
                           {near ? `${yoctoToNear(used.toString())} of ${yoctoToNear(near.dailyCap)} NEAR` : "No NEAR limit"}
                         </td>
                       </tr>
@@ -134,12 +138,12 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
             <p className="text-sm text-muted">No agent is allowed to call anything yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] border-collapse text-[15px]">
+              <table className={`w-full min-w-[560px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
                 <thead>
                   <tr>
-                    <th className={th}>Target</th>
+                    <th className={th}>Contract</th>
                     <th className={th}>Risk when last sent to</th>
-                    <th className={`${th} text-right`}>Your exposure</th>
+                    <th className={`${th} text-right`}>Sent through vault</th>
                     <th className={`${th} text-right`}>Agents allowed</th>
                   </tr>
                 </thead>
@@ -147,9 +151,9 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
                   {o.targets.map((r) => (
                     <tr key={r.target}>
                       <td className={`${td} mono break-all text-sm`}>{r.target}</td>
-                      <td className={`${td} text-sm`}>{(r.classAtRecord && classLabelOf(r.classAtRecord)) ?? <span className="text-muted">Nothing sent yet</span>}</td>
-                      <td className={`${td} mono whitespace-nowrap text-right`}>{yoctoToNear(r.exposure.toString())} NEAR</td>
-                      <td className={`${td} mono text-right`}>{r.allowedBy}</td>
+                      <td data-label="Risk when last sent to" className={`${td} text-sm`}>{(r.classAtRecord && classLabelOf(r.classAtRecord)) ?? <span className="text-muted">Nothing sent yet</span>}</td>
+                      <td data-label="Sent through vault" className={`${td} mono whitespace-nowrap text-right`}>{yoctoToNear(r.exposure.toString())} NEAR</td>
+                      <td data-label="Agents allowed" className={`${td} mono text-right`}>{r.allowedBy}</td>
                     </tr>
                   ))}
                 </tbody>

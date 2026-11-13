@@ -52,7 +52,7 @@ function LiveCoverage({ live }: { live: Extract<LiveVault, { status: "ok" }> }) 
       </div>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
-        <Panel title="Coverage held for this vault" aside={cov.state === "ok" ? <span className="mono text-sm text-muted">read at block {cov.head.toLocaleString("en-US")}</span> : undefined}>
+        <Panel title="Coverage held for this vault">
           {cov.state === "loading" && <p className="text-sm text-muted">Reading the pool.</p>}
           {cov.state === "error" && <ReadError what="the pool" detail={cov.message} />}
           {cov.state === "ok" &&

@@ -4,7 +4,7 @@ import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { HEARTBEAT_STALE_BLOCKS, STATE_TEXT, attestorState, groupByAttestor, heartbeatAge, type AttestorInfo } from "../data/attestor-live";
 import { STATE_TEXT as REPORT_STATE } from "../data/report-live";
-import { block, yoctoToNear } from "../fmt";
+import { block, yoctoToNear, shortKey } from "../fmt";
 import { useAttestorsLive, type AttestorsLive } from "../useRegistryTargets";
 import { ClassTag } from "../ui/ClassTag";
 import { targetHref } from "../ui/Freshness";
@@ -54,16 +54,15 @@ function Body({ data }: { data: Extract<AttestorsLive, { state: "ok" }> }) {
         const a = info.get(g.attestor)?.record ?? null;
         const state = attestorState(a, data.head);
         return (
-          <Panel key={g.attestor} title={g.attestor} aside={<span className="text-sm text-muted">Read at block {block(data.head)}</span>}>
+          <Panel key={g.attestor} title={g.attestor}>
             <p className={`text-[15px] ${state === "alive" ? "" : "text-dawn-ink"}`}>{STATE_TEXT[state]}.</p>
             {a && (
               <dl className="mt-4 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 {(
                   [
                     ["Bond", `${yoctoToNear(a.bond)} NEAR`],
-                    ["Last heartbeat", `${block(a.last_heartbeat)}, ${heartbeatAge(a, data.head).toLocaleString("en-US")} blocks ago (stale after ${HEARTBEAT_STALE_BLOCKS})`],
-                    ["Registered at", block(a.registered_at)],
-                    ["Signing key", a.signing_key],
+                    ["Last heartbeat", `${heartbeatAge(a, data.head).toLocaleString("en-US")} blocks ago (stale after ${HEARTBEAT_STALE_BLOCKS})`],
+                    ["Signing key", shortKey(a.signing_key)],
                   ] as const
                 ).map(([l, v]) => (
                   <div key={l}>

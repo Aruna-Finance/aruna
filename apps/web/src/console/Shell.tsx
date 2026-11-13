@@ -34,12 +34,12 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b border-line bg-paper">
-        <div className="flex items-center gap-4 px-4 py-2 md:px-6">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 max-sm:justify-between md:px-6">
           <Link href="/" aria-label="Aruna site" className="shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/logo.png" alt="" width={40} height={40} className="size-10" />
           </Link>
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3 max-sm:order-last max-sm:basis-full">
             <span className="label hidden shrink-0 text-xs text-muted sm:inline">View as</span>
             <Select<RoleId>
               label="View as"
@@ -49,11 +49,11 @@ export function Shell({ children }: { children: ReactNode }) {
                 setRole(id);
                 router.push(`/console/${roleById(id).home}/`);
               }}
-              className="w-full max-w-[260px] min-w-0! truncate py-2.5! [&>span]:truncate"
+              className="w-full max-w-[260px] min-w-0! truncate py-2.5! max-sm:max-w-none [&>span]:truncate"
             />
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <span className="label hidden border border-line-2 px-2 py-0.5 text-xs sm:inline">testnet</span>
+            <span className="label border border-line-2 px-1.5 py-0.5 text-[10px] sm:px-2 sm:text-xs">testnet</span>
             <WalletButton />
           </div>
         </div>

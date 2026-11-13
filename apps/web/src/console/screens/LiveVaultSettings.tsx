@@ -38,7 +38,7 @@ function OperatorPanel({ live, v, onSet }: { live: Ok; v: ReturnType<typeof avai
   const id = next.trim();
   const bad = id !== "" && !isValidAccountId(id) ? "That is not a valid account id." : id !== "" && id === current ? "That account is already the operator." : null;
   return (
-    <Panel className="mt-6" title="Operator">
+    <Panel title="Operator">
       <p className="text-[15px]">
         Current operator: <span className="mono break-all">{current ?? "none"}</span>
       </p>

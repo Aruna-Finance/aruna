@@ -1,12 +1,13 @@
 "use client";
 
+import { STACK_ON_MOBILE } from "../ui/stack";
 import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/shared/Button";
 import { isSafeAccountId } from "@/landing/lib/verify-commands";
-import { yoctoToNear } from "../fmt";
+import { yoctoToNear, shortKey } from "../fmt";
 import { useOwnedVaults } from "../useOwnedVaults";
 import { useVaultView } from "../useVaultView";
 import { TextField } from "../ui/Field";
@@ -147,12 +148,12 @@ export function Lookup() {
             <Panel title={`Agents on this vault (${state.view.agents.length})`}>
               {state.view.agents.length ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] border-collapse text-[15px]">
+                  <table className={`w-full min-w-[560px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
                     <thead>
                       <tr>
                         <th className={th}>Agent</th>
                         <th className={th}>Status</th>
-                        <th className={th}>Public key</th>
+                        <th className={th}>Key</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -163,10 +164,12 @@ export function Lookup() {
                               {a.label}
                             </Link>
                           </td>
-                          <td className={`${td} ${a.status !== "Active" || a.autoDisabled ? "text-dawn-ink" : ""}`}>
+                          <td data-label="Status" className={`${td} ${a.status !== "Active" || a.autoDisabled ? "text-dawn-ink" : ""}`}>
                             {a.autoDisabled ? "Stopped by vault" : a.status}
                           </td>
-                          <td className={`${td} mono text-sm break-all`}>{a.publicKey}</td>
+                          <td data-label="Key" className={`${td} mono text-sm`} title={a.publicKey}>
+                            {shortKey(a.publicKey)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

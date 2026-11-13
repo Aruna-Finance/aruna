@@ -43,9 +43,9 @@ describe("Targets screen", () => {
     const html = renderToStaticMarkup(<TargetsView data={list} />);
     expect(html).toContain("drift-target.testnet");
     expect(html).toContain("Not recorded");
-    expect(html).toContain("heartbeat stale");
+    expect(html).toContain("not reporting recently");
     expect(html).toContain("None assigned");
-    expect(html).toContain("The registry has no list of its targets");
+    expect(html).toContain("Name a contract to see its recorded risk");
   });
 
   it("shows a read error, not a short list", () => {

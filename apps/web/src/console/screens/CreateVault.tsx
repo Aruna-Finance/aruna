@@ -49,7 +49,7 @@ import { createWalletTransport, sendNear } from "../wallet-transport";
 const GAS_TGAS = 150n;
 
 export function CreateVault() {
-  const { accountId, getWallet } = useWallet();
+  const { accountId, getWallet, connect, status: walletStatus } = useWallet();
   const { open } = useTx();
   const reads = useMemo(() => createTestnetReads(), []);
   const history = useMemo(() => defaultHistory(), []);
@@ -160,7 +160,12 @@ export function CreateVault() {
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         {!accountId && (
           <Panel>
-            <p className="leading-[1.6]">Connect a testnet wallet with the button in the header. The account you connect becomes the owner.</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button type="button" disabled={walletStatus === "connecting"} onClick={() => void connect()}>
+                {walletStatus === "connecting" ? "Connecting" : "Connect wallet"}
+              </Button>
+              <p className="text-[15px] leading-[1.6] text-slate">The testnet account you connect becomes the vault&apos;s owner.</p>
+            </div>
           </Panel>
         )}
         {infoError && <ReadError what="the vault setup details" detail={infoError} />}

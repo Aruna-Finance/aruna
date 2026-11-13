@@ -290,7 +290,7 @@ pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published
 ### 5j. Pool, read from the contract
 
 1. Open `https://www.arunafi.xyz/console/pool/`. Expected: a "NEAR book" (the page does not name the contract; the figures come from `pool2.arunafi.testnet`, checked in step 2) with capital, coverage
-   outstanding against what capital allows, whether withdrawals are locked and until which block, coverage counts (active, ended and not yet released, paid), and a table of coverage
+   outstanding against what capital allows, whether withdrawals are locked and for how many more blocks, coverage counts (active, ended and not yet released, paid), and a table of coverage
    by code version or by who can upgrade it, against the cap of 2 x capital per group. Connect a wallet to see your share of each book, as a percentage.
 2. Check the book without the page:
 
@@ -322,8 +322,8 @@ node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"dri
 
 ### 5l. Attestors, read from the registry
 
-1. Open `https://www.arunafi.xyz/console/attestor/`. Expected: `attestor-a.arunafi.testnet` with its bond (1 NEAR), the block of
-   its last heartbeat and how many blocks ago that was, "Heartbeat stale" while it is more than 600 blocks, and the targets it
+1. Open `https://www.arunafi.xyz/console/attestor/`. Expected: `attestor-a.arunafi.testnet` with its bond (1 NEAR), how many blocks
+   ago its last heartbeat was, "Heartbeat stale" while it is more than 600 blocks, and the targets it
    watches (`drift-target.arunafi.testnet` and `swap.arunafi.testnet`) with their recorded class and latest report. A target
    with no attestor assigned is listed in a notice instead.
 2. Check the record without the page:
