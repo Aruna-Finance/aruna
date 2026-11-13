@@ -75,6 +75,7 @@ packages/
   sdk/               @aruna/sdk               typed client; the compatibility contract
   mcp/               @aruna/mcp               MCP server; thin adapter over the SDK
   attestor/          @aruna/attestor          drift monitor daemon, heartbeat
+  keeper/            @aruna/keeper            re-classifies after a final report, lifts the freeze
   indexer/           @aruna/indexer           chain events → database
   cli/               @aruna/cli               ops and the mainnet measurement
   sim/               @aruna/sim               pool solvency simulation
@@ -82,11 +83,12 @@ apps/
   web/               one static Next.js app: classifier page, spec, proof, /console/
 contracts/
   common/            shared types, events, error codes
-  vault/             one per client, deployed by hash, no full-access key
+  vault/             one per client, deployed by hash, no full-access key; its named-action
+                     adapters (`swap`, `ft_swap`) live in vault/src/spend.rs
   registry/          shared: classes, drift reports, bonds, vault versions
   pool/              shared: capital, coverage, concentration, payouts
   factory/           deploys vaults
-  adapters/          per-protocol action translators
+  integration/       sandbox integration tests (near-workspaces)
 fixtures/            four test contracts, one per risk class
 examples/            honest-agent.ts, injected-agent.ts
 lab/                 sandbox evidence. DO NOT MODIFY
