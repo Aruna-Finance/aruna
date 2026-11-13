@@ -24,7 +24,7 @@ The plan file is the authority for requirements (R-numbers), decisions (KTD-numb
 | L5 | U8 | Activity, exposure, policy-to-price | L4 for actions; U3 (hosted indexer) for live history | 13 Nov |
 | L6 | U9, U10 | Deploy, README F1, live run, submission | L5 and Aris | 13 Nov cut, then 14 Nov |
 | L7 | U11 | Coverage and claims, live | L5 | after v0 |
-| L8 | U12 | Pool and underwriter, live | L5 | after v0 |
+| L8 | U12 | Pool and underwriter, live | L5 | read-only half done 13 Nov (deposit and withdraw not in v0) |
 | L9 | U13 | Targets and attestor, live | L5 | after v0 |
 | L10 | U19 | Agents brought from the CLI or MCP | L3 | after v0 |
 | L11 | U16 | Migration in the console | Aris U15 | after v0 |
@@ -180,7 +180,7 @@ What is left in lane B that does not wait for anyone. Anything that waits on Ari
 
 - [ ] L10 (U19): in the agent wizard, "I already have the key" takes a pasted public key (checked before signing), skips the browser key, and shows the MCP server command with the vault and key file. Built with tests (`data/agent-key-input.ts`, `data/agent-connect.ts`); not yet seen on a screen, scenarios A1 to A4 in `docs/CONSOLE-TESTING.md`. The `examples/` scripts are fixed to the demo2 vault, so they are not offered
 
-Not started on purpose, after v0 and large: L8 Pool and underwriter, L9 Targets and attestor, L11 Migration, USDC purchases (cannot be proven until an attestor heartbeat is fresh), deleting the two mock stores (Attestor, Pool and TargetDetail still read them).
+Not started on purpose, after v0 and large: L9 Targets and attestor, L11 Migration, USDC purchases (cannot be proven until an attestor heartbeat is fresh), deleting the two mock stores (Attestor, Pool and TargetDetail still read them).
 
 ## After v0
 
