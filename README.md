@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (284).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (298).
 
 ### 2. Classify any NEAR contract
 
@@ -104,8 +104,8 @@ of agents. Click an agent. Expected: a page listing what its key cannot do, its 
 
 Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
 Agents and agent detail (step 5d), the Playground (step 5e), the Overview (step 5f), and Coverage, Buy
-coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) and Pool (step 5j, read-only). Every other screen
-(Targets, Migration, Attestor and the Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
+coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) Pool (step 5j, read-only) and Targets with its detail page
+(step 5k). Every other screen (Migration, Attestor and the Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
 results are in steps 9 to 13.
 
 ### 5c. Connect a testnet wallet
@@ -286,6 +286,25 @@ node fixtures/tools.mjs view pool2.arunafi.testnet get_book '{"token":"near"}'
 
    Expected: `capital`, `total_limits` and `locked_until` equal the tiles on the page. Adding and withdrawing capital are not in
    the console in v0.
+
+### 5k. Targets, read from the registry
+
+1. Open `https://www.arunafi.xyz/console/targets/`. Expected: a table of the seeded targets and every target the pool has
+   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded `global_by_account`, frozen by a drift
+   report, attestor `attestor-a.arunafi.testnet` with its heartbeat state; `swap.arunafi.testnet` recorded `local_upgradeable`
+   with no attestor assigned.
+2. Open `https://www.arunafi.xyz/console/targets/detail/?id=drift-target.arunafi.testnet`. Expected: the registry's record
+   (class, block, classifier, evidence hash, resolved code hash, upgrade authority) beside a fresh run of
+   `@aruna/classifier-core` over public RPC, a sentence saying whether the two classes agree, and the latest drift report.
+3. Check the record without the page:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"drift-target.arunafi.testnet"}'
+```
+
+   Expected: `"class":"global_by_account"`, `"frozen":true`, `"upgrade_authority":"drift-owner.arunafi.testnet"`, matching the
+   page. The registry has no view that lists its targets, so the list is the seeded targets plus the pool's covered ones; any
+   other target is opened by name.
 
 ### 6. Ask from an agent (MCP)
 
