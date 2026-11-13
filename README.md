@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (38), `keeper` (29), `sdk` (110), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (280).
+ skipped), `cli` (28), `attestor` (38), `keeper` (29), `sdk` (110), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (314).
 
 ### 2. Classify any NEAR contract
 
@@ -104,8 +104,8 @@ of agents. Click an agent. Expected: a page listing what its key cannot do, its 
 
 Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
 Agents and agent detail (step 5d), the Playground (step 5e), the Overview (step 5f), and Coverage, Buy
-coverage and Claims (step 5h). Every other screen (Targets, Migration, Pool, Simulation, Attestor and the
-Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
+coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) Pool (step 5j, read-only) and Targets with its detail page
+(step 5k) and Attestors (step 5l). Migration checks a plan from the SDK (step 14). Only the Guided demo, a scripted walkthrough, runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
 results are in steps 9 to 13.
 
 ### 5c. Connect a testnet wallet
@@ -257,6 +257,70 @@ Not met in v0: a coverage purchase and a claim sent from these screens. The purc
 check above) and has not been sent; the claim button is shown only when a verified report has no paid claim, and none has
 been sent from the console either. Only NEAR coverage can be bought from the console; token coverage is shown but not
 bought. Two points in the pool's claim code are under review and not yet confirmed (`docs/FOR-ARIS.md`, item 7).
+
+### 5i. Simulation, read from the published results
+
+1. Open `https://www.arunafi.xyz/console/simulation/`. Expected: one table with six scenarios as columns and six measures as rows,
+   from `packages/sim/results/2026-11-12/`; `P(event)` named an underwriting assumption, not a measurement; "Capital not enough"
+   set apart as the scenario that breaks the pool (98.8% of runs insolvent, time to insolvency 30.3 days); the solvent scenarios
+   reading "not insolvent within 60 days".
+2. Check that the page and the results agree:
+
+```bash
+pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published.test.ts
+```
+
+   Expected: 4 tests passed. The test re-derives the page's data from `summary.json` in the results folder. To refresh the page
+   after a new run: `node apps/web/scripts/sync-simulation.mjs packages/sim/results/<date>`.
+
+### 5j. Pool, read from the contract
+
+1. Open `https://www.arunafi.xyz/console/pool/`. Expected: a "NEAR book" read from `pool2.arunafi.testnet` with capital, limits on
+   the book against k x capital, whether withdrawals are locked and until which block, coverage counts (active, ended and not yet released, paid), and a table of coverage
+   by code hash or upgrade authority against the cap of 2 x capital per group. Connect a wallet to see your own shares.
+2. Check the book without the page:
+
+```bash
+node fixtures/tools.mjs view pool2.arunafi.testnet get_book '{"token":"near"}'
+```
+
+   Expected: `capital`, `total_limits` and `locked_until` equal the tiles on the page. Adding and withdrawing capital are not in
+   the console in v0.
+
+### 5k. Targets, read from the registry
+
+1. Open `https://www.arunafi.xyz/console/targets/`. Expected: a table of the seeded targets and every target the pool has
+   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded `global_by_account`, frozen by a drift
+   report, attestor `attestor-a.arunafi.testnet` with its heartbeat state; `swap.arunafi.testnet` recorded `local_upgradeable`
+   with no attestor assigned.
+2. Open `https://www.arunafi.xyz/console/targets/detail/?id=drift-target.arunafi.testnet`. Expected: the registry's record
+   (class, block, classifier, evidence hash, resolved code hash, upgrade authority) beside a fresh run of
+   `@aruna/classifier-core` over public RPC, a sentence saying whether the two classes agree, and the latest drift report.
+3. Check the record without the page:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"drift-target.arunafi.testnet"}'
+```
+
+   Expected: `"class":"global_by_account"`, `"frozen":true`, `"upgrade_authority":"drift-owner.arunafi.testnet"`, matching the
+   page. The registry has no view that lists its targets, so the list is the seeded targets plus the pool's covered ones; any
+   other target is opened by name.
+
+### 5l. Attestors, read from the registry
+
+1. Open `https://www.arunafi.xyz/console/attestor/`. Expected: `attestor-a.arunafi.testnet` with its bond (1 NEAR), the block of
+   its last heartbeat and how many blocks ago that was, "Heartbeat stale" while it is more than 600 blocks, the targets it watches
+   (`drift-target.arunafi.testnet`) with their recorded class and latest report, and a notice that no attestor is assigned to
+   `swap.arunafi.testnet`.
+2. Check the record without the page:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet get_attestor '{"attestor":"attestor-a.arunafi.testnet"}'
+node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"drift-target.arunafi.testnet"}'
+```
+
+   Expected: `bond` `1000000000000000000000000`, `last_heartbeat` equal to the block on the page, and `false` while the heartbeat is
+   stale. Heartbeats and drift reports are sent from the attestor's own account; the console only reads.
 
 ### 6. Ask from an agent (MCP)
 
@@ -421,6 +485,13 @@ To move a vault of your own (testnet, and you must be its owner, with its key sa
 node packages/cli/dist/index.js migrate <old-vault> --name <new-name> --factory factory2.arunafi.testnet --as <owner> --dry-run
 node packages/cli/dist/index.js migrate <old-vault> --name <new-name> --factory factory2.arunafi.testnet --as <owner>
 ```
+
+The console checks the same plan without signing anything. Open
+`https://www.arunafi.xyz/console/migrate/?vault=mig1.factory.arunafi.testnet`, connect a wallet and press **Check the plan**.
+Expected with a wallet that is not the owner (`mig-owner.arunafi.testnet`): "The plan was refused. Nothing was sent." naming
+the owner. On `l2ocbae.factory2.arunafi.testnet`: refused because it already runs v4, the version the factory makes. With the
+owner connected the page shows the coverage warning first, then the agents carried, the funds and the two commands. The
+migration itself is sent from the CLI.
 
 Expected: the dry run prints the agents carried (each with its state), the funds to move and a warning if
 coverage stays behind, and signs nothing. The real run asks before each transaction, then prints each

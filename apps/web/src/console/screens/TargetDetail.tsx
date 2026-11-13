@@ -2,23 +2,18 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import type { CodeRef } from "@/landing/lib/classifier-types";
+import type { Classification, CodeRef } from "@/landing/lib/classifier-types";
 import { curlFor } from "@/landing/lib/verify-commands";
-import { CLAIMS_ASSUME } from "../data/claims";
-import { attestorStore } from "../data/attestor";
-import { channelsOf } from "../data/channels";
-import { mockTargets } from "../data/mock";
-import type { TargetRecord } from "../data/types";
 import { BASIS, CLASS_INFO } from "../classInfo";
-import { block as blk, n0 } from "../fmt";
-import { useVault } from "../useVault";
-import { agentHref } from "../ui/AgentsTable";
+import { block as blk } from "../fmt";
+import { AGREEMENT_TEXT, CODE_CHANGE_TEXT, agreement, codeChange, freshnessOf, type RegistryTarget } from "../data/registry-live";
+import { REGISTRY } from "../data/price";
+import { STATE_TEXT } from "../data/report-live";
+import { useRegistryTarget, type RegistryTargetView } from "../useRegistryTargets";
 import { ClassTag } from "../ui/ClassTag";
 import { CopyBlock } from "../ui/CopyBlock";
 import { Freshness } from "../ui/Freshness";
 import { Panel } from "../ui/Panel";
-import { attestorFor } from "../data/coverage-mock";
 
 const short = (h: string | null | undefined) => (h ? (h.length > 16 ? `${h.slice(0, 8)}...${h.slice(-4)}` : h) : "none");
 
@@ -29,9 +24,9 @@ function refText(r: CodeRef | null): string {
   return `global_account: ${r.ownerAccount}`;
 }
 
-/** What the three public reads found, written from the stored evidence only. */
-function stepsOf(t: TargetRecord) {
-  const ev = t.classification.evidence;
+/** What the three public reads found, written from the evidence the engine returned. */
+function stepsOf(c: Classification) {
+  const ev = c.evidence;
   return [
     {
       rpc: "view_account",
@@ -53,31 +48,16 @@ function stepsOf(t: TargetRecord) {
           ? `The code parses. It imports ${ev.upgradeImports.join(", ")}.`
           : "The code parses and none of the scanned upgrade imports are present."
         : "The code could not be parsed, so its imports are not known.",
-      verdict: t.classification.class,
     },
   ] as const;
 }
 
 export function TargetDetail() {
-  const id = useSearchParams().get("id") ?? "";
-  const vault = useVault();
-  const [target, setTarget] = useState<TargetRecord | null | undefined>(undefined);
-  const [now, setNow] = useState(0);
-  const { pending } = useSyncExternalStore(attestorStore.subscribe, attestorStore.get, attestorStore.get);
+  const id = (useSearchParams().get("id") ?? "").trim();
+  return <TargetView id={id} data={useRegistryTarget(id)} />;
+}
 
-  useEffect(() => {
-    let live = true;
-    Promise.all([mockTargets.get(id), mockTargets.currentBlock()]).then(([t, b]) => {
-      if (live) {
-        setTarget(t);
-        setNow(b);
-      }
-    });
-    return () => {
-      live = false;
-    };
-  }, [id]);
-
+export function TargetView({ id, data }: { id: string; data: RegistryTargetView }) {
   const crumb = (
     <p className="text-sm text-muted">
       <Link href="/console/targets/" className="underline underline-offset-4">
@@ -86,174 +66,159 @@ export function TargetDetail() {
       / {id ? <span className="mono">{id}</span> : "Target"}
     </p>
   );
-
-  if (target === undefined) return <p className="text-muted">Loading the target.</p>;
-  if (target === null) {
+  if (!id) {
     return (
       <article>
         {crumb}
-        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Target not found</h1>
-        <p className="mt-4 max-w-[70ch] text-slate">
-          {id ? <span className="mono">{id}</span> : "That target"} has not been classified. Classify it from the Targets page.
-        </p>
+        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">No target named</h1>
+        <p className="mt-4 max-w-[70ch] text-slate">Open a target from the Targets page.</p>
       </article>
     );
   }
+  if (data.state === "loading")
+    return (
+      <article>
+        {crumb}
+        <p className="mt-4 text-muted">Reading the registry and running the classifier.</p>
+      </article>
+    );
+  if (data.state === "error")
+    return (
+      <article>
+        {crumb}
+        <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the registry. {data.message}</p>
+      </article>
+    );
+  return <Detail id={id} t={data.target} head={data.head} live={data.live} liveProblem={data.liveProblem} crumb={crumb} />;
+}
 
-  const cls = target.classification.class;
-  const ev = target.classification.evidence;
-  const agents = vault.agents.filter((a) => (a.exposure[target.id] ?? 0) > 0);
-  const channels = channelsOf(target, pending.find((d) => d.target === target.id)?.channel ?? null);
-  const owner = ev.codeRef?.kind === "global_account" ? ev.codeRef.ownerAccount : null;
-  const age = now - target.fetchedAtBlock;
-
+function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: RegistryTarget; head: number; live: Classification | null; liveProblem: string | null; crumb: React.ReactNode }) {
+  const rec = t.record;
+  const verdict = agreement(rec?.class ?? null, live?.class ?? null);
+  const code = codeChange(rec?.resolved_code_hash, live?.evidence.resolvedCodeHash);
+  const owner = live?.evidence.codeRef?.kind === "global_account" ? live.evidence.codeRef.ownerAccount : null;
   return (
     <article>
       {crumb}
-      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">{target.label}</h1>
+      <h1 className="mt-3 break-all text-[clamp(28px,4vw,44px)]">{id}</h1>
       <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <ClassTag c={cls} />
-        {target.frozen && <span className="text-sm text-dawn-ink">Frozen by a drift report</span>}
-        <span className="text-sm text-muted">
-          {BASIS[ev.mutabilityBasis]}. {CLASS_INFO[cls].premium}.
-        </span>
+        {rec ? <ClassTag c={rec.class} /> : <span className="mono text-sm text-muted">not recorded</span>}
+        {rec?.frozen && <span className="text-sm text-dawn-ink">Frozen by a drift report</span>}
+        <span className="text-sm text-muted">Read at block {blk(head)}.</span>
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
-        <Panel title="How this class was reached">
-          <ol className="grid gap-0">
-            {stepsOf(target).map((s) => (
-              <li key={s.rpc} className="grid grid-cols-[1.25rem_1fr] gap-x-4 border-t border-line py-3 first:border-t-0 first:pt-0">
-                <i aria-hidden className={`mt-1.5 block size-2.5 ${cls === "unknown" && s.rpc === "view_code" ? "bg-dawn-ink" : "bg-ink"}`} />
-                <div>
-                  <p className="mono text-sm">{s.rpc}</p>
-                  <p className="mt-1 max-w-[80ch] text-sm leading-[1.6] text-slate">{s.finding}</p>
-                  {"verdict" in s && (
-                    <p className="mt-2">
-                      <ClassTag c={s.verdict} />
-                    </p>
-                  )}
+        <Panel title="Recorded in the registry">
+          {rec ? (
+            <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {(
+                [
+                  ["Class", rec.class],
+                  ["Recorded at block", blk(rec.classified_at_block)],
+                  ["Recorded by", rec.classifier],
+                  ["Evidence hash", rec.evidence_hash],
+                  ["Resolved code hash", rec.resolved_code_hash ?? "none: this target cannot be covered"],
+                  ["Upgrade authority", rec.upgrade_authority ?? "none recorded"],
+                  ["Assigned attestor", t.attestor ?? "none"],
+                  ["Attestor heartbeat", t.attestor ? (t.heartbeatFresh ? "fresh" : "stale") : "-"],
+                ] as const
+              ).map(([l, v]) => (
+                <div key={l}>
+                  <dt className="text-muted">{l}</dt>
+                  <dd className="mono break-all">{v}</dd>
                 </div>
-              </li>
-            ))}
-          </ol>
+              ))}
+              <div>
+                <dt className="text-muted">Vault cache</dt>
+                <dd className="mt-1">
+                  <Freshness age={freshnessOf(rec, head).age} />
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">{AGREEMENT_TEXT.not_recorded}</p>
+          )}
+        </Panel>
+
+        <Panel title="A fresh run of the classifier" aside={<span className="text-sm text-muted">@aruna/classifier-core, public testnet RPC</span>}>
+          {live ? (
+            <>
+              <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <ClassTag c={live.class} />
+                <span className="text-sm text-muted">
+                  {BASIS[live.evidence.mutabilityBasis]}. {CLASS_INFO[live.class].premium}.
+                </span>
+              </p>
+              <p className={`mt-3 max-w-[80ch] text-sm leading-[1.6] ${verdict === "differ" ? "text-dawn-ink" : "text-slate"}`}>{AGREEMENT_TEXT[verdict]}</p>
+              {rec && <p className={`mt-2 max-w-[80ch] text-sm leading-[1.6] ${code === "changed" ? "text-dawn-ink" : "text-slate"}`}>{CODE_CHANGE_TEXT[code]}</p>}
+              <ol className="mt-5 grid gap-0">
+                {stepsOf(live).map((s) => (
+                  <li key={s.rpc} className="grid grid-cols-[1.25rem_1fr] gap-x-4 border-t border-line py-3 first:border-t-0 first:pt-0">
+                    <i aria-hidden className="mt-1.5 block size-2.5 bg-ink" />
+                    <div>
+                      <p className="mono text-sm">{s.rpc}</p>
+                      <p className="mt-1 max-w-[80ch] text-sm leading-[1.6] text-slate">{s.finding}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <dl className="mt-5 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                {(
+                  [
+                    ["Basis", live.evidence.mutabilityBasis],
+                    ["Checked at block", blk(live.evidence.checkedAtBlock)],
+                    ["Code reference", refText(live.evidence.codeRef)],
+                    ["Resolved code hash", short(live.evidence.resolvedCodeHash)],
+                    ["Upgrade imports", live.evidence.upgradeImports.join(", ") || "None found"],
+                    ["WASM parsed", live.evidence.wasmParsed ? "Yes" : "No"],
+                  ] as const
+                ).map(([l, v]) => (
+                  <div key={l}>
+                    <dt className="text-muted">{l}</dt>
+                    <dd className="mono break-all">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              {live.evidence.upgradeImports.length > 0 && (
+                <p className="mt-4 max-w-[80ch] text-sm text-muted">Presence does not prove a reachable path. near-sdk&apos;s Promise may link these on its own.</p>
+              )}
+            </>
+          ) : (
+            <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">{liveProblem ?? AGREEMENT_TEXT.live_unavailable} The registry record above is unaffected.</p>
+          )}
         </Panel>
 
         {owner && (
           <Panel title="Why hash monitors miss this target">
             <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
-              When <span className="mono">{owner}</span> redeploys, no transaction touches this account, so a monitor that watches
-              this account never sees it.
+              When <span className="mono">{owner}</span> redeploys, no transaction touches this account, so a monitor that watches this account never sees it.
+              The registry watches the global contract&apos;s owner through a separate channel.
             </p>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-[15px]">
-                <thead>
-                  <tr>
-                    <th className="border-b border-line-2 px-3 py-2 text-left font-medium whitespace-nowrap">Field</th>
-                    <th className="border-b border-line-2 px-3 py-2 text-left font-medium whitespace-nowrap">Before</th>
-                    <th className="border-b border-line-2 px-3 py-2 text-left font-medium whitespace-nowrap">After a redeploy</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["view_account.code_hash", "1111...1111", "1111...1111, unchanged"],
-                    ["view_code.hash", "73ETF...", "J2gKR..., changed"],
-                    ["version()", "v1", "v2, active 3 blocks later"],
-                  ].map(([f, a, b]) => (
-                    <tr key={f}>
-                      <td className="mono border-b border-line px-3 py-3">{f}</td>
-                      <td className="mono border-b border-line px-3 py-3">{a}</td>
-                      <td className="mono border-b border-line px-3 py-3">{b}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-3 text-sm text-muted">Lab result on a single-shard sandbox.</p>
+            <p className="mt-3 text-sm text-muted">Measured on a single-shard sandbox; the evidence is in the lab results.</p>
           </Panel>
         )}
 
-        <Panel title="Check it yourself">
-          <div className="grid gap-3">
-            <CopyBlock text={curlFor("view_account", target.id, "testnet")} />
-            <CopyBlock text={curlFor("view_access_key_list", target.id, "testnet")} />
-            <CopyBlock text={curlFor("view_code", target.id, "testnet")} />
-          </div>
-        </Panel>
-
-        <Panel title="Stored evidence">
-          <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            {(
-              [
-                ["Basis", ev.mutabilityBasis],
-                ["Checked at block", blk(ev.checkedAtBlock)],
-                ["Assigned attestor", attestorFor(target.id)],
-                ["Code reference", refText(ev.codeRef)],
-                ["Full-access keys", String(ev.fullAccessKeyCount)],
-                ["Function-call keys", String(ev.functionCallKeyCount)],
-                ["Resolved code hash", short(ev.resolvedCodeHash)],
-                ["Upgrade imports", ev.upgradeImports.join(", ") || "None found"],
-                ["WASM parsed", ev.wasmParsed ? "Yes" : "No"],
-              ] as const
-            ).map(([l, v]) => (
-              <div key={l}>
-                <dt className="text-muted">{l}</dt>
-                <dd className="mono break-all">{v}</dd>
-              </div>
-            ))}
-            <div>
-              <dt className="text-muted">Vault cache</dt>
-              <dd className="mt-1">
-                <Freshness age={age} />
-              </dd>
-            </div>
-          </dl>
-          {ev.upgradeImports.length > 0 && (
-            <p className="mt-4 max-w-[80ch] text-sm text-muted">
-              Presence does not prove a reachable path. near-sdk&apos;s Promise may link these on its own.
+        <Panel title="Latest drift report">
+          {t.latest ? (
+            <p className="text-[15px]">
+              <Link href={`/console/claims/detail/?id=${t.latest.id}`} className="underline underline-offset-4">
+                Report {t.latest.id}
+              </Link>{" "}
+              <span className="mono text-sm text-muted">{STATE_TEXT[t.latest.state] ?? t.latest.state}</span>, changed at block {blk(t.latest.changedAtBlock)}.
             </p>
-          )}
-          <p className="mt-4 max-w-[80ch] text-sm text-muted">
-            {cls === "immutable_verified"
-              ? "Means no detected upgrade path under the checks listed. Permanent caching waits on T9."
-              : "Rechecked regularly, because this class can change."}
-          </p>
-        </Panel>
-
-        <Panel title="Drift channels" aside={<span className="text-sm text-muted">Poll interval {CLAIMS_ASSUME.pollIntervalSec} seconds (assumption)</span>}>
-          <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
-            All four are needed. The last one is the one a hash monitor cannot see.
-          </p>
-          <ul className="mt-4 grid gap-2 text-[15px]">
-            {channels.map((c) => (
-              <li key={c.key} className="flex gap-3 border-t border-line pt-2">
-                <i
-                  aria-hidden
-                  className={`mt-2 block size-2 shrink-0 ${c.state === "changed" ? "bg-dawn-ink" : c.state === "clear" ? "bg-ink" : "border border-line-2"}`}
-                />
-                <span>
-                  {c.name} <span className="text-muted">- {c.state}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-
-        <Panel title="Your agents on this target">
-          {agents.length ? (
-            <ul className="grid gap-2 text-[15px]">
-              {agents.map((a) => (
-                <li key={a.id} className="flex justify-between gap-4 border-t border-line pt-2">
-                  <Link href={agentHref(a.id)} className="mono underline underline-offset-4">
-                    {a.id}
-                  </Link>
-                  <span className="mono">{n0(a.exposure[target.id])} USDC</span>
-                </li>
-              ))}
-            </ul>
           ) : (
-            <p className="text-sm text-muted">None.</p>
+            <p className="text-sm text-muted">No drift report has been made on this target.</p>
           )}
+        </Panel>
+
+        <Panel title="Check it yourself">
+          <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">The registry&apos;s record (a view call, no key), and the three public reads the classifier makes:</p>
+          <div className="mt-4 grid gap-3">
+            <CopyBlock text={`node fixtures/tools.mjs view ${REGISTRY} get_class '{"target":"${id}"}'`} />
+            <CopyBlock text={curlFor("view_account", id, "testnet")} />
+            <CopyBlock text={curlFor("view_access_key_list", id, "testnet")} />
+            <CopyBlock text={curlFor("view_code", id, "testnet")} />
+          </div>
         </Panel>
       </div>
     </article>
