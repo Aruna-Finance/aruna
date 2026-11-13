@@ -103,9 +103,9 @@ of agents. Click an agent. Expected: a page listing what its key cannot do, its 
 `curl` for `view_access_key_list` whose output you can compare by hand.
 
 Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
-Agents and agent detail (step 5d), the Playground (step 5e) and the Overview (step 5f). Every other
-screen — Targets, Coverage, Claims, Migration, Pool, Simulation, Attestor and the Guided demo — still
-runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
+Agents and agent detail (step 5d), the Playground (step 5e), the Overview (step 5f), and Coverage, Buy
+coverage and Claims (step 5h). Every other screen (Targets, Migration, Pool, Simulation, Attestor and the
+Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
 results are in steps 9 to 13.
 
 ### 5c. Connect a testnet wallet
@@ -214,6 +214,45 @@ those panels say "History is not connected in this build" instead of showing dat
 about 370,000 blocks behind, so it held nothing for the vaults in these steps. To run the indexer yourself, see
 [`packages/indexer`](packages/indexer/README.md); a backfill takes hours. Rebuild `apps/web` with
 `NEXT_PUBLIC_INDEXER_URL=<your indexer>` to read it.
+
+### 5h. Coverage and claims, read from the pool
+
+These three screens read the pool (`pool2.arunafi.testnet`) and the registry (`registry2.arunafi.testnet`) directly. The
+vault below is `demo4.factory2.arunafi.testnet`, which the coverage demo in step 13 bought coverage on. To run it from your
+own build, replace `https://www.arunafi.xyz` with `http://localhost:4173`.
+
+1. Open `https://www.arunafi.xyz/console/coverage/?vault=demo4.factory2.arunafi.testnet`. Expected: four coverages on
+   `drift-target.arunafi.testnet` (#0 and #1 Ended, #2 and #3 Paid), amounts as the pool holds them, and "Paid out 0.08 NEAR"
+   on #2. The token coverages show their amount in the token's smallest unit.
+2. Open `https://www.arunafi.xyz/console/claims/?vault=demo4.factory2.arunafi.testnet`. Expected: drift report 2 on
+   `drift-target.arunafi.testnet`, state `verified`; two claim rows for coverage #2 (the first "challenge window still open"
+   with 0 paid, the second "paid" with 0.08 NEAR) whose formula column ends `= 0.08 NEAR`.
+3. Check the same numbers on chain, without the page:
+
+```bash
+node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":2}'
+node fixtures/tools.mjs view registry2.arunafi.testnet latest_report '{"target":"drift-target.arunafi.testnet"}'
+node fixtures/tools.mjs view demo4.factory2.arunafi.testnet exposure_before '{"agent":"ed25519:EcTZ2jgMfgrnYvD8pJPHPi349waY2jPbwqEPnhujx3FR","target":"drift-target.arunafi.testnet","token":"near","block":277193145}'
+node fixtures/tools.mjs view demo4.factory2.arunafi.testnet exposure_before '{"agent":"ed25519:EcTZ2jgMfgrnYvD8pJPHPi349waY2jPbwqEPnhujx3FR","target":"drift-target.arunafi.testnet","token":"near","block":277193101}'
+```
+
+   Expected: `"paid_out":"80000000000000000000000"` with a claim `"outcome":"paid"`; the report in state `verified` with
+   `changed_at_block` 277193145; exposure `"100000000000000000000000"` at the changed block and `"0"` at the purchase block.
+   The pool pays `min(100000000000000000000000 x 8000 / 10000, 1000000000000000000000000)` = 80000000000000000000000.
+4. Open `https://www.arunafi.xyz/console/coverage/buy/?vault=l2ocbae.factory2.arunafi.testnet` with the vault's owner
+   connected. Expected: a price from the pool for the chosen agent and target and, while the target's assigned attestor has no
+   fresh heartbeat, the message "has not sent a fresh heartbeat" with **Buy this coverage** off. Check the heartbeat:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"drift-target.arunafi.testnet"}'
+```
+
+   Expected on 13 November 2026: `false`, which is why the button is off.
+
+Not met in v0: a coverage purchase and a claim sent from these screens. The purchase needs a fresh attestor heartbeat (the
+check above) and has not been sent; the claim button is shown only when a verified report has no paid claim, and none has
+been sent from the console either. Only NEAR coverage can be bought from the console; token coverage is shown but not
+bought. Two points in the pool's claim code are under review and not yet confirmed (`docs/FOR-ARIS.md`, item 7).
 
 ### 6. Ask from an agent (MCP)
 
@@ -472,7 +511,7 @@ Aruna is verifiable and reproducible. It is not trustless.
 | In v0 | Not yet |
 |---|---|
 | `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | a hosted indexer, and console history read from it |
-| console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price (steps 5c to 5f) | console coverage, claims, pool and targets on chain data; console history from the indexer (step 5g) |
+| console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price, coverage and claims read from the pool (steps 5c to 5f, 5h) | console pool and targets on chain data; a coverage purchase and a claim sent from the console (step 5h); console history from the indexer (step 5g) |
 | `@aruna/indexer`: testnet events into Postgres behind a read API, runnable yourself ([`packages/indexer`](packages/indexer/README.md)) | |
 | coverage on testnet: pool, registry drift path, attestor, vault v3 (step 12) | pool simulation, and `k` and the concentration limit derived from it |
 | live classifier page (`apps/web`) | migration tooling between vault versions |
