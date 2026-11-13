@@ -89,7 +89,7 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
         setMissing(c.allowedTargets.filter((t) => !found.some((o) => o.target === t)));
         setPicked(new Set(found.map((o) => o.target)));
       })
-      .catch(() => alive && setNote("Could not read the registry, so targets cannot be listed. Try Refresh."));
+      .catch(() => alive && setNote("Couldn't load the checked contracts. Try Refresh."));
     return () => {
       alive = false;
     };
@@ -115,7 +115,7 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
       setPicked((s) => new Set(s).add(id));
       setExtra("");
     } catch {
-      setNote("Could not read the registry. Try again.");
+      setNote("Couldn't check that contract. Try again.");
     }
   }
 
@@ -187,7 +187,7 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
               Check
             </Button>
           </div>
-          <p className="mt-1.5 text-sm text-muted">{note ?? "Checked against the registry, not classified here."}</p>
+          <p className="mt-1.5 text-sm text-muted">{note ?? "Only contracts Aruna has already checked can be added."}</p>
         </div>
       </fieldset>
       <p className="mt-4 text-sm text-dawn-ink">{problem}</p>

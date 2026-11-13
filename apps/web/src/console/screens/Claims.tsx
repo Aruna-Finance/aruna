@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/shared/Button";
@@ -19,7 +20,7 @@ const reportLink = (id: number, vault: string) => `/console/claims/detail/?id=${
 
 export function Claims() {
   const live = useLiveVault();
-  if (live.status !== "ok") return <NoVault live={live} title="Reports and claims" />;
+  if (live.status !== "ok") return <NoVault live={live} title="Change reports and claims" />;
   return <LiveClaims live={live} />;
 }
 
@@ -40,7 +41,7 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         {data.state === "loading" && <p className="text-sm text-muted">Reading the registry and the pool.</p>}
-        {data.state === "error" && <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the reports and claims. {data.message}</p>}
+        {data.state === "error" && <ReadError what="the reports and claims" detail={data.message} />}
         {data.state === "ok" && (
           <>
             <Panel title="Code changes on your covered contracts">

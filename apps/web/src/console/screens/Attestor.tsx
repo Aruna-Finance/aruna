@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { HEARTBEAT_STALE_BLOCKS, STATE_TEXT, attestorState, groupByAttestor, heartbeatAge, type AttestorInfo } from "../data/attestor-live";
 import { STATE_TEXT as REPORT_STATE } from "../data/report-live";
@@ -30,7 +31,7 @@ export function AttestorView({ data }: { data: AttestorsLive }) {
           Reading the registry.
         </p>
       )}
-      {data.state === "error" && <p className="mt-8 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the registry. {data.message}</p>}
+      {data.state === "error" && <ReadError what="the contract records" detail={data.message} className="mt-8" />}
       {data.state === "ok" && <Body data={data} />}
     </article>
   );

@@ -115,7 +115,8 @@ and click `Connect wallet` in the header. Expected: a wallet picker opens; after
 the header shows that account id and a `Disconnect` button, and the Lookup page adds a line saying whether your
 account is the vault owner, the operator, or neither (for `demo2.factory.arunafi.testnet` it is neither, unless you
 sign in as its owner). Closing the picker is not an error. Every transaction the console sends is shown in a
-preview first — receiver, method, deposit and gas — and declining it sends nothing.
+preview first — who signs, the receiver, the amount and what it does, with the method, deposit and gas under
+**Details** — and declining it sends nothing.
 
 ### 5d. Create your own vault and an agent
 
@@ -288,9 +289,9 @@ pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published
 
 ### 5j. Pool, read from the contract
 
-1. Open `https://www.arunafi.xyz/console/pool/`. Expected: a "NEAR book" read from `pool2.arunafi.testnet` with capital, limits on
-   the book against k x capital, whether withdrawals are locked and until which block, coverage counts (active, ended and not yet released, paid), and a table of coverage
-   by code hash or upgrade authority against the cap of 2 x capital per group. Connect a wallet to see your share of each book, as a percentage.
+1. Open `https://www.arunafi.xyz/console/pool/`. Expected: a "NEAR book" (the page does not name the contract; the figures come from `pool2.arunafi.testnet`, checked in step 2) with capital, coverage
+   outstanding against what capital allows, whether withdrawals are locked and until which block, coverage counts (active, ended and not yet released, paid), and a table of coverage
+   by code version or by who can upgrade it, against the cap of 2 x capital per group. Connect a wallet to see your share of each book, as a percentage.
 2. Check the book without the page:
 
 ```bash
@@ -342,7 +343,7 @@ The console finds the vaults an account owns from the registry, not from the ind
 1. Connect a wallet at `https://www.arunafi.xyz/console/create/`. Expected: "Your vaults" lists every vault the account owns,
    newest first, including one made a minute ago.
 2. Open `https://www.arunafi.xyz/console/dashboard/` with no `?vault=` and with the wallet connected. Expected: the account's
-   newest vault opens. With no wallet connected: "No vault is selected" and "Connect a wallet to see the vaults it owns."
+   newest vault opens. With no wallet connected: "Connect your wallet to see your vaults.", a **Connect wallet** button and a link to create a vault.
 3. Disconnect. Expected: the vault the browser remembered is forgotten, so the Overview no longer shows it.
 4. Check the list without the page. The registry lists the vaults that run a code hash, with the owner at registration:
 

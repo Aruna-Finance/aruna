@@ -12,32 +12,34 @@ export default function Page() {
       <main id="top">
         <section id="check" className="lines page scroll-mt-16 py-16">
           <div className="mx-auto w-full max-w-[1440px] px-5 md:px-16">
-            <p className="label mb-9 text-base tracking-[1.92px]">Contract mutability check</p>
-            <h1 className="max-w-[16ch] text-[clamp(36px,6vw,74px)]">
-              Can this NEAR contract still change under your agent?
+            <p className="label mb-9 text-base tracking-[1.92px]">NEAR testnet</p>
+            <h1 className="max-w-[20ch] text-[clamp(36px,6vw,74px)]">
+              Spending limits and coverage for money your AI agents hold.
             </h1>
-            <p className="mt-6 max-w-[56ch] text-lg leading-[1.6] text-slate">
-              Aruna found a class of contract that can change with no transaction touching it,
-              while the field everyone monitors never changes. Paste an account to see its class
-              and the evidence.
+            <p className="mt-6 max-w-[60ch] text-lg leading-[1.6] text-slate">
+              One vault per client. Agents can only send where and as much as the client allows. Contracts that can change
+              under them are flagged, and coverage can pay out if they do.
+            </p>
+            <h2 className="mt-14 text-[clamp(20px,2vw,26px)]">Free check: can this contract still change under your agent?</h2>
+            <p className="mt-2 max-w-[62ch] text-[15px] leading-[1.6] text-slate">
+              Paste a NEAR account. Some contracts change with no transaction touching them, and most monitors miss it.
             </p>
             <CheckBox />
-            <p className="label mt-8 text-sm text-muted">
-              No wallet. No backend. Reproducible from public RPC.
-            </p>
+            <p className="label mt-8 text-sm text-muted">No wallet needed. Read from public chain data.</p>
           </div>
         </section>
         <section id="hero" className="page scroll-mt-16 bg-ink py-16 text-paper">
           <div className="mx-auto w-full max-w-[1440px] px-5 md:px-16">
             <h2 className="max-w-[22ch] text-[clamp(30px,4.4vw,63px)]">
-              A vault acts on the <span className="text-dawn">class</span>, then prices what is left.
+              Each agent gets one key. The vault <span className="text-dawn">checks</span> every call.
             </h2>
             <p className="mt-6 max-w-[60ch] text-lg leading-[1.6] text-line-2">
-              Each agent is one key on the vault. Every call is checked against the target&apos;s
-              recorded class and the owner&apos;s limits, and every exposure is published on-chain.
+              Before any money moves, the vault checks the call against the client&apos;s limits and the contract&apos;s risk.
+              Every amount sent is recorded on-chain.
             </p>
           </div>
           <div className="mx-auto mt-12 w-full max-w-[1440px] overflow-x-auto px-5 md:px-16">
+            <p className="label mb-4 text-xs text-line-2">Example</p>
             <div className="min-w-[900px]">
               <VaultStage />
             </div>

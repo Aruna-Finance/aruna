@@ -7,7 +7,7 @@ import { defaultHistory } from "./history";
 import { useTx } from "./TxContext";
 import { useWallet } from "./WalletContext";
 import { createWalletTransport, sendNear } from "./wallet-transport";
-import { yoctoToNear } from "./fmt";
+import { yoctoToNear, shortKey } from "./fmt";
 
 const GAS_ADMIN = "30000000000000";
 
@@ -76,7 +76,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       label: "Pause agent",
       method: "pause_agent",
       depositYocto: "0",
-      actions: [`pause ${label}`, publicKey],
+      actions: [`Pause ${label} (${shortKey(publicKey)})`],
       note: "The vault refuses its next call. Its key stays on the vault, and the owner can resume it.",
       okLabel: "Pause agent",
       send: (c) => c.operator.pauseAgent(publicKey),
@@ -88,7 +88,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       label: "Resume agent",
       method: "resume_agent",
       depositYocto: "1",
-      actions: [`resume ${label}`, publicKey],
+      actions: [`Resume ${label} (${shortKey(publicKey)})`],
       note: "The vault accepts its calls again. Only the owner can do this.",
       okLabel: "Resume agent",
       send: (c) => c.owner.resumeAgent(publicKey),
@@ -100,7 +100,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       label: "Revoke agent",
       method: "revoke_agent",
       depositYocto: "0",
-      actions: [`delete the key of ${label}`, publicKey],
+      actions: [`Delete the key of ${label} (${shortKey(publicKey)})`],
       note: "The vault deletes this key, so the network rejects its transactions. This cannot be undone; add a new agent instead.",
       okLabel: "Delete the key",
       danger: true,
@@ -113,7 +113,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       label: "Add agent",
       method: "add_agent",
       depositYocto: "1",
-      actions: [`add agent ${o.label}`, o.publicKey, "the vault adds a function-call key to itself"],
+      actions: [`Add agent ${o.label} (${shortKey(o.publicKey)})`, "Its key can only call this vault"],
       note: "The key can call spend and refresh_class on this vault only, within the policy. It has no account and holds no funds.",
       okLabel: "Create the agent",
       send: (c) => c.operator.createAgent({ publicKey: o.publicKey, label: o.label, policy: o.policy }),
@@ -127,7 +127,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       label: tighter ? "Tighten policy" : "Loosen policy",
       method: "update_policy",
       depositYocto: "1",
-      actions: [`${tighter ? "tighten" : "loosen"} the policy of ${label}`, publicKey],
+      actions: [`${tighter ? "Tighten" : "Loosen"} the limits of ${label} (${shortKey(publicKey)})`],
       note: "The vault applies the new limits from the next call. Existing exposure records do not change.",
       okLabel: "Save the policy",
       send: (c) => (tighter ? c.operator.tightenPolicy(publicKey, policy) : c.owner.updatePolicy(publicKey, policy)),
@@ -139,7 +139,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       label: "Withdraw to owner",
       method: "withdraw_to_owner",
       depositYocto: "1",
-      actions: [`withdraw_to_owner: ${owner}`],
+      actions: [`Send the funds to the owner, ${owner}`],
       note: "Owner-only, never an agent action. Funds can only go to the registered owner.",
       okLabel: "Withdraw to owner",
       send: (c) => c.owner.withdrawToOwner(amountYocto),
@@ -154,7 +154,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       receiver: vault,
       method: "transfer",
       depositYocto: yocto.toString(),
-      actions: [`transfer ${yoctoToNear(yocto.toString())} NEAR to ${vault}`],
+      actions: [`Deposit ${yoctoToNear(yocto.toString())} NEAR into ${vault}`],
       note: "A plain transfer. Only the vault's rules can move it out again.",
       okLabel: "Deposit",
       onOk: async () => {
@@ -174,7 +174,7 @@ export function useLiveActions(vault: string, refresh: () => void) {
       label: next ? "Set operator" : "Remove operator",
       method: "set_operator",
       depositYocto: "1",
-      actions: [next ? `operator ${current ?? "none"} to ${next}` : `remove operator ${current ?? "none"}`],
+      actions: [next ? `Change the operator from ${current ?? "none"} to ${next}` : `Remove the operator ${current ?? ""}`.trim()],
       note: "The operator can add agents and tighten or pause them. It can never loosen limits, resume an agent or withdraw. Only the owner can change this.",
       okLabel: next ? "Set the operator" : "Remove the operator",
       danger: !next,

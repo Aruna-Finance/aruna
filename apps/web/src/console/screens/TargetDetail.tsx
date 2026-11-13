@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -87,7 +88,7 @@ export function TargetView({ id, data }: { id: string; data: RegistryTargetView 
     return (
       <article>
         {crumb}
-        <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the registry. {data.message}</p>
+        <ReadError what="the contract records" detail={data.message} className="mt-4" />
       </article>
     );
   return <Detail id={id} t={data.target} head={data.head} live={data.live} liveProblem={data.liveProblem} crumb={crumb} />;

@@ -1,4 +1,5 @@
 "use client";
+import { shortKey } from "../fmt";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -204,7 +205,7 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
       {crumbs}
       <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Create an agent</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Set its limits before its key exists. The vault enforces them from its first call. Live on <span className="mono break-all">{vault}</span>.
+        Set its limits first. The vault enforces them from the agent&apos;s first call. Vault: <span className="mono break-all">{vault}</span>.
       </p>
 
       <ol className="mt-8 flex flex-wrap gap-x-6 gap-y-2" aria-label="Steps">
@@ -225,22 +226,19 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
                 <legend className="mb-1 font-medium">Where the key lives</legend>
                 <label className="flex cursor-pointer items-start gap-3">
                   <input type="radio" name="key-home" checked={!own} onChange={() => setOwn(false)} className="mt-1 accent-ink" />
-                  <span>Make the key in this browser. Use this to run the agent from the Playground.</span>
+                  <span>Create a key in this browser (to try the agent in the Playground)</span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3">
                   <input type="radio" name="key-home" checked={own} onChange={() => setOwn(true)} className="mt-1 accent-ink" />
-                  <span>I already have the key (a CLI, an MCP server or another machine). Paste its public key.</span>
+                  <span>Use a key I already have</span>
                 </label>
               </fieldset>
               {own ? (
                 <TextField label="Agent public key" mono value={ownKey} onChange={setOwnKey} hint={ownKey.trim() !== "" ? (publicKeyProblem(ownKey) ?? "That is a valid ed25519 public key.") : undefined} />
               ) : (
                 <>
-                  <p className="border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]">
-                    <strong className="font-medium">An agent is a key, not an account.</strong> The vault adds one function-call key for it. The key pair is
-                    generated in your browser, and only the public key leaves it.
-                  </p>
-                  <p className="mono break-all text-xs text-muted">New public key: {key.publicKey}</p>
+                  <p className="text-sm leading-[1.6] text-slate">Only the public key leaves your browser.</p>
+                  <p className="mono break-all text-xs text-muted" title={key.publicKey}>Key: {shortKey(key.publicKey)}</p>
                 </>
               )}
             </>

@@ -15,7 +15,7 @@ export function Closing() {
       <div className="page mx-auto w-full max-w-[1440px] px-5 py-16 md:px-16">
         <div className="my-auto">
           <h2 className="max-w-[20ch] text-[clamp(30px,4.4vw,63px)]">
-            Measured first, then bounded and partly transferable
+            What Aruna does not do
           </h2>
           <p className="mt-6 max-w-[62ch] text-lg leading-[1.6] text-[#bdbdbd]">
             Aruna does not make agents smarter and does not repay every loss. Two parties must be trusted: the

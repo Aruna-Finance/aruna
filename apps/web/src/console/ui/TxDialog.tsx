@@ -1,8 +1,10 @@
 "use client";
 
-import { classLabelOf } from "@/landing/lib/class-labels";
 import { useEffect, useRef, useState } from "react";
+import { classLabelOf } from "@/landing/lib/class-labels";
 import { Button } from "@/shared/Button";
+import { Disclosure } from "@/shared/Disclosure";
+import { reasonText } from "../reason-text";
 import { yoctoToNear } from "../fmt";
 import { explorerTxUrl, runTx, type TxPhase } from "../tx-status";
 
@@ -26,6 +28,12 @@ export interface TxRequest {
 }
 
 const isPromise = (v: unknown): v is Promise<unknown> => typeof v === "object" && v !== null && typeof (v as { then?: unknown }).then === "function";
+
+/** What the user pays: the 1 yoctoNEAR security deposit some calls require is shown as none here, and exactly under Details. */
+export function amountText(yocto: string | undefined): string {
+  if (yocto === undefined || yocto === "0" || yocto === "1") return "none";
+  return `${yoctoToNear(yocto)} NEAR`;
+}
 
 /** "none", "1 yoctoNEAR", or NEAR. A deposit is never hidden. */
 export function depositText(yocto: string | undefined): string {
@@ -61,8 +69,9 @@ export function PhaseView({ phase }: { phase: TxPhase }) {
     case "refused":
       return (
         <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]" role="status">
-          The vault refused it: <span className="mono">ARUNA_{phase.reason}</span>
-          {phase.targetClass && <> (contract risk: {classLabelOf(phase.targetClass)})</>}. This is a recorded outcome, not an error.{" "}
+          Blocked by the vault. {reasonText(phase.reason) ?? "It refused this action."}
+          {phase.targetClass && <> (Contract risk: {classLabelOf(phase.targetClass)}.)</>} No funds moved, and the refusal is recorded.{" "}
+          <span className="mono text-xs text-muted">ARUNA_{phase.reason}</span>{" "}
           {phase.hash && (
             <a href={explorerTxUrl(phase.hash)} target="_blank" rel="noreferrer" className="mono underline underline-offset-4">
               View transaction
@@ -72,11 +81,18 @@ export function PhaseView({ phase }: { phase: TxPhase }) {
       );
     case "failed":
       return (
-        <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]" role="alert">
-          {phase.sent ? "The network or the contract rejected it." : "It could not be sent or read."} {phase.reason && <span className="mono">{phase.reason} </span>}
-          <span className="break-words">{phase.message}</span>
-          {!phase.sent && " Nothing is known about whether it ran, so check the explorer before you retry."}
-        </p>
+        <div className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]" role="alert">
+          {phase.sent ? "The network or the contract rejected it." : "It couldn\u2019t be sent, or its result couldn\u2019t be read."}
+          {!phase.sent && " Check the explorer before you try again, in case it ran."}
+          {(phase.reason || phase.message) && (
+            <Disclosure title="Details" className="mt-2 text-sm [&>summary]:font-normal">
+              <p className="mono mt-2 break-words text-xs">
+                {phase.reason && `${phase.reason} `}
+                {phase.message}
+              </p>
+            </Disclosure>
+          )}
+        </div>
       );
     case "cancelled":
       return (
@@ -125,39 +141,49 @@ export function TxDialog({ tx, onClose }: { tx: TxRequest | null; onClose: () =>
             {tx.title}
           </h2>
           <dl className="mt-5 grid grid-cols-[110px_1fr] gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted">Signer</dt>
+            <dt className="text-muted">From</dt>
             <dd className="mono break-all">{tx.signer}</dd>
-            <dt className="text-muted">Receiver</dt>
+            <dt className="text-muted">To</dt>
             <dd className="mono break-all">{tx.receiver}</dd>
-            {tx.method && (
-              <>
-                <dt className="text-muted">Method</dt>
-                <dd className="mono">{tx.method}</dd>
-              </>
-            )}
             {tx.depositYocto !== undefined && (
               <>
-                <dt className="text-muted">Deposit</dt>
-                <dd className="mono">{depositText(tx.depositYocto)}</dd>
+                <dt className="text-muted">Amount</dt>
+                <dd className="mono">{amountText(tx.depositYocto)}</dd>
               </>
             )}
-            {tx.gas !== undefined && (
-              <>
-                <dt className="text-muted">Gas</dt>
-                <dd className="mono">{gasText(tx.gas)}</dd>
-              </>
-            )}
-            <dt className="text-muted">Actions</dt>
+            <dt className="text-muted">What it does</dt>
             <dd>
               <ul className="grid gap-1">
                 {tx.actions.map((a) => (
-                  <li key={a} className="mono">
-                    {a}
-                  </li>
+                  <li key={a}>{a}</li>
                 ))}
               </ul>
             </dd>
           </dl>
+          {(tx.method || tx.gas !== undefined || tx.depositYocto !== undefined) && (
+            <Disclosure title="Details" className="mt-4 text-sm [&>summary]:font-normal [&>summary]:text-muted">
+              <dl className="mt-3 grid grid-cols-[110px_1fr] gap-x-4 gap-y-2">
+                {tx.method && (
+                  <>
+                    <dt className="text-muted">Method</dt>
+                    <dd className="mono">{tx.method}</dd>
+                  </>
+                )}
+                {tx.depositYocto !== undefined && (
+                  <>
+                    <dt className="text-muted">Deposit</dt>
+                    <dd className="mono">{depositText(tx.depositYocto)}</dd>
+                  </>
+                )}
+                {tx.gas !== undefined && (
+                  <>
+                    <dt className="text-muted">Gas</dt>
+                    <dd className="mono">{gasText(tx.gas)}</dd>
+                  </>
+                )}
+              </dl>
+            </Disclosure>
+          )}
           {tx.note && <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]">{tx.note}</p>}
           <PhaseView phase={phase} />
           <div className="mt-6 flex flex-wrap gap-3">

@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -74,7 +75,7 @@ export function ReportDetail() {
     return (
       <article>
         {crumb}
-        <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the report. {out.message}</p>
+        <ReadError what="the report" detail={out.message} className="mt-4" />
       </article>
     );
   }
@@ -166,7 +167,7 @@ function ClaimsOnReport({ vault, reportId }: { vault: string; reportId: number }
   return (
     <Panel title={`Claims on this report for ${vault}`}>
       {data.state === "loading" && <p className="text-sm text-muted">Reading the pool.</p>}
-      {data.state === "error" && <p className="text-sm text-dawn-ink">Could not read the claims. {data.message}</p>}
+      {data.state === "error" && <ReadError what="the claims" detail={data.message} />}
       {data.state === "ok" &&
         (() => {
           const rows = data.claims.filter((c) => c.reportId === reportId);

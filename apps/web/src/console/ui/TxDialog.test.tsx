@@ -19,14 +19,15 @@ describe("PhaseView", () => {
   it("shows a refusal as a recorded outcome with its code, not as an error", () => {
     const html = renderToStaticMarkup(<PhaseView phase={{ kind: "refused", reason: "TARGET_NOT_ALLOWED", targetClass: "local_upgradeable", hash: "H" }} />);
     expect(html).toContain("ARUNA_TARGET_NOT_ALLOWED");
-    expect(html).toContain("not an error");
+    expect(html).toContain("Blocked by the vault. This agent isn&#x27;t allowed to use that contract.");
+    expect(html).toContain("the refusal is recorded");
     expect(html).not.toContain('role="alert"');
     expect(html).toContain("https://testnet.nearblocks.io/txns/H");
   });
   it("shows a failure as an alert, and warns when it may have run", () => {
     const html = renderToStaticMarkup(<PhaseView phase={{ kind: "failed", message: "timeout", reason: null, sent: false }} />);
     expect(html).toContain('role="alert"');
-    expect(html).toContain("check the explorer before you retry");
+    expect(html).toContain("Check the explorer before you try again, in case it ran.");
   });
   it("says a cancel sent nothing", () => {
     expect(renderToStaticMarkup(<PhaseView phase={{ kind: "cancelled" }} />)).toContain("Nothing was sent");

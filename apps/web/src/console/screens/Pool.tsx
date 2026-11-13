@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import { useMemo, useState } from "react";
 import { amountText } from "../data/coverage-live";
 import { bookFigures, bpsText, groupRows, stageCounts, tokensOf, type BookFigures, type GroupBy } from "../data/pool-live";
@@ -13,8 +14,8 @@ const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-me
 const td = "border-b border-line px-3 py-3 align-top";
 
 const BY: { id: GroupBy; label: string }[] = [
-  { id: "code_hash", label: "Implementation (code hash)" },
-  { id: "upgrade_authority", label: "Upgrade authority" },
+  { id: "code_hash", label: "Same code" },
+  { id: "upgrade_authority", label: "Same upgrader" },
 ];
 
 export function Pool() {
@@ -33,7 +34,7 @@ export function PoolView({ data, account }: { data: PoolLive; account: string | 
         Capital in the pool and the coverage it backs. Deposits and withdrawals aren&apos;t in the console yet.
       </p>
       {data.state === "loading" && <p className="mt-6 text-muted">Reading the pool.</p>}
-      {data.state === "error" && <p className="mt-6 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the pool. {data.message}</p>}
+      {data.state === "error" && <ReadError what="the pool" detail={data.message} className="mt-6" />}
       {data.state === "ok" && (
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
           {tokens.map((t) => (
@@ -57,7 +58,7 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
 
   const tiles: [string, string, string?][] = [
     ["Capital", amt(f.capital)],
-    ["Limits on the book", amt(f.totalLimits), `at most ${amt(f.maxLimits)} (k x capital); room for ${amt(f.headroom)} more`],
+    ["Coverage outstanding", amt(f.totalLimits), `up to ${amt(f.maxLimits)} allowed by capital; room for ${amt(f.headroom)} more`],
     ["Withdrawals", f.locked ? "Locked" : "Open", f.locked ? `until block ${block(f.lockedUntil)}, ${f.blocksToUnlock.toLocaleString("en-US")} blocks from now` : `lock ended at block ${block(f.lockedUntil)}`],
     ["Coverage", `${counts.active} active`, `${counts.ended} ended and not yet released, ${counts.paid} paid, ${counts.claimInFlight} in a claim, ${counts.released} released`],
   ];
@@ -81,7 +82,7 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
 
       <div className="mt-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-medium">Coverage by group, against the cap of {amt(f.groupCap)} each</h3>
+          <h3 className="text-base font-medium">Coverage that one code change could hit, against a cap of {amt(f.groupCap)} each</h3>
           <div className="flex flex-wrap gap-px border border-line-2 bg-line-2" role="group" aria-label="Group by">
             {BY.map((o) => (
               <button
@@ -103,8 +104,8 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
             <table className="w-full min-w-[640px] border-collapse text-[15px]">
               <thead>
                 <tr>
-                  <th className={th}>{by === "code_hash" ? "Code hash" : "Upgrade authority"}</th>
-                  <th className={`${th} text-right`}>Limits</th>
+                  <th className={th}>{by === "code_hash" ? "Code version" : "Who can upgrade it"}</th>
+                  <th className={`${th} text-right`}>Coverage</th>
                   <th className={`${th} text-right`}>Of the cap</th>
                   <th className={th}>Contracts</th>
                 </tr>
@@ -128,8 +129,8 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
           </div>
         )}
         <p className="mt-4 max-w-[80ch] text-sm leading-[1.6] text-muted">
-          Limits are what each coverage can still pay, less what it already paid. A released coverage has left the totals. The pool refuses a purchase
-          that would take one group over its cap or the book over k x capital.
+          Coverage is what each policy can still pay. The pool refuses a purchase that would take one group over its cap, or the total over what
+          capital allows.
         </p>
       </div>
     </Panel>

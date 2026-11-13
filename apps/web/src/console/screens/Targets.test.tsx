@@ -50,7 +50,7 @@ describe("Targets screen", () => {
 
   it("shows a read error, not a short list", () => {
     const html = renderToStaticMarkup(<TargetsView data={{ state: "error", message: "rpc down" }} />);
-    expect(html).toContain("Could not read the registry. rpc down");
+    expect(html).toContain("Couldn&#x27;t read the contract records."); expect(html).toContain("rpc down");
     expect(html).not.toContain("drift-target");
   });
 });

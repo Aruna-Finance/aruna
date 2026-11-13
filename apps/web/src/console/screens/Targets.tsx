@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { useState } from "react";
 import { block } from "../fmt";
@@ -33,7 +34,7 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
           Reading the registry.
         </p>
       )}
-      {data.state === "error" && <p className="mt-8 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the registry. {data.message}</p>}
+      {data.state === "error" && <ReadError what="the contract records" detail={data.message} className="mt-8" />}
       {data.state === "ok" && (
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
           <Panel title="Recorded in the registry" aside={<span className="text-sm text-muted">Read at block {block(data.head)}</span>}>

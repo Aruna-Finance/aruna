@@ -33,7 +33,7 @@ function Tile({ label, children, sub }: { label: string; children: React.ReactNo
 
 export function Overview() {
   const live = useLiveVault();
-  if (live.status !== "ok") return <NoVault live={live} title="Agents and what they have at stake" />;
+  if (live.status !== "ok") return <NoVault live={live} title="Overview" />;
   return <LiveOverview live={live} />;
 }
 

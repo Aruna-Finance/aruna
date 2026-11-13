@@ -1,6 +1,7 @@
 "use client";
 
 import { classLabelOf } from "@/landing/lib/class-labels";
+import { reasonText } from "../reason-text";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AUTO_DISABLE_REASONS, readVault } from "@aruna/sdk";
@@ -34,7 +35,7 @@ const stepText = (s: StepState): string => {
     case "settled":
       return "Settled";
     case "refused":
-      return `Refused: ${s.reason}${s.targetClass ? ` (contract risk: ${classLabelOf(s.targetClass)})` : ""}`;
+      return `Refused: ${reasonText(s.reason) ?? s.reason} (${s.reason})${s.targetClass ? `, contract risk: ${classLabelOf(s.targetClass)}` : ""}`;
     case "failed":
       return `Failed: ${s.message}`;
     case "skipped":
@@ -44,7 +45,7 @@ const stepText = (s: StepState): string => {
 
 export function Playground() {
   const live = useLiveVault();
-  if (live.status !== "ok") return <NoVault live={live} title="Simulate and injection" />;
+  if (live.status !== "ok") return <NoVault live={live} title="Playground" />;
   return <LivePlayground live={live} />;
 }
 
@@ -149,7 +150,7 @@ function LivePlayground({ live }: { live: Extract<ReturnType<typeof useLiveVault
                   label="Agent"
                   value={agent?.publicKey ?? ""}
                   onValueChange={setPk}
-                  options={offered.map((a) => ({ value: a.publicKey, label: `${a.label} (${a.autoDisabled ? "auto-disabled" : a.status})` }))}
+                  options={offered.map((a) => ({ value: a.publicKey, label: `${a.label} (${a.autoDisabled ? "stopped by vault" : a.status})` }))}
                   className="mt-1.5 w-full max-w-md"
                 />
               </div>
@@ -193,7 +194,7 @@ function LivePlayground({ live }: { live: Extract<ReturnType<typeof useLiveVault
           </ul>
           {interrupted && !running && (
             <p className="mt-5 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">
-              A previous run was interrupted. On chain this agent is {agent?.autoDisabled ? "auto-disabled" : (agent?.status ?? "unknown")}.{" "}
+              A previous run was interrupted. On chain this agent is {agent?.autoDisabled ? "stopped by the vault" : (agent?.status ?? "unknown")}.{" "}
               <button type="button" className="underline underline-offset-4" onClick={() => agent && (markRunEnded(store, vault, agent.publicKey), setInterrupted(false))}>
                 Dismiss
               </button>
@@ -243,7 +244,7 @@ function LivePlayground({ live }: { live: Extract<ReturnType<typeof useLiveVault
             </ol>
             {after && (
               <p className="mt-6 border-t border-line-2 pt-4 text-[15px]">
-                On chain now: this agent is <span className="font-medium">{after.autoDisabled ? "Paused, auto-disabled" : after.status}</span>.{" "}
+                On chain now: this agent is <span className="font-medium">{after.autoDisabled ? "Stopped by the vault" : after.status}</span>.{" "}
                 <Link href={`/console/agents/?vault=${encodeURIComponent(vault)}`} className="underline underline-offset-4">
                   Open the agents
                 </Link>
@@ -253,20 +254,17 @@ function LivePlayground({ live }: { live: Extract<ReturnType<typeof useLiveVault
           </Panel>
         )}
 
-        <Panel title="What counts toward auto-disable">
+        <Panel title="When the vault stops an agent">
           <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
-            Only agent-caused refusals count, so an honest agent is not disabled for a target reclassified under it or a freeze:
+            Only refusals the agent caused count. A contract reclassified or frozen under an honest agent does not.
           </p>
-          <p className="mono mt-3 text-sm">{AUTO_DISABLE_REASONS.join(", ")}</p>
-        </Panel>
-
-        <Panel title="Simulate before you spend">
-          <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
-            <span className="mono">aruna_simulate</span> is a free view that runs the vault&apos;s own checks without a transaction, so a
-            refusal costs no gas. It is reached through the MCP server or the SDK with an agent key, not decided on this page, because the
-            checks belong to the contract and a second copy in the browser would disagree with it. Its result is not binding: state can
-            change before the transaction lands.
-          </p>
+          <ul className="mt-3 grid gap-1 text-sm">
+            {AUTO_DISABLE_REASONS.map((r) => (
+              <li key={r}>
+                {reasonText(r)} <span className="mono text-xs text-muted">{r}</span>
+              </li>
+            ))}
+          </ul>
         </Panel>
       </div>
     </article>

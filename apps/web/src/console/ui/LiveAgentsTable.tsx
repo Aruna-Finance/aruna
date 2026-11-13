@@ -95,7 +95,7 @@ export function LiveAgentsTable({
                   )}
                 </td>
                 <td className={`${td} whitespace-nowrap text-sm`}>
-                  {a.status === "Revoked" ? <span className="text-muted">Deleted</span> : keyInThisBrowser(held, a.publicKey) ? "In this browser" : <span className="text-dawn-ink">Not in this browser</span>}
+                  {a.status === "Revoked" ? <span className="text-muted">Deleted</span> : keyInThisBrowser(held, a.publicKey) ? "In this browser" : <span className="text-muted">Held elsewhere</span>}
                 </td>
                 <td className={`${td} text-right`}>
                   {a.status === "Revoked" ? null : (

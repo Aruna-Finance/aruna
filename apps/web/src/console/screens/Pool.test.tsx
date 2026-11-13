@@ -40,7 +40,7 @@ describe("Pool screen", () => {
 
   it("shows a read error, not a partial book", () => {
     const html = renderToStaticMarkup(<PoolView data={{ state: "error", message: "rpc down" }} account={null} />);
-    expect(html).toContain("Could not read the pool. rpc down");
+    expect(html).toContain("Couldn&#x27;t read the pool."); expect(html).toContain("rpc down");
     expect(html).not.toContain("NEAR book");
   });
 });

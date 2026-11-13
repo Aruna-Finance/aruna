@@ -42,27 +42,27 @@ export function preRunChecks(o: {
           id: "active",
           label: "Agent is active",
           ok: false,
-          reason: agent.autoDisabled ? "This agent was auto-disabled. Only the owner can resume it." : `This agent is ${agent.status}.`,
+          reason: agent.autoDisabled ? "The vault stopped this agent after repeated refusals. Only the owner can resume it." : `This agent is ${agent.status}.`,
           fix: { label: "Open the agents", href: agentsHref },
         };
   const key: Check =
     agent && keyInThisBrowser(o.held, agent.publicKey)
       ? { id: "key", label: "Its key is in this browser", ok: true, reason: "" }
-      : { id: "key", label: "Its key is in this browser", ok: false, reason: "The browser does not hold this agent's key, so it cannot sign for it.", fix: { label: "Create an agent", href: `/console/agents/new/?vault=${encodeURIComponent(o.vault)}` } };
+      : { id: "key", label: "Its key is in this browser", ok: false, reason: "This browser doesn't hold this agent's key, so it can't sign for it.", fix: { label: "Create an agent", href: `/console/agents/new/?vault=${encodeURIComponent(o.vault)}` } };
   const inCeiling = view.ceiling?.allowedTargets.includes(o.swapTarget) ?? false;
   const target: Check = inCeiling
-    ? { id: "target", label: `${o.swapTarget} is in the ceiling`, ok: true, reason: "" }
-    : { id: "target", label: `${o.swapTarget} is in the ceiling`, ok: false, reason: "The swap target is not in the vault's ceiling, so even the in-policy swap would be refused.", fix: { label: "Edit the ceiling", href: agentsHref } };
+    ? { id: "target", label: `${o.swapTarget} is in the vault limits`, ok: true, reason: "" }
+    : { id: "target", label: `${o.swapTarget} is in the vault limits`, ok: false, reason: "The swap contract isn't in the vault limits, so the vault would refuse every swap.", fix: { label: "Edit vault limits", href: agentsHref } };
   // The agent's own list is what the vault checks first. If the swap is not on it, the in-policy swap is refused too,
   // and the injected run would be refused for the wrong reason.
   const onAgentList = agent?.policy.allowedTargets.includes(o.swapTarget) ?? false;
   const agentTarget: Check = onAgentList
-    ? { id: "agentTarget", label: `${o.swapTarget} is on this agent's allowed targets`, ok: true, reason: "" }
+    ? { id: "agentTarget", label: `${o.swapTarget} is on this agent's allowed contracts`, ok: true, reason: "" }
     : {
         id: "agentTarget",
         label: `${o.swapTarget} is on this agent's allowed targets`,
         ok: false,
-        reason: "This agent may not call the swap, so the vault refuses even the in-policy swap with TARGET_NOT_ALLOWED. Add it to the agent's policy (the owner can).",
+        reason: "This agent isn't allowed to use the swap contract, so the vault would refuse every swap. The owner can add it to the agent's limits.",
         fix: agent ? { label: "Open the agent's policy", href: `/console/agents/detail?agent=${encodeURIComponent(agent.publicKey)}&vault=${encodeURIComponent(o.vault)}` } : { label: "Create an agent", href: `/console/agents/new/?vault=${encodeURIComponent(o.vault)}` },
       };
   const need = neededBalance(o.attempts);
@@ -73,7 +73,7 @@ export function preRunChecks(o: {
           id: "balance",
           label: "The vault can pay for the run",
           ok: false,
-          reason: o.balance === null ? "The vault balance could not be read." : `The vault holds ${yoctoToNear(o.balance.toString())} NEAR; this run needs about ${yoctoToNear(need.toString())} NEAR.`,
+          reason: o.balance === null ? "Couldn't read the vault balance." : `The vault holds ${yoctoToNear(o.balance.toString())} NEAR; this run needs about ${yoctoToNear(need.toString())} NEAR.`,
           fix: { label: "Deposit", href: agentsHref },
         };
   return [active, key, target, agentTarget, balance];

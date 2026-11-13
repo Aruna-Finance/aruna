@@ -30,7 +30,7 @@ const ROLES: { title: string; text: string; items: Item[]; foot?: string }[] = [
       { text: "Send NEAR", ok: false },
       { text: "Add a key", ok: false },
     ],
-    foot: "RequiresFullAccess. No login needed.",
+    foot: "No login needed.",
   },
   {
     title: "Underwriter, on testnet",

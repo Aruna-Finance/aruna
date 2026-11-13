@@ -47,7 +47,7 @@ describe("live agents table", () => {
   });
   it("AE5: a key not held here is marked, and revoke stays enabled", () => {
     const out = html([agent()], [], "owner");
-    expect(out).toContain("Not in this browser");
+    expect(out).toContain("Held elsewhere");
     expect(out).not.toMatch(/<button[^>]*disabled=""[^>]*>Revoke/);
   });
   it("the label links to the agent detail page by public key", () => {

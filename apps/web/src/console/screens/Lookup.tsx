@@ -1,5 +1,6 @@
 "use client";
 
+import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -90,10 +91,14 @@ export function Lookup() {
         )}
 
         {state.status === "error" && (
-          <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px] leading-[1.6]">
-            Could not read <span className="mono">{vault}</span> as an Aruna vault. {state.message}. Check the account id, or that it is
-            a vault on testnet.
-          </p>
+          <div role="alert" className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px] leading-[1.6]">
+            <p>
+              <span className="mono">{vault}</span> isn&apos;t an Aruna vault on testnet, or couldn&apos;t be read. Check the name and try again.
+            </p>
+            <Disclosure title="Details" className="mt-2 text-sm text-slate [&>summary]:font-normal">
+              <p className="mono mt-2 break-words text-xs">{state.message}</p>
+            </Disclosure>
+          </div>
         )}
 
         {state.status === "ok" && (
@@ -121,11 +126,11 @@ export function Lookup() {
                   <dd className="mono break-all">{state.view.operator ?? "None"}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Full-access keys on the vault</dt>
+                  <dt className="text-muted">Admin (full-access) keys</dt>
                   <dd className="mono">{state.view.fullAccessKeys}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Keys the vault does not know</dt>
+                  <dt className="text-muted">Keys not registered as agents</dt>
                   <dd className="mono">{state.view.unknownKeys.length}</dd>
                 </div>
                 {state.view.ceiling && (

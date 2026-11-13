@@ -83,7 +83,7 @@ export async function runAttempts(o: {
 
 export const END_TEXT: Record<RunEnd, string> = {
   completed: "The run finished.",
-  auto_disabled: "The vault paused the agent: it is auto-disabled. Only the owner can resume it.",
+  auto_disabled: "The vault paused the agent after repeated refusals. Only the owner can resume it.",
   stopped: "You stopped the run before the next attempt.",
   failed: "The run stopped on a failure, not a refusal.",
 };

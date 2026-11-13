@@ -30,7 +30,7 @@ export function useClaimAction(vault: string, onDone: () => void) {
       method: "claim",
       depositYocto: "0",
       gas: GAS_CLAIM,
-      actions: [`claim coverage #${o.coverageId} for report ${o.reportId}`, o.target],
+      actions: [`Claim on coverage #${o.coverageId}`, `For the code change in report ${o.reportId} on ${o.target}`],
       note: "The pool checks the report, the waiting period, the challenge window and the recorded exposure, and pays the coverage's owner only if every one holds. A claim inside the challenge window is refused and recorded.",
       okLabel: "Start the claim",
       onOk: async () => {

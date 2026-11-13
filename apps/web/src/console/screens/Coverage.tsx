@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/shared/Button";
@@ -53,7 +54,7 @@ function LiveCoverage({ live }: { live: Extract<LiveVault, { status: "ok" }> }) 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="Coverage held for this vault" aside={cov.state === "ok" ? <span className="mono text-sm text-muted">read at block {cov.head.toLocaleString("en-US")}</span> : undefined}>
           {cov.state === "loading" && <p className="text-sm text-muted">Reading the pool.</p>}
-          {cov.state === "error" && <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the pool. {cov.message}</p>}
+          {cov.state === "error" && <ReadError what="the pool" detail={cov.message} />}
           {cov.state === "ok" &&
             (cov.rows.length ? (
               <LiveCoverageTable rows={cov.rows} head={cov.head} agentLabel={label} meta={meta} />
@@ -61,7 +62,7 @@ function LiveCoverage({ live }: { live: Extract<LiveVault, { status: "ok" }> }) 
               <p className="text-sm text-muted">No coverage yet for this vault. Your agents still run under their limits.</p>
             ))}
           <p className="mt-5 max-w-[80ch] text-sm text-muted">
-            Payout is <span className="mono">min(recorded exposure x ratio, limit)</span>. Recorded exposure can differ from your real loss.
+            Payout is the lesser of (amount sent &times; payout ratio) and the limit. It can differ from what you actually lost.
           </p>
         </Panel>
       </div>

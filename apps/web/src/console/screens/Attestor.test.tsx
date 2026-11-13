@@ -38,7 +38,7 @@ describe("Attestor screen", () => {
 
   it("shows a read error, not a partial list", () => {
     const html = renderToStaticMarkup(<AttestorView data={{ state: "error", message: "rpc down" }} />);
-    expect(html).toContain("Could not read the registry. rpc down");
+    expect(html).toContain("Couldn&#x27;t read the contract records."); expect(html).toContain("rpc down");
     expect(html).not.toContain("att-a");
   });
 });
