@@ -27,7 +27,10 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Contracts</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Contracts your agents may use, and whether their code can still change.
+        Contracts your agents may use, and whether their code can still change.{" "}
+        <Link href="/console/attestor/" className="underline underline-offset-4">
+          Who reports code changes
+        </Link>
       </p>
 
       {data.state === "loading" && (
