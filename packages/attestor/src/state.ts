@@ -1,7 +1,3 @@
-// What the attestor keeps between polls and across restarts: its report nonce, the last observation of each
-// target, and the last list of targets the registry confirmed. A lost observation makes the current code the new
-// baseline, so a change made while the daemon was down is never reported: on a container, point
-// ARUNA_ATTESTOR_STATE_DIR at a persistent volume.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -10,7 +6,6 @@ import type { Observation } from "./watch.js";
 export interface State {
   nonce: number;
   observations: Record<string, Observation>;
-  /** The targets the registry last confirmed as assigned here: the list kept when the assignment source is down. */
   targets?: string[];
 }
 

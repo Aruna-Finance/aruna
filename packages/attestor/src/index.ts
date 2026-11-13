@@ -104,7 +104,6 @@ async function main(argv: string[]): Promise<number> {
     let heartbeatDue = true;
     for (let poll = 0; ; poll++) {
       const state = loadState(attestor);
-      // The target list is refreshed with each heartbeat, so an assignment is picked up without a restart.
       if (poll % every === 0) {
         state.targets = await resolveTargets({
           attestor,

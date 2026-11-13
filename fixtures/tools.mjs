@@ -43,7 +43,6 @@ if (cmd === "hash") {
 } else if (cmd === "exists") {
   process.exit((await reader.viewAccount(arg)).exists ? 0 : 1);
 } else if (cmd === "class-args") {
-  // One builder for the record, shared with the keeper (@aruna/sdk/coverage).
   const classification = await classify(arg, reader);
   console.error(JSON.stringify({ class: classification.class, evidence: classification.evidence }, null, 2));
   console.log(JSON.stringify(await classRecordArgs(arg, classification)));

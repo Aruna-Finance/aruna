@@ -1,6 +1,3 @@
-// The registry's class record, built in one place. The keeper and fixtures/tools.mjs both write a record
-// with `set_class`; deriving its three computed fields twice would let them drift. Classification itself
-// stays in @aruna/classifier-core (CLAUDE.md rule 10): this only shapes a Classification for the registry.
 import type { Classification } from "@aruna/classifier-core";
 import type { RegistryMethods, RegistryRiskClass } from "../generated/registry.js";
 

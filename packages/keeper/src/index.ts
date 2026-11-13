@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// aruna-keeper: after a drift report is final, re-classifies the target with the shared classifier, writes its class to
-// the registry and lifts the freeze when the new class is no riskier. TESTNET ONLY. It acts as the registry owner, so
-// it is Aruna's own automation of that authority and not a third party (README "Trust assumptions").
 import { classify } from "@aruna/classifier-core";
 import { createFetchReader } from "@aruna/rpc";
 import { fetchViewTransport, Registry } from "@aruna/sdk/coverage";
@@ -28,7 +25,6 @@ Flags fall back to the environment:
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const log = (m: string) => console.log(`${new Date().toISOString()} ${m}`);
 
-// Gas attached to each call. Measure `set_class` and `lift_freeze` on testnet before fixing the key's allowance.
 const TGAS = 30n;
 
 async function main(argv: string[]): Promise<number> {

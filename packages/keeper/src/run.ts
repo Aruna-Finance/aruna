@@ -1,11 +1,8 @@
-// One keeper run: for each candidate target, decide from the chain whether it is unhandled, and if so re-classify it
-// with the shared engine, then lift the freeze and write the class (decide.ts holds the rules).
 import type { Classification } from "@aruna/classifier-core";
 import { createIndexerClient } from "@aruna/indexer/client";
 import { classRecordArgs, type ClassRecord, type DriftReport, type SetClassArgs } from "@aruna/sdk/coverage";
 import { decide, skipReason, type SkipReason } from "./decide.js";
 
-/** The registry, as the keeper uses it: two views and the two calls only the registry owner can make. */
 export interface KeeperChain {
   classOf(target: string): Promise<ClassRecord | null>;
   latestReport(target: string): Promise<DriftReport | null>;
@@ -64,7 +61,6 @@ async function handle(d: RunDeps, target: string): Promise<Outcome> {
       const tx = await d.chain.liftFreeze(target);
       d.log(`${target}: freeze lifted (${change})  tx ${tx}`);
     } catch (e) {
-      // Nothing was written, so the record is still older than the report and the next run starts again at the lift.
       d.log(`${target}: lifting the freeze failed, trying again next run (${msg(e)})`);
       return { target, result: "failed" };
     }
@@ -83,7 +79,6 @@ async function handle(d: RunDeps, target: string): Promise<Outcome> {
   return { target, result: action === "lift_then_write" ? "released" : "written" };
 }
 
-/** The seed list plus the indexer's targets, without repeats; the seed alone when the indexer cannot be read. */
 export async function gatherCandidates(o: { seed: string[]; reportTargets?: () => Promise<string[]>; log: (msg: string) => void }): Promise<string[]> {
   let fromIndexer: string[] = [];
   if (o.reportTargets) {
