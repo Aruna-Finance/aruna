@@ -13,9 +13,10 @@ Aruna mengukur apakah kontrak yang disentuh agen masih bisa berubah, memakainya 
 parametrik terhadap perubahan kode). **Fasenya F4 (Konsolidasi), dengan catatan.** Tiga flow utama (measurement, protection,
 coverage) berjalan penuh di testnet, dan hari ini untuk pertama kalinya coverage benar-benar bisa dijual: attestor dan keeper
 berjalan sebagai service, `swap` ditugaskan, dan coverage #5 dibeli [DIJALANKAN]. Layar console hampir semuanya sudah membaca chain;
-mock hanya tersisa di layar Guided demo. **Yang belum:** klaim dikirim dari console; perubahan kode pada target yang dijaga
-service yang di-host (rantai laporan, freeze, pelepasan) belum diuji ulang dengan service itu, hanya dengan sisa dari demo
-sebelumnya; tidak ada audit independen; tidak ada pengguna di luar tim; semua masih testnet. Halaman console belum saya buka di
+mock hanya tersisa di layar Guided demo. **Pembaruan 13 Nov, 19:15 UTC [DIJALANKAN]:** rantai penuh dengan service yang di-host pada perubahan kode baru di `swap`
+(laporan 3 -> freeze -> `push_freeze` ke 8 vault -> verified -> `lift_freeze` + `set_class`), lalu klaim coverage #5 dari
+console dibayar 0,08 NEAR. Transaksi di `docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`, "Recorded runs". **Yang belum:** retry SDK
+pada freeze yang sudah dilepas (G2) belum dijalankan di chain; tidak ada audit independen; tidak ada pengguna di luar tim; semua masih testnet. Halaman console belum saya buka di
 browser pada sesi ini.
 
 ---
@@ -71,9 +72,11 @@ Masih ada:
    setelah transaksi dikirim (dua kali tadi). Belum terverifikasi seluruhnya di kode layar.
 3. Daftar vault di console memakai pemilik yang tercatat saat registrasi, bukan pemilik sekarang (temuan audit L1, terbuka).
 4. Temuan audit coverage L2 dan L3 terbuka (payout ke akun yang tidak bisa menerima, storage coverage dibayar pool).
-5. Satu `set_class` manual setelah laporan membuat keeper menganggap target sudah ditangani; freeze-nya tinggal untuk operator.
-6. Allowance key function-call 1 NEAR cukup sekitar 11 hari dengan heartbeat tiap 3 menit; tidak ada alert saat habis.
-7. PR #55 (attestor dan keeper) digabung **tanpa** `ce-code-review`; hanya dibaca penulisnya.
+5. ~~Tidak ada service yang memanggil `push_freeze`~~ (G1) dan freeze yang didorong tertinggal di cache vault setelah dilepas (G2):
+   diperbaiki di keeper dan SDK (`e50fded`); G1 terbukti di chain 13 Nov. Lihat `docs/COMPONENT_MAP.md` §5.
+6. Satu `set_class` manual setelah laporan membuat keeper menganggap target sudah ditangani; freeze-nya tinggal untuk operator.
+7. Allowance key function-call 1 NEAR cukup sekitar 11 hari dengan heartbeat tiap 3 menit; tidak ada alert saat habis.
+8. PR #55 (attestor dan keeper) digabung **tanpa** `ce-code-review`; hanya dibaca penulisnya.
 
 ---
 
@@ -85,8 +88,9 @@ Masih ada:
 - **Coverage, ujung ke ujung:** laporan drift -> freeze -> klaim dibayar [DIJALANKAN, chain]: coverage #2 dibayar 0,08 NEAR. Sekarang juga
   attestor hidup -> `heartbeat_fresh` `true` -> pembelian coverage #5 di `swap` [DIJALANKAN, chain dan transaksi]. Dua pembelian sebelumnya
   ditolak pool dengan alasan yang benar (kelas agen, window 47 hari).
-- **Yang belum terbukti dengan service yang di-host:** perubahan kode baru pada `swap` atau `drift-target` -> laporan oleh attestor ->
-  freeze -> pelepasan oleh keeper. Pelepasan keeper terbukti pada laporan lama (report 2), bukan pada perubahan baru.
+- **Dengan service yang di-host, 13 Nov [DIJALANKAN, chain]:** perubahan kode baru pada `swap` -> laporan 3 oleh attestor-a (31 blok)
+  -> freeze -> `push_freeze` oleh keeper ke 8 vault -> verified -> `lift_freeze` dan `set_class` oleh keeper -> klaim coverage #5
+  dari console, 0,08 NEAR.
 
 ---
 
@@ -99,8 +103,8 @@ belum ada pengguna di luar tim, semuanya testnet, dan gate A (audit independen, 
 
 ## 7. Langkah berikutnya dan pertanyaan terbuka
 
-1. Uji rantai penuh dengan service yang di-host: ubah kode pada target yang dijaga, lalu lihat laporan, freeze dan pelepasan.
-2. Kirim satu klaim dari console, atau tulis terang-terangan bahwa tombolnya belum diuji.
+1. ~~Uji rantai penuh dengan service yang di-host~~ dan ~~klaim dari console~~: selesai 13 Nov.
+2. Jalankan satu `spend` lewat SDK baru pada vault yang masih menyimpan `swap` beku, untuk membuktikan G2 di chain.
 3. Jalankan `ce-code-review` pada kode attestor, keeper dan SDK.
 4. Pasang pemeriksaan di layar pembelian (window maksimal 30 hari, kelas agen) agar penolakan terjadi sebelum transaksi.
 5. Sebelum 14 November 23:59 UTC: postingan demo, akun mainnet untuk hadiah, pilihan track, submit (`docs/BUILD-PLAN.md`).

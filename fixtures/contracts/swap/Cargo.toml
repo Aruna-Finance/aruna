@@ -11,6 +11,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 near-sdk = "5.30"
 
+[features]
+# v1 and v2 differ only in `version()`, so a redeploy changes the code and nothing else.
+v2 = []
+
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

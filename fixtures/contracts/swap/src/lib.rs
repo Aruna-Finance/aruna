@@ -23,6 +23,6 @@ impl Swap {
     }
 
     pub fn version() -> String {
-        "swap-v1".into()
+        if cfg!(feature = "v2") { "swap-v2".into() } else { "swap-v1".into() }
     }
 }

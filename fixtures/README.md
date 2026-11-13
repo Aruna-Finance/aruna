@@ -78,6 +78,8 @@ Used by the coverage loop (`docs/plans/2026-11-10-2106-feat-coverage-loop-testne
 | `contracts/usdc`, `wasm/usdc/usdc.wasm` | a TEST NEP-141 token, six decimals, owner-only `mint`. Not USDC, no value. Code hash `EospAyZd3zY6tN96b9oofjmEioFeQGa5BW9rV1VJ1FAa` |
 | `contracts/drift-target`, `wasm/drift-target/v1/drift_target.wasm` | the covered target: `swap` for NEAR, `ft_on_transfer` for the token, 0.5% fee, output only to the caller. Code hash `8Nz8F6hgehrNaahgjCj8peBZGjBDPiGAWb1rnkyY3sHL` |
 | `wasm/drift-target/v2/drift_target.wasm` | the same with `--features v2`; only `version()` differs. Code hash `CyPkJDS3XB6bLaataMJGYCvqSZaZ8Y8Zapr2KvCpENpx` |
+| `contracts/swap`, `wasm/swap/swap.wasm` | `swap.arunafi.testnet`, the vault's swap target: 0.5% fee, output only to the caller. Code hash `FKcT28qsUmZ8fqDTUB6wxUbcu1jh3s285aUdrkUM1R1H`, `version()` `swap-v1` |
+| `wasm/swap/v2/swap.wasm` | the same with `--features v2`; only `version()` differs (`swap-v2`). Code hash `8sABxpnoToh7eWP5aNgxLAaNaeuin69D4yonr8PqLRAe`. Deployed to `swap.arunafi.testnet` on 13 November 2026 for the hosted drift run (`docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`, "Recorded runs") |
 | `golden/drift-report.json` | the signed drift report shared by `contracts/common` and `packages/attestor`; its seed is a public test key |
 
 Rebuild and check a hash:

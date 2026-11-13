@@ -218,6 +218,34 @@ Gas, from the first hours (an estimate from a few calls, not a long run):
 | keeper `lift_freeze` or `set_class` | about 0.00024 NEAR each (0.99953 NEAR left of 1 after two) |
 | `assign_attestor` from the owner's full-access key | 2.4 Tgas used, fee 0.00022 NEAR |
 
-What was not exercised with the hosted services: a code change on a watched target, so that the attestor reports it and the
-keeper releases the freeze again. The keeper's release was exercised on `drift-target` by the report left from the earlier
-demo run, not by a new change.
+13 November 2026, 18:50 to 19:15 UTC: a new code change on `swap`, end to end with the hosted services. The keeper ran
+`e50fded` (it pushes freezes) with a new function-call key `ed25519:CkXsW4sC...` for `set_class`, `lift_freeze` and
+`push_freeze`; the old key was deleted. `swap` was redeployed from `fixtures/wasm/swap/swap.wasm` (`FKcT28qs...`,
+`version()` `swap-v1`) to `fixtures/wasm/swap/v2/swap.wasm` (`8sABxpno...`, `swap-v2`), same behaviour.
+
+| Block | What happened | Transaction |
+|---|---|---|
+| 277543827 | Before the change: agent `test-agent-02` of `test-vault-0` swaps 0.1 NEAR from the console Playground; `exposure_recorded` 0.1 NEAR | `FhQjto9w1UeFs2d6CVzx3yHcknu5wP6qimFCoh4NjpS4` |
+| 277550315 | `swap` redeployed to v2 by its own full-access key | `93vS9JoeXx54Xh43pE3V2REPpKYFDwA3G4dSPjCwdeLJ` |
+| 277550346 | attestor-a files report 3 (`deploy_contract`, `FKcT28qs...` -> `8sABxpno...`, changed at 277550315): `swap` frozen in the registry, 31 blocks after the change | `5K5NfBuNf9ykvQ9xUTVDkzhyCbiDDJZSxLnHysyZ6r8w` |
+| 277550447 | keeper `push_freeze {from:0, limit:20}`: 11 vaults called, 8 `target_frozen` (every vault whose ceiling allows `swap`; all 8 read `open` before), no failed receipt, 27.6 Tgas burnt | `7nXUhZdHSay2EjmmemuBU9qju5tKu2fvUJaE5XtRF2pq` |
+| 277550646 | report 3 Verified (challenge window closed) | — |
+| 277550654 | keeper `lift_freeze` | `D7vX3zRY5T6KqkSjL82754ypgsgzwZiTyjkmRhdUuQwT` |
+| 277550661 | keeper `set_class`: `local_upgradeable` -> `local_upgradeable`, `resolved_code_hash` `8sABxpno...` | `AstPvQkYciFinCazozU1QwsSqMfWEQGN4BqNnXTE58Wq` |
+| 277551126 | claim on coverage 5 for report 3, sent from the console Claims screen: `claim_paid`, exposure 0.1 NEAR x 80% = **0.08 NEAR** to `arunafi.testnet` | `Bpqr87b3Fzw4afXmEmMYZLoze3nahUWi7WjkZJYMqjW5` |
+
+Check it:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet get_report '{"id":3}'
+node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"swap.arunafi.testnet"}'
+node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":5}'
+node fixtures/tools.mjs view test-vault-0.factory2.arunafi.testnet get_class '{"target":"swap.arunafi.testnet"}'
+```
+
+Expected: report 3 `verified`; the class record `frozen:false` with `classified_at_block` 277550661; coverage 5 `paid_out`
+`80000000000000000000000` and one claim `paid`; and the vault's cached class still `frozen:true`. That last line is the
+freeze the keeper pushed, which outlives `lift_freeze` in each vault until `refresh_class` runs (the SDK does so on the next
+`spend`, `docs/SDK.md`). The SDK's retry on that refusal has unit tests; it was not run on chain here.
+
+Next `swap` change: redeploy `fixtures/wasm/swap/swap.wasm` to flip back to v1.

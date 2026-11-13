@@ -61,11 +61,11 @@ Owned by Ilham. Guided demo (`Story`) runs on mock data, labelled as such.
 | Measurement | target -> class + evidence | cli / mcp / web -> classifier-core | [RUN] in earlier sessions; not re-run today |
 | Protection | agent `spend` -> vault checks -> refuse/execute -> exposure | agent via sdk / mcp | [RUN] on `demo2` (old stack) earlier; not today |
 | Coverage purchase | console -> `pool.buy_coverage` -> 4 views -> `cb_buy` | wallet | [RUN] coverage #5 on 13 Nov |
-| Drift: report | code change -> attestor `report_drift` -> registry freezes target | attestor (hosted) | **not run with the hosted attestor** |
-| Drift: freeze reaches vaults | registry `push_freeze` -> each vault `freeze_target` | keeper, from 14 Nov (needs the new key) | G1 fixed in code; not run on chain |
-| Drift: release | report final -> keeper re-classifies -> `lift_freeze`, `set_class` | keeper (hosted) | [log read] on report 2 only |
-| Drift: release reaches vaults | vault cache refreshed by `refresh_class` | agent sdk on `CLASS_STALE`, and on `TARGET_FROZEN` when the registry has lifted | G2 fixed in the SDK; not run on chain |
-| Claim | console -> `pool.claim` -> report + exposure views -> payout | wallet | [RUN] coverage #2 via example script; **never from the console** |
+| Drift: report | code change -> attestor `report_drift` -> registry freezes target | attestor (hosted) | [RUN] 13 Nov, report 3 on `swap` |
+| Drift: freeze reaches vaults | registry `push_freeze` -> each vault `freeze_target` | keeper | [RUN] 13 Nov, 8 vaults frozen by one push |
+| Drift: release | report final -> keeper re-classifies -> `lift_freeze`, `set_class` | keeper (hosted) | [RUN] 13 Nov, report 3, 8 blocks after Verified |
+| Drift: release reaches vaults | vault cache refreshed by `refresh_class` | agent sdk on `CLASS_STALE`, and on `TARGET_FROZEN` when the registry has lifted | G2 fixed in the SDK, unit-tested; not run on chain (8 vaults still hold `swap` frozen) |
+| Claim | console -> `pool.claim` -> report + exposure views -> payout | wallet | [RUN] coverage #5 from the console Claims screen, 0.08 NEAR, 13 Nov |
 
 ## 5. Gaps and inconsistencies found while mapping
 
