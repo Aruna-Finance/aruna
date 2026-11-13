@@ -9,7 +9,8 @@ import { parseArgs } from "node:util";
 import { connectFromEnv, databaseHost } from "./db.js";
 import { runIndexer, type IndexerOptions } from "./indexer.js";
 import type { BlockSource } from "./ingest/blocks.js";
-import { routedSource } from "./ingest/routed.js";
+import { NEARDATA_TESTNET, neardataSource } from "./ingest/neardata.js";
+import { routedSource, type Lane } from "./ingest/routed.js";
 import { rpcSource } from "./ingest/rpc.js";
 import { startServer } from "./server.js";
 import { sleep } from "./sleep.js";
@@ -33,6 +34,9 @@ Environment:
   ARUNA_INDEXER_CONFIG            optional: a config file other than the one shipped.
 Block sources, chosen per height (no key needed):
   live (config live_rpc)          dRPC, free. Holds about the last two days of blocks; reads them and the head.
+  FASTNEAR_API_KEY                optional archive: testnet.neardata.xyz with this FastNear key (a secret, sent only
+                                  as a Bearer header). Reads only the heights live no longer holds, then is never
+                                  called again. With QUICKNODE_RPC_URL also set, QuickNode reads what neardata fails to.
   QUICKNODE_RPC_URL               optional paid archive (the URL carries the token, so it is a secret). Reads only
                                   the heights live no longer holds, then is never called again. 50 credits a call.
   QUICKNODE_CONCURRENCY           optional: blocks read at once from QuickNode (default 3).
@@ -68,18 +72,33 @@ const ARCHIVE_CONCURRENCY = 3;
 const LIVE_CONCURRENCY = 4;
 /** NEAR's archival RPC: about 19 calls a minute one at a time, with no 429, on 12 November 2026. */
 const FALLBACK_CONCURRENCY = 1;
+/** neardata with a FastNear key: one window's worth of blocks at once, so the archive never holds a window up (plan KTD2). */
+const NEARDATA_CONCURRENCY = 8;
 
 export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = process.env): { source: BlockSource<unknown>; label: string; defaultConcurrency: number } {
-  const quicknode = env.QUICKNODE_RPC_URL || undefined;
-  const source = routedSource({
-    archive: quicknode ? { source: rpcSource({ url: quicknode }), label: "QuickNode", concurrency: Number(env.QUICKNODE_CONCURRENCY) || ARCHIVE_CONCURRENCY } : undefined,
+  const fastnearKey = env.FASTNEAR_API_KEY || undefined;
+  const quicknodeUrl = env.QUICKNODE_RPC_URL || undefined;
+  const quicknode: Lane<unknown> | undefined = quicknodeUrl
+    ? { source: rpcSource({ url: quicknodeUrl }), label: "QuickNode", concurrency: Number(env.QUICKNODE_CONCURRENCY) || ARCHIVE_CONCURRENCY }
+    : undefined;
+  const neardata: Lane<unknown> | undefined = fastnearKey
+    ? { source: neardataSource({ baseUrl: NEARDATA_TESTNET, apiKey: fastnearKey }) as BlockSource<unknown>, label: "neardata", concurrency: NEARDATA_CONCURRENCY }
+    : undefined;
+  // neardata, when keyed, is the archive and QuickNode its backup; otherwise QuickNode alone is the archive.
+  const archive = neardata ?? quicknode;
+  const archiveBackup = neardata ? quicknode : undefined;
+  const source = routedSource<unknown>({
+    archive,
+    archiveBackup,
     live: { source: rpcSource({ url: config.live_rpc, proveSkips: true }), label: "dRPC", concurrency: LIVE_CONCURRENCY },
     // The fallback can trail the head that dRPC reported, and answers UNKNOWN_BLOCK for a final block it has not
-    // synced yet, so it proves skips too. QuickNode reads only deep history, where UNKNOWN_BLOCK is a real skip.
+    // synced yet, so it proves skips too. The archives read only deep history, where a missing block is a real skip.
     fallback: { source: rpcSource({ url: config.fallback_rpc, proveSkips: true }), label: "NEAR archival", concurrency: FALLBACK_CONCURRENCY },
     onSwitch: (label) => console.error(`block source now: ${label}`),
   });
-  const label = quicknode ? "QuickNode to dRPC's edge, then dRPC; NEAR archival as fallback" : "dRPC; NEAR archival for older blocks and as fallback";
+  const label = archive
+    ? `${archive.label}${archiveBackup ? ` (${archiveBackup.label} as its backup)` : ""} to dRPC's edge, then dRPC; NEAR archival as fallback`
+    : "dRPC; NEAR archival for older blocks and as fallback";
   return { source, label, defaultConcurrency: RPC_CONCURRENCY };
 }
 

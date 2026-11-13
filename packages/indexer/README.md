@@ -15,11 +15,14 @@ Every route answers with the types in `src/api.ts`.
   - **dRPC** (`live_rpc` in `config/testnet.json`), free with no key. It keeps only about the last two days
     of blocks (191,000 on 12 November 2026, from its `status` field `earliest_block_height`), and reads
     those and the head.
-  - **QuickNode** (`QUICKNODE_RPC_URL`, optional), an archive. It reads only the heights below dRPC's
-    earliest block plus 2,000, and once a height above that is read it is never called again.
+  - **neardata** (`FASTNEAR_API_KEY`, optional), the first-choice archive: `testnet.neardata.xyz` keeps every block
+    and is read with a FastNear key, sent only as a Bearer header and never logged. Like any archive it reads only
+    the heights below dRPC's earliest block plus 2,000, and once a height above that is read it is never called again.
+  - **QuickNode** (`QUICKNODE_RPC_URL`, optional), the archive without a FastNear key, and the backup that reads
+    what neardata fails to serve with one.
   - **NEAR's archival RPC** (`fallback_rpc`), free and slow, about 19 calls a minute. It reads older blocks
-    when no QuickNode URL is set, and any read another endpoint failed; the failing endpoint is skipped for
-    5 minutes, then tried again.
+    when no archive is set, and any read the others failed; the failing endpoint is skipped for 5 minutes, then
+    tried again. When an endpoint fails after it read a block, the block is read again, whole, from the next one.
 
   dRPC answers `UNKNOWN_BLOCK` both for a height the chain skipped and for one it no longer holds, so a
   height read there counts as skipped only when a later block's `prev_height` shows it. Each read:
@@ -37,8 +40,9 @@ Every route answers with the types in `src/api.ts`.
   `status` reports a chain other than testnet.
 - **Cost.** At least one call per block, plus a handful for each block that touches an Aruna account.
   QuickNode charges 50 credits per NEAR call (quicknode.com/api-credits/near), so it costs about 50
-  credits per block it reads, and only blocks older than dRPC's window go to it. `--concurrency` (default 8)
-  is the window of heights read at once; each endpoint has its own limit inside it: QuickNode 3 (`QUICKNODE_CONCURRENCY`;
+  credits per block it reads, and only blocks older than dRPC's window go to it. neardata charges no credits: one
+  request per block. `--concurrency` (default 8)
+  is the window of heights read at once; each endpoint has its own limit inside it: neardata 8, QuickNode 3 (`QUICKNODE_CONCURRENCY`;
   a trial rate-limits at about 15 requests a second, and 8 hit HTTP 429 on 13 November 2026), dRPC 4, NEAR archival 1.
 - **Which events count.** Only receipts that succeeded and were executed by a watched account. The
   watched set starts from the registries, factories and pools in `config/testnet.json`. A vault joins
