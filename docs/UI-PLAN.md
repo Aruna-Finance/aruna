@@ -225,7 +225,7 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 
 - [x] Pool view: concentration by code hash given top weight, capital deployed and locked, claims pending/disputed/paid
 - [x] Claims view with challenge window and dispute state; conflicting-report flow if it is a UI surface
-- [ ] (prototype model shipped and labelled; reading `@aruna/sim` output waits on that package) Simulation view reading `@aruna/sim` output; assumptions listed, the scenario that breaks the pool shown as it is
+- [x] (reads `packages/sim/results/2026-11-12/`, 13 Nov) Simulation view reading `@aruna/sim` output; assumptions listed, the scenario that breaks the pool shown as it is
 - [x] Attestor console (built on mock data; ownership with the engine team is still unconfirmed, see the open items); heartbeat, monitored targets, report drift
 - [x] Payout shown as formula output with the arithmetic visible
 
@@ -323,3 +323,4 @@ Maps to `FRONTEND.md` surface 3. Needs a deployed vault and `sdk` for real data.
 | 2026-11-13 | F3 | Console L7: `ReportDetail` live. Reads `get_report` from the registry; timeline from the registry's state and the challenge window (300 blocks, pinned to `params.rs` by a test); the claims on that report for the chosen vault; links from the Claims page. The mock conflicting-report and arbiter buttons are gone, because those calls belong to the attestor and arbiter accounts. `claims-mock.ts` is still read by Attestor, Pool and TargetDetail |
 | 2026-11-13 | F3 | Console L7 polish: token amounts in their own units from the token's `ft_metadata` (`data/token-amount.ts`, `useTokenMeta.ts`), the exposure-before-a-block panel on the Claims page (`ui/ExposureBefore.tsx`, R26), `docs/CONSOLE-TESTING.md` section 5d, and the checklist of what is left before the deadline in `docs/ILHAM-PLAN.md` |
 | 2026-11-13 | F3 | Console L10: the agent wizard can take a public key for an agent whose key is held elsewhere (checked as a 32 byte base58 ed25519 key before signing), stores nothing in the browser, and shows the MCP server command; the default path (key made in the browser) is unchanged |
+| 2026-11-13 | F6 | Console L12: Simulation reads the published results of `packages/sim` (`data/simulation-data.json`, made by `apps/web/scripts/sync-simulation.mjs`, re-derived from `summary.json` by a test). One table, scenarios as columns, the six measures as rows; `P(event)` named an underwriting assumption; the scenario that breaks the pool set apart and not softened; solvent scenarios read "not insolvent within 60 days"; the counterfactual labelled. The in-browser model `data/simulation.ts` and its test are deleted. 282 tests in apps/web. |

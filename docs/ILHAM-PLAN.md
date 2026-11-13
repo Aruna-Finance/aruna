@@ -28,7 +28,7 @@ The plan file is the authority for requirements (R-numbers), decisions (KTD-numb
 | L9 | U13 | Targets and attestor, live | L5 | after v0 |
 | L10 | U19 | Agents brought from the CLI or MCP | L3 | after v0 |
 | L11 | U16 | Migration in the console | Aris U15 | after v0 |
-| L12 | U18 | Simulation on published output | Aris U17 | after v0 |
+| L12 | U18 | Simulation on published output | Aris U17 | done 13 Nov (branch `feat/console-simulation-published`) |
 | L13 | U20 | Phase 2 docs and README steps | L7 to L12 | after v0 |
 
 L1 to L4 are a chain. The UI parts of L5 (activity list, exposure history, the draft policy panel) can be built against `apps/web/src/console/data/indexer-fixture.ts` while L3 and L4 wait on a wallet, so start them in the gaps.
@@ -180,7 +180,7 @@ What is left in lane B that does not wait for anyone. Anything that waits on Ari
 
 - [ ] L10 (U19): in the agent wizard, "I already have the key" takes a pasted public key (checked before signing), skips the browser key, and shows the MCP server command with the vault and key file. Built with tests (`data/agent-key-input.ts`, `data/agent-connect.ts`); not yet seen on a screen, scenarios A1 to A4 in `docs/CONSOLE-TESTING.md`. The `examples/` scripts are fixed to the demo2 vault, so they are not offered
 
-Not started on purpose, after v0 and large: L8 Pool and underwriter, L9 Targets and attestor, L11 Migration, L12 Simulation on published output, USDC purchases (cannot be proven until an attestor heartbeat is fresh), deleting the two mock stores (Attestor, Pool and TargetDetail still read them).
+Not started on purpose, after v0 and large: L8 Pool and underwriter, L9 Targets and attestor, L11 Migration, USDC purchases (cannot be proven until an attestor heartbeat is fresh), deleting the two mock stores (Attestor, Pool and TargetDetail still read them).
 
 ## After v0
 
