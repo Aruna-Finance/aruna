@@ -1,5 +1,3 @@
-import type { OwnedVault } from "./owned-vaults";
-
 // Switching the vault a screen shows. The vault is named in the address (?vault=), so a switch is a link, and a screen stays
 // shareable. Nothing is signed or sent.
 
@@ -8,8 +6,8 @@ export interface SwitchOption {
   label: string;
 }
 
-/** The current vault first, then every other vault the account owns, each once. The current one is listed even when the account only operates it. */
-export function switchOptions(current: string, owned: readonly OwnedVault[]): SwitchOption[] {
+/** The current vault first, then every other vault the account owns or operates, each once. The current one is listed even when the account only operates it. */
+export function switchOptions(current: string, owned: readonly { vault: string }[]): SwitchOption[] {
   const seen = new Set<string>([current]);
   const rest = owned.filter((o) => !seen.has(o.vault) && seen.add(o.vault)).map((o) => ({ value: o.vault, label: o.vault }));
   return [{ value: current, label: current }, ...rest];

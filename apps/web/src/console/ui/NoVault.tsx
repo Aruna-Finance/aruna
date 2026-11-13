@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { LiveVault } from "../useLiveVault";
+import { useOperatedVaults } from "../useOperatedVaults";
 import { useOwnedVaults } from "../useOwnedVaults";
 import { useWallet } from "../WalletContext";
 
@@ -7,10 +8,12 @@ import { useWallet } from "../WalletContext";
 function OwnedChoice() {
   const { accountId } = useWallet();
   const owned = useOwnedVaults(accountId ?? null);
+  const operated = useOperatedVaults(accountId ?? null);
+  const operatedList = operated.state === "ok" ? operated.list.filter((o) => !(owned.state === "ok" && owned.list.some((v) => v.vault === o.vault))) : [];
   if (owned.state === "none") return <p className="mt-4 max-w-[70ch] text-sm text-muted">Connect a wallet to see the vaults it owns.</p>;
   if (owned.state === "loading") return <p className="mt-4 text-sm text-muted">Looking for the vaults {accountId} owns.</p>;
   if (owned.state === "error") return <p className="mt-4 text-sm text-dawn-ink">Could not look up your vaults. {owned.message}</p>;
-  if (owned.list.length === 0) return <p className="mt-4 text-sm text-muted">{accountId} owns no vault yet.</p>;
+  if (owned.list.length === 0 && operatedList.length === 0) return <p className="mt-4 text-sm text-muted">{accountId} owns or operates no vault yet.</p>;
   return (
     <ul className="mt-4 grid gap-2">
       {owned.list.map((v) => (
@@ -19,6 +22,14 @@ function OwnedChoice() {
             {v.vault}
           </a>
           <span className="text-sm text-muted">{v.version}</span>
+        </li>
+      ))}
+      {operatedList.map((v) => (
+        <li key={v.vault} className="flex flex-wrap items-center gap-3 text-[15px]">
+          <a href={`?vault=${encodeURIComponent(v.vault)}`} className="mono underline underline-offset-4">
+            {v.vault}
+          </a>
+          <span className="text-sm text-muted">operator</span>
         </li>
       ))}
     </ul>

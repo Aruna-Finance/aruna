@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { browserStore, listKeys } from "./agent-keys";
 import { newestOwned } from "./data/owned-vaults";
 import { chosenVault, VAULT_STORE_KEY } from "./live-vault";
+import { useOperatedVaults } from "./useOperatedVaults";
 import { useOwnedVaults } from "./useOwnedVaults";
 import { useWallet } from "./WalletContext";
 
@@ -35,11 +36,12 @@ export function useLiveVault(): LiveVault {
 
   const { accountId } = useWallet();
   const owned = useOwnedVaults(accountId ?? null);
+  const operated = useOperatedVaults(accountId ?? null);
   // Nothing asked for and nothing remembered: open the connected account's newest vault, as the registry lists it.
   const asked = chosenVault(fromUrl, stored ?? null, isValidAccountId);
-  const vault = asked ?? (owned.state === "ok" ? newestOwned(owned.list) : null);
+  const vault = asked ?? (owned.state === "ok" ? newestOwned(owned.list) : null) ?? (operated.state === "ok" ? (operated.list[0]?.vault ?? null) : null);
   // Until the remembered vault has been looked up, say so instead of showing sample data for a moment.
-  const checking = (stored === undefined && !fromUrl) || (!asked && owned.state === "loading");
+  const checking = (stored === undefined && !fromUrl) || (!asked && (owned.state === "loading" || operated.state === "loading"));
 
   useEffect(() => {
     if (!vault || vault !== fromUrl) return;
