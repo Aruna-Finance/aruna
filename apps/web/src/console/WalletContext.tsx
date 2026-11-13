@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { NearConnector } from "@hot-labs/near-connect";
+import { VAULT_STORE_KEY } from "./live-vault";
 import type { WalletLike } from "./wallet-transport";
 
 // Connect, show the account, disconnect, and hand out the connected wallet for signing. This file never signs by
@@ -104,6 +105,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await connector.current?.disconnect();
     } finally {
       setAccountId(null);
+      try {
+        localStorage.removeItem(VAULT_STORE_KEY);
+      } catch {
+        /* storage blocked: nothing was remembered */
+      }
     }
   }, []);
 

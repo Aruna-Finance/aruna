@@ -14,17 +14,18 @@ import { ExposureHistory } from "../ui/ExposureHistory";
 import { HistoryBlock } from "../ui/HistoryBlock";
 import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
+import { VaultSwitch } from "../ui/VaultSwitch";
 import { StatusChip } from "../ui/StatusChip";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
 
-function Tile({ label, children, sub }: { label: string; children: React.ReactNode; sub?: string }) {
+function Tile({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) {
   return (
     <div className="border border-line-2 bg-paper p-5">
       <dt className="label text-xs text-muted">{label}</dt>
       <dd className="mt-2 text-[28px] leading-[1.1]">{children}</dd>
-      {sub && <p className="mono mt-1 break-all text-xs text-muted">{sub}</p>}
+      {sub && <div className="mt-1">{sub}</div>}
     </div>
   );
 }
@@ -66,7 +67,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
         </p>
 
         <dl className="grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2 lg:grid-cols-4 [&>div]:border-0">
-          <Tile label="Vault" sub={vault}>
+          <Tile label="Vault" sub={<VaultSwitch vault={vault} />}>
             <span className="mono text-lg">{view.fullAccessKeys === 0 ? "No full-access key" : `${view.fullAccessKeys} full-access`}</span>
           </Tile>
           <Tile label="Agents">

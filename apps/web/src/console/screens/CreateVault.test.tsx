@@ -3,12 +3,19 @@ import { describe, expect, it } from "vitest";
 import { defaultHistory } from "../history";
 import { MyVaults, vaultListNeedsIndexer } from "./CreateVault";
 
-describe("your vaults without an indexer", () => {
-  it("says the list needs the indexer and links to Lookup, instead of claiming the account has no vaults", () => {
-    const history = defaultHistory();
-    const out = renderToStaticMarkup(<MyVaults account="owner.testnet" history={history} />);
-    expect(out).toContain(vaultListNeedsIndexer.replace("'", "&#x27;"));
-    expect(out).toContain('href="/console/lookup"');
+describe("your vaults", () => {
+  it("says it is reading, and never claims the account has no vaults before the registry has answered", () => {
+    const out = renderToStaticMarkup(<MyVaults account="owner.testnet" history={defaultHistory()} />);
+    expect(out).toContain("Reading your vaults.");
     expect(out).not.toContain("No vaults found");
+  });
+
+  it("shows nothing without a wallet", () => {
+    expect(renderToStaticMarkup(<MyVaults account={null} history={defaultHistory()} />)).toBe("");
+  });
+
+  it("names what the registry cannot list: vaults only operated, or whose ownership moved", () => {
+    expect(vaultListNeedsIndexer).toContain("only operate");
+    expect(vaultListNeedsIndexer).toContain("ownership moved");
   });
 });

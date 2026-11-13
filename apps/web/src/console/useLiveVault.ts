@@ -5,7 +5,10 @@ import { isValidAccountId } from "@aruna/rpc";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { browserStore, listKeys } from "./agent-keys";
+import { newestOwned } from "./data/owned-vaults";
 import { chosenVault, VAULT_STORE_KEY } from "./live-vault";
+import { useOwnedVaults } from "./useOwnedVaults";
+import { useWallet } from "./WalletContext";
 
 export type LiveVault =
   | { status: "none" }
@@ -30,9 +33,13 @@ export function useLiveVault(): LiveVault {
     }
   }, []);
 
-  const vault = chosenVault(fromUrl, stored ?? null, isValidAccountId);
+  const { accountId } = useWallet();
+  const owned = useOwnedVaults(accountId ?? null);
+  // Nothing asked for and nothing remembered: open the connected account's newest vault, as the registry lists it.
+  const asked = chosenVault(fromUrl, stored ?? null, isValidAccountId);
+  const vault = asked ?? (owned.state === "ok" ? newestOwned(owned.list) : null);
   // Until the remembered vault has been looked up, say so instead of showing sample data for a moment.
-  const checking = stored === undefined && !fromUrl;
+  const checking = (stored === undefined && !fromUrl) || (!asked && owned.state === "loading");
 
   useEffect(() => {
     if (!vault || vault !== fromUrl) return;

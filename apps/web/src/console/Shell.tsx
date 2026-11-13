@@ -51,9 +51,6 @@ export function Shell({ children }: { children: ReactNode }) {
           </nav>
           <div className="flex items-center gap-3">
             <span className="label hidden border border-line-2 px-2 py-0.5 text-xs sm:inline">testnet</span>
-            <span className="mono hidden text-[13px] text-muted lg:inline" title="Screens still run on mock data, acting as this account">
-              {current.signer}
-            </span>
             <WalletButton />
           </div>
         </div>
