@@ -51,3 +51,6 @@ measurement/results/rerun/
 
 # aruna migrate resume files: hashes and amounts, no keys, but they belong to one run
 *.journal.json
+
+# vitest result cache
+.vitest/
