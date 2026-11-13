@@ -20,8 +20,8 @@ describe("testnet reads", () => {
     await expect(down.balance("x.testnet")).rejects.toThrow(/502/);
   });
   it("reads a balance and the global contract hash", async () => {
-    const r = createTestnetReads(reply({ result: { amount: "42", global_contract_hash: "H" } }));
+    const r = createTestnetReads(reply({ result: { amount: "42", global_contract_hash: "H", storage_usage: 7 } }));
     expect(await r.balance("x.testnet")).toBe(42n);
-    expect(await r.account("x.testnet")).toEqual({ amount: "42", globalContractHash: "H" });
+    expect(await r.account("x.testnet")).toEqual({ amount: "42", globalContractHash: "H", storageUsage: 7 });
   });
 });

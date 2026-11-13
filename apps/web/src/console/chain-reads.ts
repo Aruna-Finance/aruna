@@ -8,6 +8,7 @@ const RPC = "https://rpc.testnet.fastnear.com";
 type RpcBody = { result?: Record<string, unknown>; error?: { cause?: { name?: string }; data?: unknown; message?: string } };
 
 export interface TestnetReads extends ChainReads {
+  account(id: string): Promise<{ amount: string; globalContractHash: string | null; storageUsage: number }>;
   /** yoctoNEAR, or null when the account does not exist. */
   balance(id: string): Promise<bigint | null>;
   /** The height of the latest final block. */
@@ -33,7 +34,7 @@ export function createTestnetReads(doFetch: typeof fetch = (...a) => fetch(...a)
     async account(id: string) {
       const b = await rpc("query", { request_type: "view_account", finality: "final", account_id: id });
       if (b.error || !b.result) throw new Error(unknownAccount(b) ? `${id} does not exist` : `could not read ${id}`);
-      return { amount: String(b.result.amount), globalContractHash: (b.result.global_contract_hash as string | null | undefined) ?? null };
+      return { amount: String(b.result.amount), globalContractHash: (b.result.global_contract_hash as string | null | undefined) ?? null, storageUsage: Number(b.result.storage_usage ?? 0) };
     },
     async headBlock() {
       const b = await rpc("block", { finality: "final" });

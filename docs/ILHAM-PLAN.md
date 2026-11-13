@@ -27,7 +27,7 @@ The plan file is the authority for requirements (R-numbers), decisions (KTD-numb
 | L8 | U12 | Pool and underwriter, live | L5 | read-only half done 13 Nov (deposit and withdraw not in v0) |
 | L9 | U13 | Targets and attestor, live | L5 | done 13 Nov (read-only) |
 | L10 | U19 | Agents brought from the CLI or MCP | L3 | after v0 |
-| L11 | U16 | Migration in the console | Aris U15 | after v0 |
+| L11 | U16 | Migration in the console | Aris U15 | plan checked in the console, run from the CLI (13 Nov) |
 | L12 | U18 | Simulation on published output | Aris U17 | done 13 Nov (branch `feat/console-simulation-published`) |
 | L13 | U20 | Phase 2 docs and README steps | L7 to L12 | after v0 |
 
@@ -180,7 +180,7 @@ What is left in lane B that does not wait for anyone. Anything that waits on Ari
 
 - [ ] L10 (U19): in the agent wizard, "I already have the key" takes a pasted public key (checked before signing), skips the browser key, and shows the MCP server command with the vault and key file. Built with tests (`data/agent-key-input.ts`, `data/agent-connect.ts`); not yet seen on a screen, scenarios A1 to A4 in `docs/CONSOLE-TESTING.md`. The `examples/` scripts are fixed to the demo2 vault, so they are not offered
 
-Not started on purpose, after v0 and large: L11 Migration, USDC purchases (cannot be proven until an attestor heartbeat is fresh), deleting the two mock stores (Attestor, Pool and TargetDetail still read them).
+Not started on purpose: USDC purchases (cannot be proven until an attestor heartbeat is fresh). The mock stores that remain (`vault-mock`, `coverage-mock`, `claims-mock`, `mock`) feed only the Guided demo, which is a scripted walkthrough and stays on sample data.
 
 ## After v0
 

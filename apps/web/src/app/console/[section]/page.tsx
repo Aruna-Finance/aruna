@@ -36,7 +36,12 @@ export default async function Page({ params }: { params: Promise<{ section: stri
       </Suspense>
     );
   if (section === "create") return <CreateVault />;
-  if (section === "migrate") return <Migration />;
+  if (section === "migrate")
+    return (
+      <Suspense fallback={<p className="text-muted">Loading.</p>}>
+        <Migration />
+      </Suspense>
+    );
   if (section === "developers") return <Developers />;
   if (section === "pool") return <Pool />;
   if (section === "simulation") return <Simulation />;
