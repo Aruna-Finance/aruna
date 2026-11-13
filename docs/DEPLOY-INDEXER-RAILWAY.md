@@ -20,10 +20,14 @@ builder, the healthcheck and the restart policy.
     may not reach it.
   - Not the Transaction pooler (port 6543): it is meant for short-lived serverless clients, and the indexer is one
     long-lived process.
-- Optional: a QuickNode testnet endpoint URL, the full "HTTP Provider" URL: `https://<name>.<network>.quiknode.pro/<token>/`.
-  It carries the token, so it is a secret. The indexer starts at block 277103284, about 110,000 blocks before the
-  lower edge of what dRPC keeps, and that part is read from QuickNode when the URL is set and from NEAR's archival
-  RPC otherwise, which takes days (see "The credit check").
+- An archive for the old blocks. The indexer starts at block 277103284, about 110,000 blocks before the lower edge
+  of what dRPC keeps, and that part needs an archive; without one it is read from NEAR's archival RPC, which takes
+  days. Either or both:
+  - **A FastNear key** (first choice): neardata at `testnet.neardata.xyz` keeps every block and charges no credits.
+    The key is a secret, sent only as a Bearer header. Check it first (see "Checking the FastNear key").
+  - **A QuickNode testnet endpoint URL**, the full "HTTP Provider" URL: `https://<name>.<network>.quiknode.pro/<token>/`.
+    It carries the token, so it is a secret. Alone it is the archive; with a FastNear key it reads only what neardata
+    fails to serve (see "The credit check").
 
 ## Steps
 
@@ -41,7 +45,8 @@ builder, the healthcheck and the restart policy.
    | Variable | Value | Required |
    |---|---|---|
    | `DATABASE_URL` | the Supabase Session pooler URI | yes |
-   | `QUICKNODE_RPC_URL` | the full endpoint URL | no: archive for blocks older than dRPC keeps |
+   | `FASTNEAR_API_KEY` | a FastNear key | no: the first-choice archive for blocks older than dRPC keeps (neardata) |
+   | `QUICKNODE_RPC_URL` | the full endpoint URL | no: the archive without a FastNear key, its backup with one |
    | `QUICKNODE_CONCURRENCY` | a number, default 3 | no: blocks read at once from QuickNode; lower it to 2 if the log shows `QuickNode failed (... HTTP 429)` |
    | `PORT` | `8080` | no: the port the API listens on. Set it so the domain's target port is unambiguous |
 
@@ -57,9 +62,26 @@ If the service already runs with a volume and the older variables: merge the cha
 `ARUNA_INDEXER_DB` and `ARUNA_BLOCK_SOURCE`, and remove the volume. The old SQLite file is not migrated: the new
 database starts empty at block 277103284 and reads the v2 contracts only. The v1 contracts are no longer indexed.
 
+## Checking the FastNear key
+
+Run this where the key is in a shell variable, so it is never typed into a file or a chat:
+
+```bash
+curl -s -o /dev/null -w "%{http_code} %{time_total}s\n" -H "Authorization: Bearer $FASTNEAR_API_KEY" \
+  https://testnet.neardata.xyz/v0/block/277103284                    # 200: the key works on testnet
+time (for h in $(seq 277103284 277103303); do curl -s -o /dev/null -H "Authorization: Bearer $FASTNEAR_API_KEY" \
+  https://testnet.neardata.xyz/v0/block/$h; done)                      # 20 blocks, one at a time
+```
+
+A `401` or `403` means the key is not valid for testnet neardata: leave `FASTNEAR_API_KEY` unset. A key that works for
+FastNear's mainnet RPC is not proof it works here. The indexer reads 8 blocks at once from neardata, so the backfill
+runs at roughly 8 times the loop's blocks per second, less what dRPC and the database take. The rate with a key has
+not been measured for this repository yet; after deploying, read it from `/health` (`last_indexed_block` a minute apart).
+
 ## The credit check
 
-Do this before you paste a QuickNode URL. QuickNode charges 50 credits per NEAR call, and the indexer spends
+This applies only when QuickNode is the archive, or the backup neardata falls back to. Do this before you paste a
+QuickNode URL. QuickNode charges 50 credits per NEAR call, and the indexer spends
 about one call per block it reads there. It reads there only the blocks between its cursor and dRPC's earliest
 block plus 2,000. On an empty database the cursor is the block before the start block, 277103283:
 
@@ -84,16 +106,17 @@ The run goes through three phases. `/health` names the endpoint serving blocks i
 
 | Phase | Logs | `/health` |
 |---|---|---|
-| 1. QuickNode, up to dRPC's window (only with `QUICKNODE_RPC_URL`) | `block source now: QuickNode` | `"source":"QuickNode","mode":"catching_up"` |
+| 1. the archive, up to dRPC's window (only with `FASTNEAR_API_KEY` or `QUICKNODE_RPC_URL`) | `block source now: neardata` (or `QuickNode`) | `"source":"neardata","mode":"catching_up"` |
 | 2. dRPC, catching up inside its window | `block source now: dRPC` | `"source":"dRPC","mode":"catching_up"` |
 | 3. following the head | `indexed through <block> of <head>` | `"source":"dRPC","mode":"following","healthy":true` |
 
 A line `dRPC failed (...); using NEAR archival for 5 min` means an endpoint was benched; `source` then reads
 `NEAR archival` until it recovers.
 
-- Deploy logs: `serving on :8080, database <host>` (the host only, never the credentials), then
-  `block source: QuickNode to dRPC's edge, then dRPC; NEAR archival as fallback` (or, without QuickNode,
-  `block source: dRPC; NEAR archival for older blocks and as fallback`).
+- Deploy logs: `serving on :8080, database <host>` (the host only, never the credentials), then one of
+  `block source: neardata (QuickNode as its backup) to dRPC's edge, then dRPC; NEAR archival as fallback`,
+  `block source: neardata to dRPC's edge, ...`, `block source: QuickNode to dRPC's edge, ...`, or, with no archive,
+  `block source: dRPC; NEAR archival for older blocks and as fallback`.
 - `curl https://<domain>/health` answers HTTP 200 with JSON:
   `{"last_indexed_block":…,"head_block":…,"lag_blocks":…,"healthy":false,…}`.
   During a backfill `healthy` is `false` and `last_indexed_block` rises. `healthy` turns `true` once the lag is
@@ -143,6 +166,7 @@ backfill as on the first deploy.
 | `Tenant or user not found` | the user must be `postgres.<project-ref>` on the pooler, as the Connect dialog shows it |
 | `max clients reached` | the pooler's client limit; stop other clients, or two deploys overlapped and one has not exited yet |
 | `/health` answers `"last_indexed_block":0,"healthy":false` for more than a minute | the database is unreachable; check the Supabase project is not paused and the URI is right |
+| `neardata failed (neardata /v0/block/... answered 401)` or `403` | the FastNear key is not valid for testnet neardata; the reads move to QuickNode if set, else NEAR archival. Fix or unset `FASTNEAR_API_KEY` |
 | `QUICKNODE_RPC_URL is not a URL` | the value is only the token; paste the full HTTP Provider URL |
 | build cannot find `package.json` or `src` | Root Directory is not `/packages/indexer`, so the build runs from the repository root |
 | deploy fails its healthcheck | the app is not on the port Railway expects; set `PORT=8080` |
