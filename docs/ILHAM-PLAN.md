@@ -25,7 +25,7 @@ The plan file is the authority for requirements (R-numbers), decisions (KTD-numb
 | L6 | U9, U10 | Deploy, README F1, live run, submission | L5 and Aris | 13 Nov cut, then 14 Nov |
 | L7 | U11 | Coverage and claims, live | L5 | after v0 |
 | L8 | U12 | Pool and underwriter, live | L5 | read-only half done 13 Nov (deposit and withdraw not in v0) |
-| L9 | U13 | Targets and attestor, live | L5 | after v0 |
+| L9 | U13 | Targets and attestor, live | L5 | Targets and detail done 13 Nov, Attestor not yet |
 | L10 | U19 | Agents brought from the CLI or MCP | L3 | after v0 |
 | L11 | U16 | Migration in the console | Aris U15 | after v0 |
 | L12 | U18 | Simulation on published output | Aris U17 | done 13 Nov (branch `feat/console-simulation-published`) |
