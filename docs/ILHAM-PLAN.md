@@ -178,6 +178,8 @@ What is left in lane B that does not wait for anyone. Anything that waits on Ari
 - [ ] Check the published site (`https://www.arunafi.xyz/`) with a wallet: Lookup, Dashboard, Playground, Create, Coverage, Claims
 - [ ] Record the F1 run for the video (script in `docs/SUBMISSION.md`)
 
+- [ ] L10 (U19): in the agent wizard, "I already have the key" takes a pasted public key (checked before signing), skips the browser key, and shows the MCP server command with the vault and key file. Built with tests (`data/agent-key-input.ts`, `data/agent-connect.ts`); not yet seen on a screen, scenarios A1 to A4 in `docs/CONSOLE-TESTING.md`. The `examples/` scripts are fixed to the demo2 vault, so they are not offered
+
 Not started on purpose, after v0 and large: L8 Pool and underwriter, L9 Targets and attestor, L11 Migration, L12 Simulation on published output, USDC purchases (cannot be proven until an attestor heartbeat is fresh), deleting the two mock stores (Attestor, Pool and TargetDetail still read them).
 
 ## After v0

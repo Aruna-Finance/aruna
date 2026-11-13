@@ -232,6 +232,11 @@ Read-only pages first, then the one that needs a wallet. Use the vault `demo4.fa
 | C13 | Buy, once an attestor's heartbeat is fresh (`heartbeat_fresh` true): tick the box, Buy this coverage, sign | Preview shows the premium as the attached deposit; after signing the coverage appears in `/console/coverage/` | [ ] blocked: no fresh heartbeat (`docs/FOR-ARIS.md` item 1) |
 | C14 | Start a claim on a coverage with a verified report | A claim inside the challenge window is refused and recorded; after it, the pool pays or says why not | [ ] blocked: needs C13 or a deliberate claim on #0 or #1 |
 
+| A1 | `/console/agents/new/?vault=<your vault>`, step 1: choose "I already have the key", paste a public key with a letter changed or `ed25519:abc` | The field names the problem ("32 bytes; this one decodes to ...", or "not base58"); Next stays off; nothing is signed | [ ] |
+| A2 | Same, paste a valid new public key (for example `ed25519:Fho2WtygsE2yguanNwGvSxqWo33VpzPvhctnmAoGVvPj`, a throwaway made for this test, no private key kept), label it, finish the wizard as the owner or operator | The wallet signs `add_agent`; the "is live" page has the `ARUNA_AGENT_VAULT=<vault>` command, no Export button, and says the private key is not in this browser | [x] 13 Nov, tx `Gc5jgLaqVHJrcsKMqXdrBGcQNwSyEzDbnFWuVVqKqbKX`; on chain the key is a function-call key on the vault for `spend` and `refresh_class`, allowance 1 NEAR, 0 full-access keys on the vault |
+| A3 | `/console/agents/?vault=<your vault>` after A2 | The agent is listed Active with "Not in this browser"; Pause and Revoke still work. Revoke it afterwards | [x] 13 Nov for Active and "Not in this browser"; Revoke afterwards [ ] |
+| A4 | `/console/playground/?vault=<your vault>` after A2 | The agent is not in the list of agents (only agents whose key is in this browser) | [ ] |
+
 Check C1 to C3 on chain: `node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":2}'` and `node fixtures/tools.mjs view registry2.arunafi.testnet get_report '{"id":2}'`, as in README step 5h.
 
 ## 6. Gaps and gotchas
