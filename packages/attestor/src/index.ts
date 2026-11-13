@@ -32,6 +32,8 @@ Env:
   ARUNA_ATTESTOR_ACCOUNT_KEY        account key (secret); else ~/.near-credentials/testnet/<account>.json
   ARUNA_ATTESTOR_SIGNING_SEED_HEX   report-signing seed (secret); else ~/.near-credentials/aruna-attestors/<account>.json
   ARUNA_ATTESTOR_STATE_DIR          where observations and the nonce are kept; else ~/.aruna-attestor
+  ARUNA_ATTESTOR_ACCOUNT            --attestor, when the flag is not given
+  ARUNA_ATTESTOR_REGISTRY           --registry, when the flag is not given
   ARUNA_ATTESTOR_TARGETS            the seed list, comma-separated, when --targets is not given
   ARUNA_INDEXER_URL                 the indexer's base URL, when --indexer-url is not given`;
 
@@ -59,14 +61,14 @@ async function main(argv: string[]): Promise<number> {
     console.log(USAGE);
     return cmd ? 0 : 1;
   }
-  const attestor = values.attestor;
-  if (!attestor) throw new Error("--attestor is required");
+  const attestor = values.attestor ?? process.env.ARUNA_ATTESTOR_ACCOUNT;
+  if (!attestor) throw new Error("--attestor (or ARUNA_ATTESTOR_ACCOUNT) is required");
   if (cmd === "keygen") {
     console.log(publicKeyOf(signingSeed(attestor, true)));
     return 0;
   }
-  const registry = values.registry;
-  if (!registry) throw new Error("--registry is required");
+  const registry = values.registry ?? process.env.ARUNA_ATTESTOR_REGISTRY;
+  if (!registry) throw new Error("--registry (or ARUNA_ATTESTOR_REGISTRY) is required");
   const endpoints = process.env.ARUNA_RPC_TESTNET?.split(",").map((s) => s.trim()).filter(Boolean);
   const reader = createFetchReader({ network: "testnet", endpoints, rotate: true });
   const rpcUrl = endpoints?.[0] ?? "https://rpc.testnet.fastnear.com";
