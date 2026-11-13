@@ -27,6 +27,7 @@ Thumbs.db
 coverage/
 !packages/sdk/src/coverage/
 !packages/mcp/src/coverage/
+!apps/web/src/app/console/coverage/
 
 # near
 neardev/
