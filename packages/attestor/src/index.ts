@@ -2,14 +2,13 @@
 // aruna-attestor — watches assigned targets with the shared classifier and files signed drift reports
 // and heartbeats to the Aruna registry. TESTNET ONLY. One of the two trust assumptions of Aruna
 // coverage (docs/ATTESTOR.md): the contract cannot verify the block it claims a change happened at.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { createFetchReader } from "@aruna/rpc";
-import { publicKeyOf, signingSeed } from "./keys.js";
+import { assertRegisteredKey, publicKeyOf, signingSeed } from "./keys.js";
 import { signReport, type DriftReport } from "./report.js";
+import { loadState, saveState } from "./state.js";
 import { connect } from "./submit.js";
+import { indexerAssignments, resolveTargets } from "./targets.js";
 import { bisectChange, observe, reportFor, rpcHashAt, type Observation } from "./watch.js";
 
 export { signReport, signingBytes } from "./report.js";
@@ -19,28 +18,24 @@ const USAGE = `aruna-attestor — testnet drift attestor
 
   aruna-attestor keygen --attestor <account>
       Create the report-signing key (kept apart from the account key) and print its public key.
-  aruna-attestor watch --attestor <account> --registry <account> --targets <a,b> [--interval 10] [--heartbeat-every 6] [--once]
-      Poll each target; file a signed report on a change; send a heartbeat every N polls.
+  aruna-attestor watch --attestor <account> --registry <account> [--targets <a,b>] [--indexer-url <url>] [--interval 10] [--heartbeat-every 18] [--once]
+      Watch the targets the registry assigns to this attestor (the indexer lists them; --targets is a seed list that
+      covers a lagging indexer; each is confirmed with the registry). Poll each target and file a signed report on a
+      change. Every N polls, send a heartbeat and refresh the target list (18 polls of 10 s is about 3 minutes, a third of
+      the registry's staleness bound).
   aruna-attestor heartbeat --attestor <account> --registry <account>
   aruna-attestor dispute --attestor <account> --registry <account> --report-id <n> [--shift 1]
       File a report on the same target that claims a different changed_at_block. Disputes report n.
 
-Env: ARUNA_RPC_TESTNET overrides the endpoint (first entry used for transactions).`;
+Env:
+  ARUNA_RPC_TESTNET                 RPC endpoints, comma-separated (first entry used for transactions)
+  ARUNA_ATTESTOR_ACCOUNT_KEY        account key (secret); else ~/.near-credentials/testnet/<account>.json
+  ARUNA_ATTESTOR_SIGNING_SEED_HEX   report-signing seed (secret); else ~/.near-credentials/aruna-attestors/<account>.json
+  ARUNA_ATTESTOR_STATE_DIR          where observations and the nonce are kept; else ~/.aruna-attestor
+  ARUNA_ATTESTOR_TARGETS            the seed list, comma-separated, when --targets is not given
+  ARUNA_INDEXER_URL                 the indexer's base URL, when --indexer-url is not given`;
 
 const REPORT_TTL_BLOCKS = 600;
-const statePath = (attestor: string) => join(homedir(), ".aruna-attestor", `${attestor}.json`);
-interface State {
-  nonce: number;
-  observations: Record<string, Observation>;
-}
-function loadState(attestor: string): State {
-  const p = statePath(attestor);
-  return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : { nonce: Date.now(), observations: {} };
-}
-function saveState(attestor: string, s: State) {
-  mkdirSync(join(homedir(), ".aruna-attestor"), { recursive: true, mode: 0o700 });
-  writeFileSync(statePath(attestor), JSON.stringify(s, null, 2), { mode: 0o600 });
-}
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const log = (msg: string) => console.log(`${new Date().toISOString()} ${msg}`);
 
@@ -53,7 +48,8 @@ async function main(argv: string[]): Promise<number> {
       registry: { type: "string" },
       targets: { type: "string" },
       interval: { type: "string", default: "10" },
-      "heartbeat-every": { type: "string", default: "6" },
+      "heartbeat-every": { type: "string", default: "18" },
+      "indexer-url": { type: "string" },
       once: { type: "boolean", default: false },
       "report-id": { type: "string" },
       shift: { type: "string", default: "1" },
@@ -76,6 +72,8 @@ async function main(argv: string[]): Promise<number> {
   const rpcUrl = endpoints?.[0] ?? "https://rpc.testnet.fastnear.com";
   const chain = connect(attestor, registry, rpcUrl);
   const seed = signingSeed(attestor);
+  assertRegisteredKey(attestor, await chain.view<{ signing_key: string } | null>("get_attestor", { attestor }), seed);
+  log(`${attestor} on ${registry}: signing key ${publicKeyOf(seed)} matches the registry`);
 
   if (cmd === "heartbeat") {
     log(`heartbeat ${await chain.heartbeat()}`);
@@ -96,12 +94,27 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (cmd === "watch") {
-    const targets = (values.targets ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-    if (targets.length === 0) throw new Error("--targets is required");
+    const seedTargets = (values.targets ?? process.env.ARUNA_ATTESTOR_TARGETS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    const indexerUrl = values["indexer-url"] ?? process.env.ARUNA_INDEXER_URL;
+    const assigned = indexerUrl ? indexerAssignments({ baseUrl: indexerUrl, attestor, registry }) : undefined;
+    if (!assigned && seedTargets.length === 0) log("no --indexer-url and no --targets: watching nothing until one is given, heartbeats only");
     const every = Number(values["heartbeat-every"]);
+    let heartbeatDue = true;
     for (let poll = 0; ; poll++) {
       const state = loadState(attestor);
-      for (const t of targets) {
+      // The target list is refreshed with each heartbeat, so an assignment is picked up without a restart.
+      if (poll % every === 0) {
+        state.targets = await resolveTargets({
+          attestor,
+          seed: seedTargets,
+          last: state.targets ?? [],
+          assigned,
+          assignedAttestor: (target) => chain.view<string | null>("assigned_attestor", { target }),
+          log,
+        });
+        log(`watching ${state.targets.length === 0 ? "nothing" : state.targets.join(", ")}`);
+      }
+      for (const t of state.targets ?? []) {
         let cur: Observation;
         try {
           cur = await observe(t, reader);
@@ -136,7 +149,17 @@ async function main(argv: string[]): Promise<number> {
         state.observations[t] = cur;
       }
       saveState(attestor, state);
-      if (poll % every === 0) log(`heartbeat ${await chain.heartbeat()}`);
+      if (poll % every === 0) heartbeatDue = true;
+      if (heartbeatDue) {
+        // A failed heartbeat (RPC limit, network) is logged and retried at the next poll rather than ending the
+        // daemon; the registry marks the attestor stale only after HEARTBEAT_STALE_BLOCKS without one.
+        try {
+          log(`heartbeat ${await chain.heartbeat()}`);
+          heartbeatDue = false;
+        } catch (e) {
+          log(`heartbeat FAILED, retrying at the next poll: ${e instanceof Error ? e.message : e}`);
+        }
+      }
       if (values.once) return 0;
       await sleep(Number(values.interval) * 1000);
     }

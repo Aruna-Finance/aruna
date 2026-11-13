@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@aruna/classifier-core": "workspace:*",
+    "@aruna/indexer": "workspace:*",
     "@aruna/rpc": "workspace:*",
     "near-api-js": "7.4.0"
   },

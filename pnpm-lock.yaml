@@ -114,6 +114,9 @@ importers:
       '@aruna/classifier-core':
         specifier: workspace:*
         version: link:../classifier-core
+      '@aruna/indexer':
+        specifier: workspace:*
+        version: link:../indexer
       '@aruna/rpc':
         specifier: workspace:*
         version: link:../rpc
