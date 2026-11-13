@@ -7,7 +7,9 @@ import { amountText } from "../data/coverage-live";
 import { block, n0 } from "../fmt";
 import { useClaimAction } from "../useClaimAction";
 import { useLiveVault, type LiveVault } from "../useLiveVault";
+import { useTokenMeta } from "../useTokenMeta";
 import { useVaultClaims } from "../useVaultClaims";
+import { ExposureBefore } from "../ui/ExposureBefore";
 import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
 
@@ -23,10 +25,12 @@ export function Claims() {
 }
 
 function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
-  const { vault } = live;
+  const { vault, view } = live;
   const [tick, setTick] = useState(0);
   const data = useVaultClaims(vault, tick);
   const claim = useClaimAction(vault, () => setTick((t) => t + 1));
+  const meta = useTokenMeta(data.state === "ok" ? data.claims.map((c) => c.token) : []);
+  const amt = (token: string, amount: string) => amountText(token, amount, meta.get(token));
 
   return (
     <article>
@@ -129,17 +133,17 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
                             <span className="mono block break-all text-xs text-muted">{c.target}</span>
                           </td>
                           <td className={`${td} text-sm`}>{c.outcome}</td>
-                          <td className={`${td} mono text-right`}>{amountText(c.token, c.paid)}</td>
+                          <td className={`${td} mono text-right`}>{amt(c.token, c.paid)}</td>
                           <td className={`${td} text-sm`}>
                             {c.exposureInWindow === null ? (
                               <span className="text-muted">Exposure for this claim was not read.</span>
                             ) : (
                               <>
                                 <span className="mono block text-muted">
-                                  exposure before the change {amountText(c.token, c.exposureUntilChange ?? "0")}, less before block {block(c.paidThroughBlock)} {amountText(c.token, c.exposureUntilStart ?? "0")}
+                                  exposure before the change {amt(c.token, c.exposureUntilChange ?? "0")}, less before block {block(c.paidThroughBlock)} {amt(c.token, c.exposureUntilStart ?? "0")}
                                 </span>
-                                <span className="mono block">min({amountText(c.token, c.exposureInWindow)} x {c.ratioBps / 100}%, {amountText(c.token, c.remainingBefore)})</span>
-                                <span className="mono block text-muted">= {amountText(c.token, c.byFormula ?? "0")}</span>
+                                <span className="mono block">min({amt(c.token, c.exposureInWindow)} x {c.ratioBps / 100}%, {amt(c.token, c.remainingBefore)})</span>
+                                <span className="mono block text-muted">= {amt(c.token, c.byFormula ?? "0")}</span>
                               </>
                             )}
                           </td>
@@ -158,6 +162,7 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
             </Panel>
           </>
         )}
+        <ExposureBefore vault={vault} agents={view.agents} defaultTarget={view.ceiling?.allowedTargets[0]} />
       </div>
     </article>
   );

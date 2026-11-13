@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/shared/Button";
 import { Drawer } from "@/shared/Drawer";
 import { useLiveVault, type LiveVault } from "../useLiveVault";
+import { useTokenMeta } from "../useTokenMeta";
 import { useVaultCoverage } from "../useVaultCoverage";
 import { useWallet } from "../WalletContext";
 import { relationOf } from "../walletRole";
@@ -24,6 +25,7 @@ function LiveCoverage({ live }: { live: Extract<LiveVault, { status: "ok" }> }) 
   const { accountId } = useWallet();
   const relation = relationOf(accountId, view);
   const cov = useVaultCoverage(vault);
+  const meta = useTokenMeta(cov.state === "ok" ? cov.rows.map((r) => r.token) : []);
   const [open, setOpen] = useState(false);
   const label = (pk: string) => view.agents.find((a) => a.publicKey === pk)?.label ?? null;
 
@@ -55,7 +57,7 @@ function LiveCoverage({ live }: { live: Extract<LiveVault, { status: "ok" }> }) 
           {cov.state === "error" && <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the pool. {cov.message}</p>}
           {cov.state === "ok" &&
             (cov.rows.length ? (
-              <LiveCoverageTable rows={cov.rows} head={cov.head} agentLabel={label} />
+              <LiveCoverageTable rows={cov.rows} head={cov.head} agentLabel={label} meta={meta} />
             ) : (
               <p className="text-sm text-muted">No coverage yet for this vault. Your agents still run under their limits.</p>
             ))}

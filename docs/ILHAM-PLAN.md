@@ -167,6 +167,19 @@ Done when: a Claude Code or Codex run following the README on a clean clone gets
 
 ---
 
+## Remaining before the 14 November deadline (set 13 November 2026)
+
+What is left in lane B that does not wait for anyone. Anything that waits on Aris is in `docs/FOR-ARIS.md`, not here. Order is the order of work; a box is ticked only with the evidence beside it.
+
+- [ ] Token amounts in their own units (`ft_metadata`: symbol and decimals), so a coverage in test USDC reads "10 tUSDC", not "10000000 (smallest unit of ...)". Coverage, Claims and report pages. Built with tests (`data/token-amount.ts`, `useTokenMeta.ts`); not yet seen on a screen
+- [ ] `ui/ExposureBefore.tsx` (R26): the owner enters an agent, target, token and block and sees the vault's `exposure_before`, checked against the vault's own view. Built with tests (`data/exposure-before.ts`, on the Claims page); not yet seen on a screen
+- [x] `docs/CONSOLE-TESTING.md` section 5d: scenarios C1 to C14 for Coverage, Buy, Claims, the report page and the exposure panel, with the URL, the button and the expected output of each (C1 to C3, C10, C11 seen on a screen; the rest wait for a person at the browser or for an attestor)
+- [ ] Screen evidence still missing, needs a person at the browser: the Playground Stop button, the "previous run was interrupted" notice, loosen back, the key export download. Record the result and hashes in `docs/CONSOLE-TESTING.md`
+- [ ] Check the published site (`https://www.arunafi.xyz/`) with a wallet: Lookup, Dashboard, Playground, Create, Coverage, Claims
+- [ ] Record the F1 run for the video (script in `docs/SUBMISSION.md`)
+
+Not started on purpose, after v0 and large: L8 Pool and underwriter, L9 Targets and attestor, L11 Migration, L12 Simulation on published output, USDC purchases (cannot be proven until an attestor heartbeat is fresh), deleting the two mock stores (Attestor, Pool and TargetDetail still read them).
+
 ## After v0
 
 Order by value to a judge or first customer: L7, then L9, L8, L10, then L11 and L12 when Aris lands U15 and U17.

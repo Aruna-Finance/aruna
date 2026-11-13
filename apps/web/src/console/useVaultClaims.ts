@@ -43,13 +43,13 @@ export function useVaultClaims(vault: string, refreshKey: unknown = 0): VaultCla
           if (r) reports.set(id, reportRow(r));
         }),
       );
-      // Exposure the pool counted for each NEAR claim: before the changed block, and before the block it counted from.
+      // Exposure the pool counted for each claim, in the coverage's own token: before the changed block, and before the block it counted from.
       const exposure = new Map<string, ExposureRead>();
       await Promise.all(
         claimSteps(coverages, reports)
-          .filter((s) => s.coverage.token === "near" && s.changedAtBlock !== null)
+          .filter((s) => s.changedAtBlock !== null)
           .map(async (s) => {
-            const ask = (block: number) => reads.view<string>(vault, "exposure_before", { agent: s.coverage.agent, target: s.coverage.target, token: "near", block });
+            const ask = (block: number) => reads.view<string>(vault, "exposure_before", { agent: s.coverage.agent, target: s.coverage.target, token: s.coverage.token, block });
             const [untilChange, untilStart] = await Promise.all([ask(s.changedAtBlock as number), ask(s.paidThroughBlock)]);
             exposure.set(exposureKey(s.coverage.id, s.index), { untilChange, untilStart });
           }),
