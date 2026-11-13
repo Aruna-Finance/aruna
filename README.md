@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (298).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (303).
 
 ### 2. Classify any NEAR contract
 
@@ -105,7 +105,7 @@ of agents. Click an agent. Expected: a page listing what its key cannot do, its 
 Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
 Agents and agent detail (step 5d), the Playground (step 5e), the Overview (step 5f), and Coverage, Buy
 coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) Pool (step 5j, read-only) and Targets with its detail page
-(step 5k). Every other screen (Migration, Attestor and the Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
+(step 5k) and Attestors (step 5l). Every other screen (Migration and the Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
 results are in steps 9 to 13.
 
 ### 5c. Connect a testnet wallet
@@ -305,6 +305,22 @@ node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"dri
    Expected: `"class":"global_by_account"`, `"frozen":true`, `"upgrade_authority":"drift-owner.arunafi.testnet"`, matching the
    page. The registry has no view that lists its targets, so the list is the seeded targets plus the pool's covered ones; any
    other target is opened by name.
+
+### 5l. Attestors, read from the registry
+
+1. Open `https://www.arunafi.xyz/console/attestor/`. Expected: `attestor-a.arunafi.testnet` with its bond (1 NEAR), the block of
+   its last heartbeat and how many blocks ago that was, "Heartbeat stale" while it is more than 600 blocks, the targets it watches
+   (`drift-target.arunafi.testnet`) with their recorded class and latest report, and a notice that no attestor is assigned to
+   `swap.arunafi.testnet`.
+2. Check the record without the page:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet get_attestor '{"attestor":"attestor-a.arunafi.testnet"}'
+node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"drift-target.arunafi.testnet"}'
+```
+
+   Expected: `bond` `1000000000000000000000000`, `last_heartbeat` equal to the block on the page, and `false` while the heartbeat is
+   stale. Heartbeats and drift reports are sent from the attestor's own account; the console only reads.
 
 ### 6. Ask from an agent (MCP)
 
