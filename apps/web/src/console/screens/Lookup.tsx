@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/shared/Button";
 import { isSafeAccountId } from "@/landing/lib/verify-commands";
 import { yoctoToNear } from "../fmt";
+import { useOwnedVaults } from "../useOwnedVaults";
 import { useVaultView } from "../useVaultView";
 import { TextField } from "../ui/Field";
 import { Panel } from "../ui/Panel";
@@ -26,6 +27,7 @@ export function Lookup() {
   const state = useVaultView(isSafeAccountId(vault) ? vault : "");
   const bad = draft !== "" && !isSafeAccountId(draft.trim());
   const { accountId } = useWallet();
+  const owned = useOwnedVaults(accountId ?? null);
   const relation = state.status === "ok" ? relationOf(accountId, state.view) : null;
 
   function pick(v: string) {
@@ -70,6 +72,16 @@ export function Lookup() {
             </button>
             , a live testnet vault.
           </p>
+          {owned.state === "ok" && owned.list.length > 0 && (
+            <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+              Yours:
+              {owned.list.map((v) => (
+                <button key={v.vault} type="button" className="mono underline underline-offset-4" onClick={() => pick(v.vault)}>
+                  {v.vault}
+                </button>
+              ))}
+            </p>
+          )}
         </Panel>
 
         {state.status === "loading" && (

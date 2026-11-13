@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (38), `keeper` (29), `sdk` (110), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (314).
+ skipped), `cli` (28), `attestor` (38), `keeper` (29), `sdk` (110), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (329).
 
 ### 2. Classify any NEAR contract
 
@@ -321,6 +321,25 @@ node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target
 
    Expected: `bond` `1000000000000000000000000`, `last_heartbeat` equal to the block on the page, and `false` while the heartbeat is
    stale. Heartbeats and drift reports are sent from the attestor's own account; the console only reads.
+
+### 5m. Finding your vault
+
+The console finds the vaults an account owns from the registry, not from the indexer.
+
+1. Connect a wallet at `https://www.arunafi.xyz/console/create/`. Expected: "Your vaults" lists every vault the account owns,
+   newest first, including one made a minute ago.
+2. Open `https://www.arunafi.xyz/console/dashboard/` with no `?vault=` and with the wallet connected. Expected: the account's
+   newest vault opens. With no wallet connected: "No vault is selected" and "Connect a wallet to see the vaults it owns."
+3. Disconnect. Expected: the vault the browser remembered is forgotten, so the Overview no longer shows it.
+4. Check the list without the page. The registry lists the vaults that run a code hash, with the owner at registration:
+
+```bash
+node fixtures/tools.mjs view registry2.arunafi.testnet vaults_by_code_hash '{"code_hash":"6fqp3des9ZNAdV3NfAWz8RDrXsqDnpRwqJ4BJAqzuFEh","from":null,"limit":null}'
+```
+
+   Expected: each vault with its `owner`, as the page shows. On the Overview, the "Vault" tile names the current vault and, when the account has more than one, gets a
+   "Switch vault" button on the right; pressing it shows the vault list, and choosing one reloads the screen for that vault (`?vault=` in the address). The Lookup page offers the connected account's vaults under "Yours". Limits: the owner is the one recorded at registration, and a vault an
+   account only operates is not recorded, so those still come from the indexer.
 
 ### 6. Ask from an agent (MCP)
 

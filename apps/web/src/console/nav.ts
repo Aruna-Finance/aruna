@@ -22,7 +22,6 @@ export type Role = {
   id: RoleId;
   label: string;
   home: ScreenId;
-  signer: string;
   items: { id: ScreenId; label: string }[];
 };
 
@@ -31,7 +30,6 @@ export const ROLES: Role[] = [
     id: "owner",
     label: "Client",
     home: "dashboard",
-    signer: "budi.testnet",
     items: [
       { id: "dashboard", label: "Overview" },
       { id: "create", label: "Create a vault" },
@@ -47,7 +45,6 @@ export const ROLES: Role[] = [
     id: "operator",
     label: "Operator",
     home: "dashboard",
-    signer: "opsdesk.testnet",
     items: [
       { id: "dashboard", label: "Overview" },
       { id: "agents", label: "Agents" },
@@ -61,7 +58,6 @@ export const ROLES: Role[] = [
     id: "underwriter",
     label: "Underwriter",
     home: "pool",
-    signer: "underwriter.testnet",
     items: [
       { id: "pool", label: "Pool" },
       { id: "claims", label: "Claims" },
@@ -73,7 +69,6 @@ export const ROLES: Role[] = [
     id: "attestor",
     label: "Attestor",
     home: "attestor",
-    signer: "attestor-1.testnet",
     items: [
       { id: "attestor", label: "Console" },
       { id: "claims", label: "Reports and claims" },
@@ -85,7 +80,6 @@ export const ROLES: Role[] = [
     id: "counterparty",
     label: "Counterparty",
     home: "lookup",
-    signer: "No login",
     items: [
       { id: "lookup", label: "Look up an agent" },
       { id: "claims", label: "Reports and claims" },
@@ -97,7 +91,6 @@ export const ROLES: Role[] = [
     id: "developer",
     label: "Developer",
     home: "developers",
-    signer: "Agent key",
     items: [
       { id: "developers", label: "MCP tools" },
       { id: "playground", label: "Simulate and injection" },

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { isValidAccountId } from "@aruna/rpc";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/Button";
+import { fetchViewTransport, Registry } from "@aruna/sdk/coverage";
 import { createTestnetReads } from "../chain-reads";
 import {
   buildCeiling,
@@ -26,6 +27,8 @@ import {
   type TargetOption,
 } from "../data/factory";
 import { nearToYocto, yoctoToNear } from "../fmt";
+import { mergeVaultRows, ownedVaults, type OwnedVault } from "../data/owned-vaults";
+import { REGISTRY } from "../data/price";
 import { defaultHistory } from "../history";
 import { useTx } from "../TxContext";
 import { ClassTag } from "../ui/ClassTag";
@@ -402,11 +405,21 @@ function CreatedVault({
   );
 }
 
-export const vaultListNeedsIndexer = "Your vault list comes from the indexer, which is not connected in this build, so it cannot say which vaults you own.";
+export const vaultListNeedsIndexer = "Vaults you only operate, and vaults whose ownership moved, are listed by the indexer, which is not connected in this build.";
+
+async function fromRegistry(account: string): Promise<{ state: "ok"; list: OwnedVault[] } | { state: "error"; message: string }> {
+  try {
+    const registry = new Registry({ registry: REGISTRY, transport: fetchViewTransport({ network: "testnet" }) });
+    return { state: "ok", list: await ownedVaults(registry, account) };
+  } catch (e) {
+    return { state: "error", message: e instanceof Error ? e.message : "The registry could not be read." };
+  }
+}
 
 export function MyVaults({ account, history }: { account: string | null; history: ReturnType<typeof defaultHistory> }) {
   const [rows, setRows] = useState<{ vault: string; role: string }[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -414,14 +427,15 @@ export function MyVaults({ account, history }: { account: string | null; history
       setRows(null);
       return;
     }
-    Promise.all([history.vaults({ owner: account }), history.vaults({ operator: account })]).then(([own, op]) => {
+    Promise.all([history.vaults({ owner: account }), history.vaults({ operator: account }), fromRegistry(account)]).then(([own, op, reg]) => {
       if (!live) return;
       const down = [own, op].find((r) => r.state === "unavailable");
-      setNotice(historyNotice(down ?? own, history.source));
-      const list: { vault: string; role: string }[] = [];
-      if (own.state !== "unavailable") list.push(...own.items.map((v) => ({ vault: v.vault, role: "owner" })));
-      if (op.state !== "unavailable") list.push(...op.items.filter((v) => !list.some((l) => l.vault === v.vault)).map((v) => ({ vault: v.vault, role: "operator" })));
-      setRows(down ? null : list);
+      setNotice(history.source === "fixture" ? vaultListNeedsIndexer : historyNotice(down ?? own, history.source));
+      setProblem(reg.state === "error" ? reg.message : null);
+      const fromIndexer: { vault: string; role: string }[] = [];
+      if (own.state !== "unavailable") fromIndexer.push(...own.items.map((v) => ({ vault: v.vault, role: "owner" })));
+      if (op.state !== "unavailable") fromIndexer.push(...op.items.map((v) => ({ vault: v.vault, role: "operator" })));
+      setRows(mergeVaultRows(history.source === "fixture" ? [] : fromIndexer, reg.state === "ok" ? reg.list : []));
     });
     return () => {
       live = false;
@@ -431,22 +445,12 @@ export function MyVaults({ account, history }: { account: string | null; history
   if (!account) return null;
   return (
     <Panel title="Your vaults">
-      {history.source === "fixture" ? (
-        <p className="text-sm text-muted">
-          {vaultListNeedsIndexer}{" "}
-          <Link href="/console/lookup/" className="underline underline-offset-4">
-            Open a vault by name in Lookup
-          </Link>
-          .
-        </p>
-      ) : (
-        <>
-      {rows && rows.length === 0 && <p className="text-sm text-muted">No vaults found for this account.</p>}
+      {rows && rows.length === 0 && !problem && <p className="text-sm text-muted">No vaults found for this account.</p>}
       {rows && rows.length > 0 && (
         <ul className="grid gap-2">
           {rows.map((r) => (
             <li key={r.vault} className="flex flex-wrap items-center gap-3 text-[15px]">
-              <Link href={`/console/lookup/?vault=${encodeURIComponent(r.vault)}`} className="mono underline underline-offset-4">
+              <Link href={`/console/dashboard/?vault=${encodeURIComponent(r.vault)}`} className="mono underline underline-offset-4">
                 {r.vault}
               </Link>
               <span className="text-sm text-muted">{r.role}</span>
@@ -454,10 +458,9 @@ export function MyVaults({ account, history }: { account: string | null; history
           ))}
         </ul>
       )}
-      {rows === null && !notice && <p className="text-sm text-muted">Reading your vaults.</p>}
+      {rows === null && <p className="text-sm text-muted">Reading your vaults.</p>}
+      {problem && <p className="mt-3 text-sm text-dawn-ink">Could not read the registry. {problem}</p>}
       {notice && <p className="mt-3 text-sm text-muted">{notice}</p>}
-        </>
-      )}
     </Panel>
   );
 }
