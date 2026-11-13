@@ -178,7 +178,7 @@ describe("routing and the ingest loop", () => {
   });
 });
 
-describe("neardata as the archive, with QuickNode as its backup (plan 2026-11-13-0431)", () => {
+describe("an archive with a backup of a different scan type (plan 2026-11-13-0431)", () => {
   it("reads below the edge from the backup when the archive fails, and never calls the backup at or above the edge", async () => {
     const archive = fake({ fail: () => true });
     const backup = fake();
@@ -231,6 +231,33 @@ describe("neardata as the archive, with QuickNode as its backup (plan 2026-11-13
 
   it("builds the baseline store from neardata blocks below the edge and RPC scans above it", async () => {
     expect(await exportThrough(memorySource(recordedBlocks()) as BlockSource<unknown>)).toBe(baseline);
+  });
+
+  it("QuickNode as the archive and neardata as its backup: a QuickNode scan is never handed to neardata, and the baseline comes out", async () => {
+    const live = rpc("https://live.example/rpc");
+    const archiveRpc = rpc("https://archive.example/abcdef1234567890/");
+    let failed = false;
+    const quicknode: BlockSource<unknown> = {
+      ...archiveRpc,
+      async block(h) {
+        if (!failed && h === FIRST + 5) {
+          failed = true;
+          throw new Error("QuickNode answered HTTP 429");
+        }
+        return archiveRpc.block(h);
+      },
+    } as BlockSource<unknown>;
+    const src = routedSource<unknown>({
+      archive: { source: quicknode, label: "QuickNode", concurrency: 3 },
+      archiveBackup: { source: memorySource(recordedBlocks()) as BlockSource<unknown>, label: "neardata", concurrency: 8 },
+      live: { source: Object.assign(live, { earliestHeight: async () => edge }) as BlockSource<unknown> & { earliestHeight(): Promise<number> }, label: "dRPC", concurrency: 4 },
+      fallback: { source: rpc("https://fallback.example/rpc") as BlockSource<unknown>, label: "NEAR archival", concurrency: 1 },
+      edgeMarginBlocks: 0,
+    });
+    const store = await testStore();
+    await runIndexer({ store, source: src, seeds: SEEDS, startBlock: FIRST, stopAt: LAST, concurrency: 8 });
+    expect(failed).toBe(true);
+    expect(await store.export()).toBe(baseline);
   });
 
   it("re-reads a height from the fallback, instead of handing it a neardata block, when neardata fails in the middle of a window", async () => {

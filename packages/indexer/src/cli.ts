@@ -34,11 +34,11 @@ Environment:
   ARUNA_INDEXER_CONFIG            optional: a config file other than the one shipped.
 Block sources, chosen per height (no key needed):
   live (config live_rpc)          dRPC, free. Holds about the last two days of blocks; reads them and the head.
-  FASTNEAR_API_KEY                optional archive: testnet.neardata.xyz with this FastNear key (a secret, sent only
-                                  as a Bearer header). Reads only the heights live no longer holds, then is never
-                                  called again. With QUICKNODE_RPC_URL also set, QuickNode reads what neardata fails to.
   QUICKNODE_RPC_URL               optional paid archive (the URL carries the token, so it is a secret). Reads only
                                   the heights live no longer holds, then is never called again. 50 credits a call.
+  FASTNEAR_API_KEY                optional: testnet.neardata.xyz with this FastNear key (a secret, sent only as a Bearer
+                                  header). The backup that reads what QuickNode fails to serve; the archive alone when
+                                  there is no QuickNode URL.
   QUICKNODE_CONCURRENCY           optional: blocks read at once from QuickNode (default 3).
   fallback (config fallback_rpc)  NEAR's archival RPC, free and slow (about 19 calls a minute). Reads what the
                                   others cannot; a failing endpoint is benched for 5 minutes.
@@ -84,9 +84,10 @@ export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = pro
   const neardata: Lane<unknown> | undefined = fastnearKey
     ? { source: neardataSource({ baseUrl: NEARDATA_TESTNET, apiKey: fastnearKey }) as BlockSource<unknown>, label: "neardata", concurrency: NEARDATA_CONCURRENCY }
     : undefined;
-  // neardata, when keyed, is the archive and QuickNode its backup; otherwise QuickNode alone is the archive.
-  const archive = neardata ?? quicknode;
-  const archiveBackup = neardata ? quicknode : undefined;
+  // QuickNode, when set, is the archive and neardata its backup, which reads what QuickNode fails to serve; without a
+  // QuickNode URL, a FastNear key makes neardata the archive alone.
+  const archive = quicknode ?? neardata;
+  const archiveBackup = quicknode ? neardata : undefined;
   const source = routedSource<unknown>({
     archive,
     archiveBackup,
