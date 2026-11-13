@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/shared/Button";
 import { amountText } from "../data/coverage-live";
@@ -12,6 +13,8 @@ import { Panel } from "../ui/Panel";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
+
+const reportLink = (id: number, vault: string) => `/console/claims/detail/?id=${id}&vault=${encodeURIComponent(vault)}`;
 
 export function Claims() {
   const live = useLiveVault();
@@ -55,7 +58,11 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
                     <tbody>
                       {data.reports.map((r) => (
                         <tr key={r.id}>
-                          <td className={`${td} mono`}>{r.id}</td>
+                          <td className={`${td} mono`}>
+                            <Link href={reportLink(r.id, vault)} className="underline underline-offset-4">
+                              {r.id}
+                            </Link>
+                          </td>
                           <td className={`${td} mono break-all`}>{r.target}</td>
                           <td className={`${td} mono break-all`}>{r.attestor}</td>
                           <td className={`${td} mono`}>{block(r.changedAtBlock)}</td>
@@ -113,7 +120,12 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
                         <tr key={`${c.coverageId}:${c.reportId}:${i}`}>
                           <td className={td}>
                             <span className="mono block">coverage #{c.coverageId}</span>
-                            <span className="mono block text-sm text-muted">report {c.reportId}, at {block(c.block)}</span>
+                            <span className="mono block text-sm text-muted">
+                              <Link href={reportLink(c.reportId, vault)} className="underline underline-offset-4">
+                                report {c.reportId}
+                              </Link>
+                              , at {block(c.block)}
+                            </span>
                             <span className="mono block break-all text-xs text-muted">{c.target}</span>
                           </td>
                           <td className={`${td} text-sm`}>{c.outcome}</td>

@@ -16,13 +16,17 @@ export interface ReportRow {
   reportedAtBlock: number;
   beforeHash: string;
   afterHash: string;
+  nonce: number;
+  /** The id of the conflicting report that put this one in dispute, or null. */
+  disputedBy: number | null;
 }
 
 export interface StoredReport {
   id: number;
   state: string;
   reported_at_block: number;
-  report: { target: string; attestor: string; channel: string; changed_at_block: number; observed_at_block: number; before_resolved_hash: string; after_resolved_hash: string };
+  disputed_by?: number | null;
+  report: { nonce: number; target: string; attestor: string; channel: string; changed_at_block: number; observed_at_block: number; before_resolved_hash: string; after_resolved_hash: string };
 }
 
 export const reportRow = (r: StoredReport): ReportRow => ({
@@ -36,6 +40,8 @@ export const reportRow = (r: StoredReport): ReportRow => ({
   reportedAtBlock: r.reported_at_block,
   beforeHash: r.report.before_resolved_hash,
   afterHash: r.report.after_resolved_hash,
+  nonce: r.report.nonce,
+  disputedBy: r.disputed_by ?? null,
 });
 
 export interface ClaimRow {
