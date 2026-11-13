@@ -36,9 +36,9 @@ near account add-key attestor-a.arunafi.testnet grant-function-call-access \
   --allowance '1 NEAR' --contract-account-id registry2.arunafi.testnet --function-names 'heartbeat, report_drift' \
   autogenerate-new-keypair print-to-terminal network-config testnet sign-with-legacy-keychain send
 
-# The keeper's key, on the registry owner: set_class and lift_freeze.
+# The keeper's key, on the registry owner: set_class, lift_freeze and push_freeze.
 near account add-key arunafi.testnet grant-function-call-access \
-  --allowance '1 NEAR' --contract-account-id registry2.arunafi.testnet --function-names 'set_class, lift_freeze' \
+  --allowance '1 NEAR' --contract-account-id registry2.arunafi.testnet --function-names 'set_class, lift_freeze, push_freeze' \
   autogenerate-new-keypair print-to-terminal network-config testnet sign-with-legacy-keychain send
 ```
 
@@ -179,7 +179,8 @@ near account delete-keys <account> public-keys ed25519:<old public key> network-
 ```
 
 A leaked attestor key can send heartbeats and reports as `attestor-a`, and nothing else. A leaked keeper key can call
-`set_class` and `lift_freeze` as the registry owner, and nothing else; but `set_class` can record any target as any class,
+`set_class`, `lift_freeze` and `push_freeze` as the registry owner, and nothing else (`push_freeze` is open to anyone
+anyway); but `set_class` can record any target as any class,
 so this is the key to guard most. A leaked signing seed lets an attacker sign reports as `attestor-a`: rotate it with
 `rotate_signing_key` from your machine.
 

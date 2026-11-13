@@ -1,7 +1,7 @@
 import type { Classification } from "@aruna/classifier-core";
 import type { ClassRecord, DriftReport } from "@aruna/sdk/coverage";
 import { describe, expect, it } from "vitest";
-import { gatherCandidates, indexerReportTargets, runOnce, type KeeperChain } from "../src/run.js";
+import { gatherCandidates, indexerReportTargets, PUSH_BATCH, runOnce, type KeeperChain } from "../src/run.js";
 
 type Cls = ClassRecord["class"];
 const rec = (over: Partial<ClassRecord> = {}): ClassRecord => ({ class: "global_by_account", classified_at_block: 100, classifier: "reg.testnet", evidence_hash: "h0", frozen: true, ...over });
@@ -23,14 +23,22 @@ const classification = (cls: Cls, hash = "NEW"): Classification => ({
 });
 
 /** A registry that follows the real rules: a lift needs a final report, and set_class stamps a newer block and keeps `frozen`. */
-function world(init: Record<string, { record: ClassRecord | null; report: DriftReport | null }>, opts: { failLift?: number; failSet?: number } = {}) {
+/** A vault in the registry's list: the targets its ceiling allows, and those its cache holds frozen. `deaf` ignores a push. */
+type FakeVault = { id: string; allows: string[]; frozen: string[]; deaf?: boolean; unreadable?: boolean };
+
+function world(
+  init: Record<string, { record: ClassRecord | null; report: DriftReport | null }>,
+  opts: { failLift?: number; failSet?: number; vaults?: FakeVault[] } = {},
+) {
   const s = structuredClone(init);
+  const vaults = structuredClone(opts.vaults ?? []);
   const calls: string[] = [];
   let block = 1000;
   let failLift = opts.failLift ?? 0;
   let failSet = opts.failSet ?? 0;
   const chain: KeeperChain = {
-    classOf: async (t) => s[t]?.record ?? null,
+    // A copy, as a view returns: a later write must not change what the caller already read.
+    classOf: async (t) => structuredClone(s[t]?.record ?? null),
     latestReport: async (t) => s[t]?.report ?? null,
     liftFreeze: async (t) => {
       calls.push(`lift ${t}`);
@@ -47,8 +55,24 @@ function world(init: Record<string, { record: ClassRecord | null; report: DriftR
       e.record = { ...e.record!, class: a.class, evidence_hash: a.evidence_hash, classified_at_block: ++block };
       return "tx-set";
     },
+    vaults: async () => vaults.map((v) => v.id),
+    vaultFreeze: async (id, t) => {
+      const v = vaults.find((x) => x.id === id)!;
+      if (v.unreadable) throw new Error("view failed");
+      if (!v.allows.includes(t)) return "outside";
+      return v.frozen.includes(t) ? "frozen" : "open";
+    },
+    vaultCount: async () => vaults.length,
+    // The registry's rules (contracts/registry/src/drift.rs): only a frozen target; each vault in the window gets
+    // freeze_target, which a vault ignores for a target outside its ceiling.
+    pushFreeze: async (t, from, limit) => {
+      calls.push(`push ${t} ${from} ${limit}`);
+      if (!s[t]?.record?.frozen) throw new Error("ARUNA_TARGET_NOT_FROZEN");
+      for (const v of vaults.slice(from, from + limit)) if (v.allows.includes(t) && !v.deaf && !v.frozen.includes(t)) v.frozen.push(t);
+      return "tx-push";
+    },
   };
-  return { chain, calls, state: s };
+  return { chain, calls, state: s, vaults };
 }
 const classifyAs = (classes: Record<string, Cls | Error>) => async (t: string) => {
   const c = classes[t];
@@ -136,6 +160,75 @@ describe("runOnce", () => {
     });
     expect(out.map((o) => o.result)).toEqual(["failed", "released"]);
     expect(w.calls.every((c) => !c.includes("bad.testnet"))).toBe(true);
+  });
+});
+
+describe("freeze push (G1: a registry freeze must reach the vaults)", () => {
+  const T = "t.testnet";
+  const run = (w: ReturnType<typeof world>, cls: Cls = "global_by_account", pushed?: Set<string>, log: (m: string) => void = quiet) =>
+    runOnce({ chain: w.chain, classify: classifyAs({ [T]: cls }), targets: [T], log, pushed });
+
+  it("pushes the freeze of a target frozen by a Pending report to a vault that allows it and holds it open", async () => {
+    const w = world({ [T]: { record: rec(), report: rep("pending") } }, { vaults: [{ id: "a", allows: [T], frozen: [] }, { id: "b", allows: ["other.testnet"], frozen: [] }] });
+    const out = await run(w);
+    expect(w.calls).toEqual([`push ${T} 0 ${PUSH_BATCH}`]);
+    expect(out[0]).toMatchObject({ result: "skipped", reason: "not_final", pushed: true });
+    expect(w.vaults[0]!.frozen).toEqual([T]);
+    expect(w.vaults[1]!.frozen).toEqual([]);
+  });
+
+  it("sends nothing once every vault that allows the target holds it frozen: the chain is the memory", async () => {
+    const w = world({ [T]: { record: rec(), report: rep("pending") } }, { vaults: [{ id: "a", allows: [T], frozen: [] }] });
+    await run(w);
+    await run(w);
+    expect(w.calls).toEqual([`push ${T} 0 ${PUSH_BATCH}`]);
+  });
+
+  it("pushes once per report in a process, even to a vault that does not take it", async () => {
+    const w = world({ [T]: { record: rec(), report: rep("pending") } }, { vaults: [{ id: "a", allows: [T], frozen: [], deaf: true }] });
+    const pushed = new Set<string>();
+    await run(w, "global_by_account", pushed);
+    await run(w, "global_by_account", pushed);
+    expect(w.calls).toEqual([`push ${T} 0 ${PUSH_BATCH}`]);
+  });
+
+  it("does not push in the run that releases the target: the push would outlive the lift", async () => {
+    const w = world({ [T]: { record: rec(), report: rep("verified") } }, { vaults: [{ id: "a", allows: [T], frozen: [] }] });
+    const out = await run(w);
+    expect(w.calls).toEqual([`lift ${T}`, `set_class ${T} global_by_account NEW`]);
+    expect(out[0]!.result).toBe("released");
+    expect(w.vaults[0]!.frozen).toEqual([]);
+  });
+
+  it("pushes a freeze it holds because the new code is riskier", async () => {
+    const w = world({ [T]: { record: rec({ class: "immutable_verified" }), report: rep("verified") } }, { vaults: [{ id: "a", allows: [T], frozen: [] }] });
+    const out = await run(w, "local_upgradeable");
+    expect(w.calls).toEqual([`set_class ${T} local_upgradeable NEW`, `push ${T} 0 ${PUSH_BATCH}`]);
+    expect(out[0]).toMatchObject({ result: "held", pushed: true });
+  });
+
+  it("covers the whole vault list in batches", async () => {
+    const vaults = Array.from({ length: PUSH_BATCH + 5 }, (_, i) => ({ id: `v${i}`, allows: [T], frozen: [] as string[] }));
+    const w = world({ [T]: { record: rec(), report: rep("pending") } }, { vaults });
+    await run(w);
+    expect(w.calls).toEqual([`push ${T} 0 ${PUSH_BATCH}`, `push ${T} ${PUSH_BATCH} ${PUSH_BATCH}`]);
+    expect(w.vaults.every((v) => v.frozen.includes(T))).toBe(true);
+  });
+
+  it("reads no vault for a target the registry does not hold frozen", async () => {
+    const w = world({ [T]: { record: rec({ frozen: false }), report: rep("pending") } }, { vaults: [{ id: "a", allows: [T], frozen: [], unreadable: true }] });
+    const lines: string[] = [];
+    await run(w, "global_by_account", undefined, (m) => lines.push(m));
+    expect(w.calls).toEqual([]);
+    expect(lines).toEqual([]);
+  });
+
+  it("leaves out a vault it cannot read, logs it, and still pushes for the others", async () => {
+    const lines: string[] = [];
+    const w = world({ [T]: { record: rec(), report: rep("pending") } }, { vaults: [{ id: "bad", allows: [T], frozen: [], unreadable: true }, { id: "a", allows: [T], frozen: [] }] });
+    await run(w, "global_by_account", undefined, (m) => lines.push(m));
+    expect(w.calls).toEqual([`push ${T} 0 ${PUSH_BATCH}`]);
+    expect(lines.join("\n")).toMatch(/could not read vault bad/);
   });
 });
 

@@ -465,6 +465,13 @@ host, and revisit before mainnet. Corrects D-59: the registry keeps a freeze aft
 side; only `lift_freeze` ends it (`contracts/registry/src/drift.rs`). Plan:
 `docs/plans/2026-11-13-2018-feat-hosted-attestor-keeper-plan.md`.
 
+14 November 2026: the keeper also pushes the freeze. D-59 assumed the freeze reaches every vault by `push_freeze`, but
+nothing hosted called it, so a vault learned of a freeze only when its cached class went stale (up to 3600 blocks). For a
+target the registry holds frozen, the keeper now sends `push_freeze` when a vault that allows the target still holds it
+open, and not in the run that lifts it. Its key adds `push_freeze`, which anyone may call. The reverse direction is the
+SDK's: a pushed freeze stays in the vault's cache after `lift_freeze`, so `AgentVault.spend` refreshes on
+`TARGET_FROZEN` when the registry no longer records the target as frozen.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to

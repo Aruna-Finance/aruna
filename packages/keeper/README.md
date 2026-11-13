@@ -26,6 +26,20 @@ A target held for being riskier is released by an operator with `lift_freeze` on
 The same goes for a target whose class someone wrote by hand with `set_class` after the report: the record is then newer than
 the report, so the keeper counts it as handled and leaves the freeze for an operator.
 
+## Pushing a freeze to the vaults
+
+A report freezes its target in the registry at once, but a vault only learns of it through `push_freeze` (the registry
+calls `freeze_target` on each listed vault) or when its cached class goes stale (`MAX_CLASS_AGE_BLOCKS`, 3600 blocks).
+So for every target the registry holds frozen, the keeper reads each listed vault (`get_config` for the ceiling,
+`get_class` for the cached copy) and, when one that allows the target still holds it open, sends `push_freeze` over the
+whole vault list in batches of 20. Not in a run that has just lifted the freeze: that push would outlive the lift. The
+chain is the memory again, since a pushed vault reads `frozen`; a vault that ignores the push is pushed at most once per
+report while the process lives.
+
+A pushed freeze stays in a vault's cache after `lift_freeze` until `refresh_class` pulls the registry again. The SDK's
+`AgentVault.spend` does that on its own: on `TARGET_FROZEN` it reads the registry and, if the target is no longer frozen
+there, refreshes and retries once (`docs/SDK.md`).
+
 ## Which targets it looks at
 
 The targets the indexer has a report for (`--indexer-url` or `ARUNA_INDEXER_URL`) plus a seed list (`--targets` or
@@ -35,7 +49,8 @@ keeper act on a target without a final report. When the indexer cannot be read, 
 ## Key
 
 `ARUNA_KEEPER_KEY` (`ed25519:...`), else `~/.near-credentials/testnet/<account>.json`. On a host, use a function-call key on
-the owner account limited to the registry and the methods `set_class` and `lift_freeze`; neither takes a deposit. Even so,
+the owner account limited to the registry and the methods `set_class`, `lift_freeze` and `push_freeze`; none takes a
+deposit. A key without `push_freeze` still releases freezes; its push is refused by the network and logged each run. Even so,
 the key can rewrite any target's class, so keep it as a secret and the full-access key off the host.
 
 ## Run

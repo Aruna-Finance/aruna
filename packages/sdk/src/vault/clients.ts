@@ -116,7 +116,9 @@ export class AgentVault extends VaultBase {
   /**
    * Spends through a named adapter. A refusal resolves with `{ ok: false, reason }`; an authorization
    * failure throws ArunaAuthError. A stale class is refreshed and the spend retried ONCE (docs/SDK.md),
-   * unless `autoRefresh: false`. No other refusal is ever retried.
+   * unless `autoRefresh: false`. So is a frozen target whose freeze the registry has since lifted: the
+   * vault's cached copy of a pushed freeze outlives `lift_freeze` until `refresh_class` pulls the
+   * registry again. A target the registry still holds frozen is not retried. No other refusal is.
    */
   async spend(a: SpendAction): Promise<SpendResult> {
     const v = await this.needs("spend", "spend");
@@ -130,9 +132,23 @@ export class AgentVault extends VaultBase {
       throw new ArunaAuthError(`unexpected spend result: ${JSON.stringify(out)}`);
     };
     const first = await once();
-    if (first.ok || first.reason !== "CLASS_STALE" || !this.autoRefresh) return first;
-    await this.refreshClass(a.target);
-    return once();
+    if (first.ok || !this.autoRefresh) return first;
+    if (first.reason === "CLASS_STALE" || (first.reason === "TARGET_FROZEN" && (await this.registryLifted(a.target)))) {
+      await this.refreshClass(a.target);
+      return once();
+    }
+    return first;
+  }
+
+  /** Whether the vault's registry records `target` as not frozen. False when it cannot be read: then nothing is retried. */
+  private async registryLifted(target: string): Promise<boolean> {
+    try {
+      const { registry } = await this.t.view<{ registry: string }>(this.vaultId, "get_config", {});
+      const record = await this.t.view<{ frozen: boolean } | null>(registry, "get_class", { target });
+      return record !== null && record.frozen === false;
+    } catch {
+      return false;
+    }
   }
 
   /** Free and NOT binding: the checks `spend` runs, without sending anything. Vault v4 and later. */

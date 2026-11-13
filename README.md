@@ -621,7 +621,7 @@ spending into a target whose code changed (`docs/DECISIONS.md` D-59).
 A third piece of Aruna's own automation is not a trust assumption but is worth naming: a keeper
 (`packages/keeper`) that, once a drift report is final, re-classifies the target and lifts its freeze when the new
 class is no riskier, or leaves it for a person when it is riskier. It acts as the registry owner through a
-function-call key limited to `set_class` and `lift_freeze`, and the key can record any target as any class
+function-call key limited to `set_class`, `lift_freeze` and `push_freeze` (open to anyone), and the key can record any target as any class
 (`docs/DECISIONS.md` D-67). It is Aruna's, run by Aruna, and not independent of it.
 
 Aruna is verifiable and reproducible. It is not trustless.

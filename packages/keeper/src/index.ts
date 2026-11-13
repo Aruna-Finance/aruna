@@ -12,7 +12,9 @@ const USAGE = `aruna-keeper: testnet freeze keeper
   aruna-keeper run --account <registry owner> --registry <account> [--targets <a,b>] [--indexer-url <url>] [--interval 60] [--once]
       Every interval, for each target with a final drift report newer than its class record: classify its current code,
       lift the freeze when the new class is no riskier than the recorded one, and write the new class. A riskier class is
-      written and the freeze stays for an operator. Targets come from the indexer's reports plus the seed list.
+      written and the freeze stays for an operator. A target the registry holds frozen and some vault allowing it holds
+      open gets push_freeze, so agents stop spending into it at once. Targets come from the indexer's reports plus the
+      seed list. The key needs set_class, lift_freeze and push_freeze on the registry.
 
 Flags fall back to the environment:
   ARUNA_KEEPER_ACCOUNT     --account
@@ -26,6 +28,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const log = (m: string) => console.log(`${new Date().toISOString()} ${m}`);
 
 const TGAS = 30n;
+const PUSH_TGAS = 150n;
 
 async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
@@ -59,15 +62,30 @@ async function main(argv: string[]): Promise<number> {
 
   const endpoints = process.env.ARUNA_RPC_TESTNET?.split(",").map((s) => s.trim()).filter(Boolean);
   const reader = createFetchReader({ network: "testnet", endpoints, rotate: true });
-  const registry = new Registry({ registry: registryId, transport: fetchViewTransport({ network: "testnet", endpoints }) });
+  const views = fetchViewTransport({ network: "testnet", endpoints });
+  const registry = new Registry({ registry: registryId, transport: views });
   const tx = nearApiTransport({ signerId: account, privateKey: keeperKey(account), network: "testnet", rpcUrl: endpoints?.[0] });
-  const call = async (method: string, args: Record<string, unknown>) => (await tx.call(registryId, method, args, { depositYocto: 0n, tgas: TGAS })).tx;
+  const call = async (method: string, args: Record<string, unknown>, tgas = TGAS) => (await tx.call(registryId, method, args, { depositYocto: 0n, tgas })).tx;
   const chain: KeeperChain = {
     classOf: (t) => registry.classOf(t),
     latestReport: (t) => registry.latestReport(t),
     liftFreeze: (t) => call("lift_freeze", { target: t }),
     setClass: (a) => call("set_class", a),
+    async vaults() {
+      const hashes = await views.view<string[]>(registryId, "allowed_vault_code_hashes", {});
+      const lists = await Promise.all(hashes.map((h) => registry.vaultsByCodeHash(h)));
+      return [...new Set(lists.flat().map((v) => v.vault))];
+    },
+    async vaultFreeze(vault, target) {
+      const config = await views.view<{ ceiling: { allowed_targets: string[] } }>(vault, "get_config", {});
+      if (!config.ceiling.allowed_targets.includes(target)) return "outside";
+      const cached = await views.view<{ frozen: boolean } | null>(vault, "get_class", { target });
+      return cached?.frozen ? "frozen" : "open";
+    },
+    vaultCount: () => views.view<number>(registryId, "vault_count", {}),
+    pushFreeze: (target, from, limit) => call("push_freeze", { target, from, limit }, PUSH_TGAS),
   };
+  const pushed = new Set<string>();
   const reportTargets = indexerUrl ? indexerReportTargets({ baseUrl: indexerUrl, registry: registryId }) : undefined;
   if (!reportTargets && seed.length === 0) log("no --indexer-url and no --targets: nothing to look at until one is given");
   log(`keeper ${account} on ${registryId}, key ${await tx.publicKey()}`);
@@ -75,10 +93,11 @@ async function main(argv: string[]): Promise<number> {
   for (;;) {
     try {
       const targets = await gatherCandidates({ seed, reportTargets, log });
-      const outcomes = await runOnce({ chain, classify: (t) => classify(t, reader), targets, log });
+      const outcomes = await runOnce({ chain, classify: (t) => classify(t, reader), targets, log, pushed });
       const acted = outcomes.filter((o) => o.result === "released" || o.result === "written" || o.result === "held").length;
       const failed = outcomes.filter((o) => o.result === "failed").length;
-      log(`checked ${targets.length} target(s): ${acted} acted on, ${failed} failed`);
+      const pushes = outcomes.filter((o) => o.pushed).length;
+      log(`checked ${targets.length} target(s): ${acted} acted on, ${pushes} freeze push(es), ${failed} failed`);
     } catch (e) {
       log(`run failed, trying again next interval (${e instanceof Error ? e.message : e})`);
     }

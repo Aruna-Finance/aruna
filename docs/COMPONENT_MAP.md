@@ -17,7 +17,7 @@ such as `demo2`) still runs and is not connected to `pool2` (D-60).
 | `common` | Shared types (`RiskClass`, `DriftReport`, `TokenId`), `Reason` codes, events, params (`MAX_CLASS_AGE_BLOCKS` 3600, challenge window, heartbeat staleness) | linked into all four | — |
 | `factory` | `create_vault`: new account, `use_global_contract(vault_code_hash)`, `new`; then `register_vault` | console Create screen, `examples/*`, SDK | vault `new`, registry `register_vault` |
 | `vault` | One per client. Named actions only (`spend` with `swap`/`ft_swap` adapters), per-agent policy, ceiling, exposure checkpoints, class cache | agent keys (`spend`, `refresh_class`, `simulate`), owner/operator (agent and policy admin), registry (`freeze_target`), pool (views) | target `swap` / token `ft_transfer_call`, registry `get_class`, own `cb_settle` / `cb_refresh_class` |
-| `registry` | Class records, freeze flag, attestors (bond, heartbeat, signing key, assignment), drift reports and their states, vault list, allowed vault code hashes | keeper (`set_class`, `lift_freeze`), attestor (`heartbeat`, `report_drift`), owner (admin), factory (`register_vault`), pool (views), vaults (`get_class`), anyone (`push_freeze`) | vault `freeze_target` (from `push_freeze`), pool `receive_slash` |
+| `registry` | Class records, freeze flag, attestors (bond, heartbeat, signing key, assignment), drift reports and their states, vault list, allowed vault code hashes | keeper (`set_class`, `lift_freeze`, `push_freeze`), attestor (`heartbeat`, `report_drift`), owner (admin), factory (`register_vault`), pool (views), vaults (`get_class`), anyone (`push_freeze`) | vault `freeze_target` (from `push_freeze`), pool `receive_slash` |
 | `pool` | Underwriter capital, `quote`, `buy_coverage` (premium), `claim`, payouts, book totals | console Buy and Claims screens, SDK, `examples/coverage-demo.ts` | registry `get_allowed_vault`, `get_class`, `heartbeat_fresh`, `get_report`; vault `get_agent`, `exposure_before`; transfers |
 
 Interface consistency:
@@ -62,19 +62,23 @@ Owned by Ilham. Guided demo (`Story`) runs on mock data, labelled as such.
 | Protection | agent `spend` -> vault checks -> refuse/execute -> exposure | agent via sdk / mcp | [RUN] on `demo2` (old stack) earlier; not today |
 | Coverage purchase | console -> `pool.buy_coverage` -> 4 views -> `cb_buy` | wallet | [RUN] coverage #5 on 13 Nov |
 | Drift: report | code change -> attestor `report_drift` -> registry freezes target | attestor (hosted) | **not run with the hosted attestor** |
-| Drift: freeze reaches vaults | registry `push_freeze` -> each vault `freeze_target` | **nobody in the hosted setup** | see gap G1 |
+| Drift: freeze reaches vaults | registry `push_freeze` -> each vault `freeze_target` | keeper, from 14 Nov (needs the new key) | G1 fixed in code; not run on chain |
 | Drift: release | report final -> keeper re-classifies -> `lift_freeze`, `set_class` | keeper (hosted) | [log read] on report 2 only |
-| Drift: release reaches vaults | vault cache refreshed by `refresh_class` | agent sdk only on `CLASS_STALE` | see gap G2 |
+| Drift: release reaches vaults | vault cache refreshed by `refresh_class` | agent sdk on `CLASS_STALE`, and on `TARGET_FROZEN` when the registry has lifted | G2 fixed in the SDK; not run on chain |
 | Claim | console -> `pool.claim` -> report + exposure views -> payout | wallet | [RUN] coverage #2 via example script; **never from the console** |
 
 ## 5. Gaps and inconsistencies found while mapping
 
-- **G1. Nothing hosted calls `push_freeze`.** [READ] The attestor calls only `heartbeat` and `report_drift`
+- **G1. Nothing hosted calls `push_freeze`.** *Fixed in code 14 Nov: the keeper pushes (`packages/keeper/README.md`);
+  the hosted keeper needs a key that allows `push_freeze`.* [READ] The attestor calls only `heartbeat` and `report_drift`
   (`packages/attestor/src/submit.ts`); the keeper only `set_class` and `lift_freeze`; the one caller is
   `examples/coverage-demo.ts`. D-59 says the freeze "is pushed in batches to every vault". Without the push, a vault
   learns of a freeze only when its cached class is older than `MAX_CLASS_AGE_BLOCKS` (3600, about an hour) and someone
   calls `refresh_class`. Until then an agent can keep spending into the changed target. `registry2` has 10 vaults [RUN].
-- **G2. A vault stays frozen after the keeper lifts the freeze.** [READ] `freeze_target` sets `frozen` in the vault's
+- **G2. A vault stays frozen after the keeper lifts the freeze.** *Seen on chain 14 Nov: `demo3` and `demo4` hold
+  `drift-target` frozen (`fetched_at_block` 277193110) while `registry2` reads `frozen:false` [RUN]. Fixed in the SDK:
+  `AgentVault.spend` refreshes on `TARGET_FROZEN` when the registry has lifted; an agent not using the SDK still has to
+  call `refresh_class`.* [READ] `freeze_target` sets `frozen` in the vault's
   cache without touching `fetched_at_block`; `spend` checks `frozen` before staleness, so it returns `TARGET_FROZEN`,
   never `CLASS_STALE`, and the SDK's automatic `refresh_class` (only on `CLASS_STALE`) never fires. Someone has to call
   `refresh_class` on that vault by hand. Only reachable once G1's push has happened.

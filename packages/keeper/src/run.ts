@@ -8,7 +8,18 @@ export interface KeeperChain {
   latestReport(target: string): Promise<DriftReport | null>;
   liftFreeze(target: string): Promise<string>;
   setClass(args: SetClassArgs): Promise<string>;
+  /** Every vault the registry lists. */
+  vaults(): Promise<string[]>;
+  /** Whether a vault already holds `target` frozen, holds it open, or has it outside its ceiling (a push ignores it there). */
+  vaultFreeze(vault: string, target: string): Promise<"frozen" | "open" | "outside">;
+  /** The length of the registry's vault list, which `push_freeze` indexes. */
+  vaultCount(): Promise<number>;
+  /** `push_freeze(target, from, limit)`: the registry calls `freeze_target` on vaults [from, from + limit). */
+  pushFreeze(target: string, from: number, limit: number): Promise<string>;
 }
+
+/** Vaults per `push_freeze` transaction: each costs the registry 5 Tgas, so 20 fit the keeper's 150 Tgas. */
+export const PUSH_BATCH = 20;
 
 export interface RunDeps {
   chain: KeeperChain;
@@ -16,12 +27,19 @@ export interface RunDeps {
   classify: (target: string) => Promise<Classification>;
   targets: string[];
   log: (msg: string) => void;
+  /**
+   * `target#report` pairs whose freeze this process has pushed, kept across runs so a vault that ignores the push is not
+   * pushed again every minute. Lost on restart, which costs at most one more push per frozen target.
+   */
+  pushed?: Set<string>;
 }
 
 export interface Outcome {
   target: string;
   result: "skipped" | "released" | "written" | "held" | "failed";
   reason?: SkipReason;
+  /** Set when this run pushed the target's freeze to the vaults. */
+  pushed?: true;
 }
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -41,6 +59,46 @@ async function handle(d: RunDeps, target: string): Promise<Outcome> {
     d.log(`${target}: could not read the registry, trying again next run (${msg(e)})`);
     return { target, result: "failed" };
   }
+  const outcome = await act(d, target, record, report);
+  // A target the registry holds frozen must be frozen in the vaults too, or agents keep spending into it until their
+  // cached class goes stale (docs/DECISIONS.md D-59). Not when this run released it: that push would outlive the lift.
+  if (record?.frozen && outcome.result !== "released" && (await pushFreeze(d, target, report))) outcome.pushed = true;
+  return outcome;
+}
+
+/** Pushes the freeze when some vault that allows `target` still holds it open. True when a push was sent. */
+async function pushFreeze(d: RunDeps, target: string, report: DriftReport | null): Promise<boolean> {
+  const key = `${target}#${report?.id ?? "-"}`;
+  if (d.pushed?.has(key)) return false;
+  const open: string[] = [];
+  try {
+    for (const vault of await d.chain.vaults()) {
+      try {
+        if ((await d.chain.vaultFreeze(vault, target)) === "open") open.push(vault);
+      } catch (e) {
+        d.log(`${target}: could not read vault ${vault}, left out of this check (${msg(e)})`);
+      }
+    }
+  } catch (e) {
+    d.log(`${target}: could not list the vaults, trying the freeze push again next run (${msg(e)})`);
+    return false;
+  }
+  if (open.length === 0) return false;
+  try {
+    const count = await d.chain.vaultCount();
+    for (let from = 0; from < count; from += PUSH_BATCH) {
+      const tx = await d.chain.pushFreeze(target, from, PUSH_BATCH);
+      d.log(`${target}: freeze pushed to vaults ${from}..${Math.min(from + PUSH_BATCH, count) - 1} of ${count} (open before: ${open.join(", ")})  tx ${tx}`);
+    }
+  } catch (e) {
+    d.log(`${target}: pushing the freeze failed, trying again next run (${msg(e)})`);
+    return false;
+  }
+  d.pushed?.add(key);
+  return true;
+}
+
+async function act(d: RunDeps, target: string, record: ClassRecord | null, report: DriftReport | null): Promise<Outcome> {
   const reason = skipReason(record, report);
   if (reason) return { target, result: "skipped", reason };
   const current = record!;

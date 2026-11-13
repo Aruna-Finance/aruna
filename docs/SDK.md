@@ -196,6 +196,12 @@ await vault.spend(action);
 // → sees CLASS_STALE, calls refreshClass(target), retries once, returns the result
 ```
 
+The same retry covers one more case: `TARGET_FROZEN` when the vault's registry no longer
+records the target as frozen. A freeze the registry pushed (`push_freeze` -> `freeze_target`)
+stays in the vault's cache after `lift_freeze` until `refresh_class` pulls the registry
+again; the SDK reads the registry's record first (two views, no transaction) and refreshes
+only when the registry has released it. A target still frozen there is returned as is.
+
 Expose `{ autoRefresh: false }` for callers who want to see it. One retry only; never
 loop.
 

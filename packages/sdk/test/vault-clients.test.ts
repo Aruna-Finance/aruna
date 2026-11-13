@@ -11,9 +11,10 @@ function fake(version: string | null, spendAnswers: unknown[] = [], views: Recor
     async publicKey() {
       return "ed25519:AGENT";
     },
-    async view<T>(_c: string, method: string) {
-      if (!(method in views)) throw new ArunaAuthError(`no view ${method}`);
-      return views[method] as T;
+    async view<T>(c: string, method: string) {
+      const key = `${c}:${method}` in views ? `${c}:${method}` : method;
+      if (!(key in views)) throw new ArunaAuthError(`no view ${method}`);
+      return views[key] as T;
     },
     async call(_c, method, args, opts) {
       calls.push({ method, args, ...opts });
@@ -58,6 +59,29 @@ describe("vault clients", () => {
     const r = await new AgentVault({ vaultId: "v", transport: t, autoRefresh: false }).spend(swap);
     expect(r).toMatchObject({ ok: false, reason: "CLASS_STALE" });
     expect(calls.map((c) => c.method)).toEqual(["spend"]);
+  });
+
+  it("a frozen target the registry has since released is refreshed and retried exactly once", async () => {
+    const frozen = { outcome: "Blocked", reason: "ARUNA_TARGET_FROZEN", class: "local_upgradeable" };
+    const views = { "v:get_config": { registry: "reg.testnet" }, "reg.testnet:get_class": { class: "local_upgradeable", frozen: false } };
+    const { t, calls } = fake("v3", [frozen, true], views);
+    const r = await new AgentVault({ vaultId: "v", transport: t }).spend(swap);
+    expect(r).toEqual({ ok: true, settled: true, tx: "tx3" });
+    expect(calls.map((c) => c.method)).toEqual(["spend", "refresh_class", "spend"]);
+    expect(calls[1].args).toEqual({ target: "t.testnet" });
+  });
+
+  it("a target the registry still holds frozen, or that cannot be read, is not retried", async () => {
+    const frozen = { outcome: "Blocked", reason: "ARUNA_TARGET_FROZEN", class: "local_upgradeable" };
+    const held = fake("v3", [frozen], { "v:get_config": { registry: "reg.testnet" }, "reg.testnet:get_class": { class: "local_upgradeable", frozen: true } });
+    expect(await new AgentVault({ vaultId: "v", transport: held.t }).spend(swap)).toMatchObject({ ok: false, reason: "TARGET_FROZEN" });
+    expect(held.calls.map((c) => c.method)).toEqual(["spend"]);
+    const unreadable = fake("v3", [frozen], {});
+    expect(await new AgentVault({ vaultId: "v", transport: unreadable.t }).spend(swap)).toMatchObject({ ok: false, reason: "TARGET_FROZEN" });
+    expect(unreadable.calls.map((c) => c.method)).toEqual(["spend"]);
+    const off = fake("v3", [frozen], { "v:get_config": { registry: "reg.testnet" }, "reg.testnet:get_class": { class: "local_upgradeable", frozen: false } });
+    expect(await new AgentVault({ vaultId: "v", transport: off.t, autoRefresh: false }).spend(swap)).toMatchObject({ ok: false, reason: "TARGET_FROZEN" });
+    expect(off.calls.map((c) => c.method)).toEqual(["spend"]);
   });
 
   it("no other refusal is retried", async () => {
