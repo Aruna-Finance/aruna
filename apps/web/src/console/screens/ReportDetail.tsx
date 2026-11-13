@@ -1,5 +1,6 @@
 "use client";
 
+import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -138,9 +139,10 @@ function Report({ r, head, crumb }: { r: ReportRow; head: number; crumb: React.R
           </p>
         </Panel>
 
-        <Panel title="Check it yourself">
+        <Disclosure title="Verify without this page" className="border border-line-2 bg-paper p-5 [&>summary]:text-[15px]">
+          <div className="mt-4">
           <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
-            The page shows what the registry returns. To read it without the page, run this from the repository (testnet, a view call, no key):
+            From a clone of the repository (testnet, a view call, no key):
           </p>
           <div className="mt-4">
             <CopyBlock text={`node fixtures/tools.mjs view ${REGISTRY} get_report '{"id":${r.id}}'`} />
@@ -149,7 +151,8 @@ function Report({ r, head, crumb }: { r: ReportRow; head: number; crumb: React.R
             A conflicting report and the arbiter&apos;s ruling are sent from the attestor and arbiter accounts, not from an owner&apos;s console. The challenge
             window is {CHALLENGE_WINDOW_BLOCKS} blocks.
           </p>
-        </Panel>
+          </div>
+        </Disclosure>
 
         {live.status === "ok" && <ClaimsOnReport vault={live.vault} reportId={r.id} />}
       </div>

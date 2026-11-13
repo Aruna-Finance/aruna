@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/shared/Button";
-import { actorFor, noActorReason } from "../live-vault";
+import { actorFor } from "../live-vault";
 import { useLiveActions } from "../useLiveActions";
 import type { LiveVault } from "../useLiveVault";
 import { useRole } from "../RoleContext";
@@ -27,8 +27,7 @@ export function LiveAgents({ live }: { live: Extract<LiveVault, { status: "ok" }
         <div>
           <h1 className="text-[clamp(28px,4vw,44px)]">Agents</h1>
           <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-            Live from <span className="mono break-all">{vault}</span> on testnet. Each agent is a function-call key on the vault. It has no account and
-            holds no funds. Revoking one deletes its key.
+            Agents that can spend from <span className="mono break-all">{vault}</span>.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -51,14 +50,14 @@ export function LiveAgents({ live }: { live: Extract<LiveVault, { status: "ok" }
           agents={view.agents}
           held={held}
           actor={actor}
-          blockedReason={noActorReason(relation)}
+          blockedReason=""
           onPause={(a) => acts.pause(a.publicKey, a.label)}
           onResume={(a) => acts.resume(a.publicKey, a.label)}
           onRevoke={(a) => acts.revoke(a.publicKey, a.label)}
         />
       </Panel>
 
-      <LiveVaultSettings live={live} actor={actor} blockedReason={noActorReason(relation)} />
+      <LiveVaultSettings live={live} actor={actor} blockedReason="" />
 
       <p className="mt-6 text-sm text-muted">
         <Link href={`/console/lookup/?vault=${encodeURIComponent(vault)}`} className="underline underline-offset-4">

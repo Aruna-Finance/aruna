@@ -61,7 +61,7 @@ export function Shell({ children }: { children: ReactNode }) {
           aria-label="Sections"
           className="flex gap-1 overflow-x-auto border-b border-line bg-paper p-3 lg:sticky lg:top-[57px] lg:h-[calc(100svh-57px)] lg:w-56 lg:shrink-0 lg:flex-col lg:self-start lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:border-b-0 lg:p-4"
         >
-          {current.items.map((i) => (
+          {current.items.filter((i) => !i.hidden).map((i) => (
             <Link
               key={i.id}
               href={`/console/${i.id}/`}
@@ -71,6 +71,13 @@ export function Shell({ children }: { children: ReactNode }) {
               {i.label}
             </Link>
           ))}
+          <Link
+            href="/console/story/"
+            aria-current={screen === "story" ? "page" : undefined}
+            className="shrink-0 px-3 py-2 text-[13px] text-muted transition-colors hover:bg-wash aria-[current=page]:bg-fog lg:mt-auto"
+          >
+            Demo (mock data)
+          </Link>
         </nav>
         <main className="min-w-0 flex-1 bg-wash px-4 py-8 md:px-10 md:py-10">{children}</main>
       </div>

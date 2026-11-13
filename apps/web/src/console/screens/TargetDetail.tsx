@@ -1,5 +1,6 @@
 "use client";
 
+import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { Classification, CodeRef } from "@/landing/lib/classifier-types";
@@ -211,15 +212,17 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
           )}
         </Panel>
 
-        <Panel title="Check it yourself">
-          <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">The registry&apos;s record (a view call, no key), and the three public reads the classifier makes:</p>
+        <Disclosure title="Verify without this page" className="border border-line-2 bg-paper p-5 [&>summary]:text-[15px]">
+          <div className="mt-4">
+          <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">The registry&apos;s record (from a clone of the repository), and the three public reads the classifier makes:</p>
           <div className="mt-4 grid gap-3">
             <CopyBlock text={`node fixtures/tools.mjs view ${REGISTRY} get_class '{"target":"${id}"}'`} />
             <CopyBlock text={curlFor("view_account", id, "testnet")} />
             <CopyBlock text={curlFor("view_access_key_list", id, "testnet")} />
             <CopyBlock text={curlFor("view_code", id, "testnet")} />
           </div>
-        </Panel>
+          </div>
+        </Disclosure>
       </div>
     </article>
   );

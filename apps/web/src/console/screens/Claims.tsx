@@ -9,7 +9,6 @@ import { useClaimAction } from "../useClaimAction";
 import { useLiveVault, type LiveVault } from "../useLiveVault";
 import { useTokenMeta } from "../useTokenMeta";
 import { useVaultClaims } from "../useVaultClaims";
-import { ExposureBefore } from "../ui/ExposureBefore";
 import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
 
@@ -36,8 +35,7 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Reports and claims</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Every drift report and every claim is public. A report freezes the target. A claim pays only if the pool&apos;s conditions hold, and the formula
-        is shown with it.
+        Code-change reports and claims are public. A report freezes the contract.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
@@ -162,7 +160,6 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
             </Panel>
           </>
         )}
-        <ExposureBefore vault={vault} agents={view.agents} defaultTarget={view.ceiling?.allowedTargets[0]} />
       </div>
     </article>
   );

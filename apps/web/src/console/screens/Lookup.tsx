@@ -39,8 +39,7 @@ export function Lookup() {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Look up an agent before you transact with it</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Policies and exposure are public, so reading them needs no login, account or permission. This page reads a testnet vault live
-        from the public RPC.
+        See what an agent&apos;s vault allows before you deal with it. No login needed.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">

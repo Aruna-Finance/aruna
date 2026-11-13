@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { REGISTRY } from "../data/price";
 import { HEARTBEAT_STALE_BLOCKS, STATE_TEXT, attestorState, groupByAttestor, heartbeatAge, type AttestorInfo } from "../data/attestor-live";
 import { STATE_TEXT as REPORT_STATE } from "../data/report-live";
 import { block, yoctoToNear } from "../fmt";
 import { useAttestorsLive, type AttestorsLive } from "../useRegistryTargets";
 import { ClassTag } from "../ui/ClassTag";
-import { CopyBlock } from "../ui/CopyBlock";
 import { targetHref } from "../ui/Freshness";
 import { Panel } from "../ui/Panel";
 
@@ -23,9 +21,8 @@ export function AttestorView({ data }: { data: AttestorsLive }) {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Attestors</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        The attestor must be trusted, permanently. Every route to detection with no outside party was tested and is closed. At the MVP the dispute arbiter
-        is a second trust assumption. This page reads the registry; heartbeats and drift reports are sent from the attestor&apos;s own account, not from
-        an owner&apos;s console.
+        You trust one attestor to report code changes, and an arbiter to settle conflicting reports. Aruna runs both on testnet. This page shows
+        what they are doing.
       </p>
 
       {data.state === "loading" && (
@@ -114,10 +111,6 @@ function Body({ data }: { data: Extract<AttestorsLive, { state: "ok" }> }) {
                   ))}
                 </tbody>
               </table>
-            </div>
-            <div className="mt-5">
-              <p className="mb-2 text-sm text-muted">The same record, without this page:</p>
-              <CopyBlock text={`node fixtures/tools.mjs view ${REGISTRY} get_attestor '{"attestor":"${g.attestor}"}'`} />
             </div>
           </Panel>
         );

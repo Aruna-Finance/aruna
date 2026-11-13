@@ -22,7 +22,8 @@ export type Role = {
   id: RoleId;
   label: string;
   home: ScreenId;
-  items: { id: ScreenId; label: string }[];
+  /** `hidden` screens belong to the role (deep links keep it) but are reached from a page or the footer link, not the sidebar. */
+  items: { id: ScreenId; label: string; hidden?: true }[];
 };
 
 export const ROLES: Role[] = [
@@ -32,13 +33,13 @@ export const ROLES: Role[] = [
     home: "dashboard",
     items: [
       { id: "dashboard", label: "Overview" },
-      { id: "create", label: "Create a vault" },
+      { id: "create", label: "Create a vault", hidden: true },
       { id: "agents", label: "Agents" },
       { id: "targets", label: "Targets" },
       { id: "coverage", label: "Coverage" },
       { id: "claims", label: "Claims" },
-      { id: "migrate", label: "Migration" },
-      { id: "story", label: "Guided demo" },
+      { id: "migrate", label: "Migration", hidden: true },
+      { id: "story", label: "Guided demo", hidden: true },
     ],
   },
   {
@@ -51,7 +52,7 @@ export const ROLES: Role[] = [
       { id: "targets", label: "Targets" },
       { id: "coverage", label: "Coverage" },
       { id: "claims", label: "Claims" },
-      { id: "story", label: "Guided demo" },
+      { id: "story", label: "Guided demo", hidden: true },
     ],
   },
   {
@@ -62,7 +63,7 @@ export const ROLES: Role[] = [
       { id: "pool", label: "Pool" },
       { id: "claims", label: "Claims" },
       { id: "simulation", label: "Simulation" },
-      { id: "story", label: "Guided demo" },
+      { id: "story", label: "Guided demo", hidden: true },
     ],
   },
   {
@@ -73,7 +74,7 @@ export const ROLES: Role[] = [
       { id: "attestor", label: "Console" },
       { id: "claims", label: "Reports and claims" },
       { id: "targets", label: "Targets" },
-      { id: "story", label: "Guided demo" },
+      { id: "story", label: "Guided demo", hidden: true },
     ],
   },
   {
@@ -84,7 +85,7 @@ export const ROLES: Role[] = [
       { id: "lookup", label: "Look up an agent" },
       { id: "claims", label: "Reports and claims" },
       { id: "targets", label: "Targets" },
-      { id: "story", label: "Guided demo" },
+      { id: "story", label: "Guided demo", hidden: true },
     ],
   },
   {
@@ -94,7 +95,7 @@ export const ROLES: Role[] = [
     items: [
       { id: "developers", label: "MCP tools" },
       { id: "playground", label: "Simulate and injection" },
-      { id: "story", label: "Guided demo" },
+      { id: "story", label: "Guided demo", hidden: true },
     ],
   },
 ];

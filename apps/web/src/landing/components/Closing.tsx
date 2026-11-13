@@ -4,8 +4,9 @@ import { Button } from "@/shared/Button";
 const LINKS = [
   { href: "/spec/", label: "Spec" },
   { href: "/proof/", label: "Lab results" },
-  { href: "#developers", label: "SDK and MCP" },
-  { href: "#simulation", label: "Simulation" },
+  { href: "/console/developers/", label: "SDK and MCP" },
+  { href: "/console/simulation/", label: "Simulation" },
+  { href: "/console/story/", label: "Demo (mock data)" },
 ] as const;
 
 export function Closing() {
@@ -20,8 +21,8 @@ export function Closing() {
             Aruna does not make agents smarter and does not repay every loss. Two parties must be trusted: the
             attestor, permanently, and at this stage a dispute arbiter. The spec names them and every other limit.
           </p>
-          <Link href="/console/story/" tabIndex={-1} className="mt-10 inline-block">
-            <Button type="button">Run the guided demo</Button>
+          <Link href="/console/" tabIndex={-1} className="mt-10 inline-block">
+            <Button type="button">Open the console</Button>
           </Link>
         </div>
 
@@ -34,7 +35,7 @@ export function Closing() {
               {l.label}
             </Link>
           ))}
-          <span className="label ml-auto text-xs text-[#9a9a9a]">Testnet only. Prototype with simulated data.</span>
+          <span className="label ml-auto text-xs text-[#9a9a9a]">Testnet only. The demo uses mock data; everything else reads testnet.</span>
         </div>
       </div>
     </footer>

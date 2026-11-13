@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { Button } from "@/shared/Button";
 import { storyStore } from "../data/story";
@@ -28,8 +27,8 @@ export function Story() {
         <div>
           <h1 className="text-[clamp(28px,4vw,44px)]">Guided demo in {steps.length} steps</h1>
           <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-            Every step changes the same mock state the screens read, so you can leave at any point and look. It runs from classifying a
-            contract through to a paid claim and a rejected false report. One step reads the real testnet vault, and says so.
+            A scripted walkthrough on mock data, from checking a contract to a paid claim and a rejected false report. Nothing here touches your
+            vault. One step reads a real testnet vault, and says so.
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => window.location.reload()}>
@@ -60,10 +59,7 @@ export function Story() {
                     <p className="mt-1 max-w-[80ch] text-sm leading-[1.6] text-slate">{s.text}</p>
                     {result && (
                       <p className="mt-2 max-w-[80ch] text-sm leading-[1.6]">
-                        {result}{" "}
-                        <Link href={s.go} className="underline underline-offset-4">
-                          See it
-                        </Link>
+                        {result}
                       </p>
                     )}
                     {isNext && (
@@ -71,9 +67,6 @@ export function Story() {
                         <Button type="button" disabled={st.busy} onClick={() => storyStore.run(s.id)}>
                           {st.busy ? "Running" : s.button}
                         </Button>
-                        <Link href={s.go} className="text-sm underline underline-offset-4">
-                          See this screen
-                        </Link>
                       </div>
                     )}
                     {isNext && st.error && <p className="mt-3 text-sm text-dawn-ink">{st.error}</p>}
@@ -84,7 +77,7 @@ export function Story() {
           </ol>
         </Panel>
 
-        <Panel title="Live state" aside={<span className="text-sm text-muted">Mock, except where a step says live</span>}>
+        <Panel title="Demo state" aside={<span className="text-sm text-muted">Mock data</span>}>
           <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <dt className="text-muted">Rebalancer exposure on dex</dt>
@@ -109,16 +102,11 @@ export function Story() {
           </dl>
           {done && (
             <p className="mt-5 text-sm leading-[1.6]">
-              The demo is complete. The owner&apos;s view, the pool and the claims list all show what just happened.{" "}
-              <Link href="/console/pool/" className="underline underline-offset-4">
-                See the pool
-              </Link>
-              .
+              The demo is complete. To do the same on testnet, create a vault from the console.
             </p>
           )}
           <p className="mt-5 max-w-[80ch] text-sm text-muted">
-            Restarting reloads the page, because the mock state lives in memory. In the final build the same steps run on testnet, one
-            command each.
+            Restarting reloads the page, because the mock state lives in memory.
           </p>
         </Panel>
       </div>

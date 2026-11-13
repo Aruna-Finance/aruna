@@ -65,8 +65,7 @@ export function Developers() {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">MCP tools and the SDK</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        The MCP server is a thin adapter over <span className="mono">@aruna/sdk</span>, for agents whose framework speaks tool-calling.
-        It is not an alternative to the SDK: the SDK is the durable surface and this is one consumer of it.
+        Tools for agents whose framework speaks tool-calling. They wrap <span className="mono">@aruna/sdk</span>.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">

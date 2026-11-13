@@ -25,9 +25,7 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Targets and their risk classes</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Three checks on public chain data decide each class. Anyone can repeat them and get the same answer. Only the registry&apos;s authorized
-        classifier set records a class on chain, and a vault checks the last recorded class, never a live read. This list is what the registry
-        holds today for the seeded targets and every target the pool has covered.
+        Contracts your agents may use, and whether their code can still change.
       </p>
 
       {data.state === "loading" && (

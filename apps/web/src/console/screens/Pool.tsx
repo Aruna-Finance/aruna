@@ -2,13 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { amountText } from "../data/coverage-live";
-import { POOL } from "../data/price";
 import { bookFigures, bpsText, groupRows, stageCounts, tokensOf, type BookFigures, type GroupBy } from "../data/pool-live";
 import { block } from "../fmt";
 import { usePoolLive, type PoolLive } from "../usePoolLive";
 import { useTokenMeta } from "../useTokenMeta";
 import { useWallet } from "../WalletContext";
-import { CopyBlock } from "../ui/CopyBlock";
 import { Panel } from "../ui/Panel";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
@@ -32,8 +30,7 @@ export function PoolView({ data, account }: { data: PoolLive; account: string | 
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">How much of the pool rests on one implementation</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Read from the pool contract (<span className="mono">{POOL}</span>, testnet). Capital, the coverage it stands behind, and how that coverage is
-        spread over implementations and upgrade authorities. Adding and withdrawing capital are not in the console in v0.
+        Capital in the pool and the coverage it backs. Deposits and withdrawals aren&apos;t in the console yet.
       </p>
       {data.state === "loading" && <p className="mt-6 text-muted">Reading the pool.</p>}
       {data.state === "error" && <p className="mt-6 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the pool. {data.message}</p>}
@@ -42,12 +39,6 @@ export function PoolView({ data, account }: { data: PoolLive; account: string | 
           {tokens.map((t) => (
             <TokenBook key={t} token={t} data={data} account={account} meta={meta} />
           ))}
-          <Panel title="Check it yourself">
-            <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">The same figures without this page (testnet, a view call, no key):</p>
-            <div className="mt-4">
-              <CopyBlock text={`node fixtures/tools.mjs view ${POOL} get_book '{"token":"near"}'`} />
-            </div>
-          </Panel>
         </div>
       )}
     </article>
@@ -82,16 +73,11 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
           </div>
         ))}
       </dl>
-      <p className="mt-4 text-sm text-slate">
-        Shares outstanding: <span className="mono">{f.totalShares.toString()}</span>.{" "}
-        {account ? (
-          <>
-            Your shares as <span className="mono">{account}</span>: <span className="mono">{mine ?? "0"}</span>.
-          </>
-        ) : (
-          "Connect a wallet to see your own shares."
-        )}
-      </p>
+      {account && (
+        <p className="mt-4 text-sm text-slate">
+          Your share of this book: <span className="mono">{shareText(mine, f.totalShares)}</span>.
+        </p>
+      )}
 
       <div className="mt-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -148,4 +134,11 @@ function TokenBook({ token, data, account, meta }: { token: string; data: Extrac
       </div>
     </Panel>
   );
+}
+
+/** A holder's shares as a percentage of the book, never the raw share count. */
+export function shareText(mine: string | undefined, total: bigint): string {
+  if (!mine || mine === "0" || total === 0n) return "0%";
+  const bp = (BigInt(mine) * 10000n) / total;
+  return `${(Number(bp) / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
 }

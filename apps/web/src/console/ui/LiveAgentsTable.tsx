@@ -64,7 +64,7 @@ export function LiveAgentsTable({
                   <Button type="button" variant="outline" className="px-3! py-1.5! text-sm!" disabled={!v.enabled} onClick={run}>
                     {text}
                   </Button>
-                  {!v.enabled && <span className="max-w-[26ch] text-right text-xs leading-[1.4] text-muted">{v.reason}</span>}
+                  {!v.enabled && v.reason && <span className="max-w-[26ch] text-right text-xs leading-[1.4] text-muted">{v.reason}</span>}
                 </div>
               );
             };

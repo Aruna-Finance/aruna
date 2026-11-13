@@ -126,8 +126,8 @@ function LivePlayground({ live }: { live: Extract<ReturnType<typeof useLiveVault
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Simulate and injection</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Send real calls to <span className="mono break-all">{vault}</span> with an agent key held in this browser, and watch the vault
-        decide. A refusal returns with its reason and is recorded. When enough of them add up, the vault pauses the agent itself. Testnet only.
+        Send real testnet calls from an agent key in this browser and watch the vault allow or refuse them. Enough refusals stop the agent
+        automatically.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">

@@ -61,6 +61,11 @@ describe("live agents table", () => {
     expect(out).toContain("connect the owner&#x27;s or operator&#x27;s wallet to act");
     expect(out).not.toMatch(/<button(?![^>]*disabled)[^>]*>(Pause|Revoke)/);
   });
+  it("with no reason given (the page banner says it), disabled actions carry no repeated hint", () => {
+    const out = renderToStaticMarkup(<LiveAgentsTable agents={[agent()]} held={[]} actor={null} blockedReason="" onPause={noop} onResume={noop} onRevoke={noop} />);
+    expect(out).not.toContain("wallet to act");
+    expect(out).not.toMatch(/<button(?![^>]*disabled)[^>]*>(Pause|Revoke)/);
+  });
   it("a revoked agent shows no actions at all, like the sample table", () => {
     const out = html([agent({ status: "Revoked" })], [], "owner");
     expect(out).toContain("Deleted");

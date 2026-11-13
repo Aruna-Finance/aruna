@@ -54,7 +54,7 @@ function OperatorPanel({ live, v, onSet }: { live: Ok; v: ReturnType<typeof avai
             Remove the operator
           </Button>
         </div>
-        {!v.enabled && <p className="text-xs text-muted">{v.reason}</p>}
+        {!v.enabled && v.reason && <p className="text-xs text-muted">{v.reason}</p>}
       </div>
     </Panel>
   );
@@ -190,7 +190,7 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
         </div>
       </fieldset>
       <p className="mt-4 text-sm text-dawn-ink">{problem}</p>
-      {!v.enabled && <p className="mt-1 text-xs text-muted">{v.reason}</p>}
+      {!v.enabled && v.reason && <p className="mt-1 text-xs text-muted">{v.reason}</p>}
     </Panel>
   );
 }

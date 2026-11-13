@@ -30,7 +30,7 @@ const view = (p: PlanState, account: string | null = "me.testnet") =>
 describe("Migration screen", () => {
   it("says it checks and does not send, and asks for a wallet", () => {
     const html = view({ state: "idle" }, null);
-    expect(html).toContain("It does not send one");
+    expect(html).toContain("This page checks the plan. The migration itself runs from the");
     expect(html).toContain("Connect the owner");
   });
 

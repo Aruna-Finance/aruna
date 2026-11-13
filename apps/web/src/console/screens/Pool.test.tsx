@@ -28,13 +28,14 @@ describe("Pool screen", () => {
     expect(html).toContain("Locked");
     expect(html).toContain("HASH_A");
     expect(html).toContain("75.0%"); // 15 of a 20 NEAR cap (2 x 10)
-    expect(html).toContain("Your shares as");
+    expect(html).toContain("Your share of this book: <span class=\"mono\">25%</span>");
+    expect(html).not.toContain("1000");
   });
 
-  it("asks for a wallet to show shares, and says deposits are not in the console", () => {
+  it("shows no share line without a wallet, and says deposits are not in the console", () => {
     const html = renderToStaticMarkup(<PoolView data={ok} account={null} />);
-    expect(html).toContain("Connect a wallet to see your own shares.");
-    expect(html).toContain("not in the console in v0");
+    expect(html).not.toContain("Your share");
+    expect(html).toContain("aren&#x27;t in the console yet");
   });
 
   it("shows a read error, not a partial book", () => {

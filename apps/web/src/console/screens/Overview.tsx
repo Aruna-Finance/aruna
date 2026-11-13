@@ -57,9 +57,6 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
   return (
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Agents and what they have at stake</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Exposure is what agents sent through the vault. It is not the current value of their positions, which a contract cannot read.
-      </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <p className="border-l-[3px] border-line-2 bg-fog px-5 py-4 text-[15px] leading-[1.6]">

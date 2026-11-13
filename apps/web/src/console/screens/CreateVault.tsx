@@ -153,8 +153,7 @@ export function CreateVault() {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Create your vault</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        A vault holds an agent&apos;s money and enforces its limits. You become its owner. It is created by the current factory on testnet,
-        with no full-access key, and you set which contracts agents may touch.
+        You&apos;ll own this vault. Your agents can only spend from it within the limits you set.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">

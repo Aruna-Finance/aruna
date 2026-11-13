@@ -35,8 +35,7 @@ function LiveCoverage({ live }: { live: Extract<LiveVault, { status: "ok" }> }) 
         <div>
           <h1 className="text-[clamp(28px,4vw,44px)]">Coverage policies</h1>
           <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-            Pays when a covered contract&apos;s implementation changes while your agent has recorded exposure on it. The trigger pays,
-            whether the upgrade was malicious or routine.
+            Pays out when a covered contract&apos;s code changes after your agents sent funds to it, whether the change was malicious or routine.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

@@ -125,8 +125,7 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
       <Crumb vault={vault} />
       <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Buy coverage on one target</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        You choose the limit and the payout ratio. The price is the pool contract&apos;s own quote for the target&apos;s class and the most this
-        agent&apos;s policy allows. Testnet, in NEAR.
+        Pick an agent and a contract, then a limit and a payout ratio. The price is the pool&apos;s own quote. Testnet, in NEAR.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">

@@ -66,9 +66,8 @@ export function MigrationView({
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Migrate to a new vault</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        A vault&apos;s code cannot be changed. That is what lets it classify itself as <span className="mono">immutable_verified</span>, and its cost is that a
-        new version means a new vault. This page checks a migration and shows what it would do. It does not send one: the migration is several
-        transactions in a fixed order, and it is sent from the command line so that it can be resumed.
+        A vault&apos;s code can&apos;t change, so a new version means a new vault. This page checks the plan. The migration itself runs from the
+        command line, so it can be resumed.
       </p>
 
       {!vault && !loading && !error && (

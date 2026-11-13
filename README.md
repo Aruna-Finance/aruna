@@ -239,7 +239,7 @@ own build, replace `https://www.arunafi.xyz` with `http://localhost:4173`.
    with 0 paid, the second "paid" with 0.08 NEAR) whose formula column ends `= 0.08 NEAR`.
    Click report `2`. Expected: the report page with a timeline (drift_reported, challenge_window closed, claims_open),
    the attestor `attestor-a.arunafi.testnet`, changed at block 277,193,145, both resolved code hashes, and a
-   `get_report` command that prints the same record.
+   `get_report` command, under "Verify without this page", that prints the same record.
 3. Check the same numbers on chain, without the page:
 
 ```bash
@@ -290,7 +290,7 @@ pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published
 
 1. Open `https://www.arunafi.xyz/console/pool/`. Expected: a "NEAR book" read from `pool2.arunafi.testnet` with capital, limits on
    the book against k x capital, whether withdrawals are locked and until which block, coverage counts (active, ended and not yet released, paid), and a table of coverage
-   by code hash or upgrade authority against the cap of 2 x capital per group. Connect a wallet to see your own shares.
+   by code hash or upgrade authority against the cap of 2 x capital per group. Connect a wallet to see your share of each book, as a percentage.
 2. Check the book without the page:
 
 ```bash
