@@ -1,128 +1,226 @@
 "use client";
 
-import { useState } from "react";
+import { planMigration, type MigrationPlan } from "@aruna/sdk/vault";
+import { useMemo, useState } from "react";
 import { Button } from "@/shared/Button";
-import { Drawer } from "@/shared/Drawer";
-import { vaultStore } from "../data/vault-mock";
-import { useActions } from "../useActions";
+import { createTestnetReads } from "../chain-reads";
+import { FACTORY, vaultNameError } from "../data/factory";
+import { coverageWarning, defaultNewName, fundsSummary, migrateCommands, readOnlyMigrationTransport } from "../data/migration-plan";
+import { useLiveVault } from "../useLiveVault";
+import { useWallet } from "../WalletContext";
+import { CopyBlock } from "../ui/CopyBlock";
+import { TextField } from "../ui/Field";
 import { Panel } from "../ui/Panel";
 
+const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
+const td = "border-b border-line px-3 py-3 align-top";
+
+export type PlanState = { state: "idle" } | { state: "checking" } | { state: "refused"; message: string } | { state: "ok"; plan: MigrationPlan };
+
 export function Migration() {
-  const { vault, actor, isOperator, ask, run } = useActions();
-  const [open, setOpen] = useState(false);
-  const outdated = vault.codeHash !== vault.latestCodeHash;
+  const live = useLiveVault();
+  const { accountId } = useWallet();
+  const reads = useMemo(() => createTestnetReads(), []);
+  const [name, setName] = useState("");
+  const [plan, setPlan] = useState<PlanState>({ state: "idle" });
+  if (live.status !== "ok") return <MigrationView vault={live.status === "none" ? null : live.vault} owner={null} account={accountId ?? null} name={name} setName={setName} plan={plan} check={() => {}} loading={live.status === "loading"} error={live.status === "error" ? live.message : null} />;
 
-  const steps = [
-    {
-      name: "Pause every agent",
-      text: "Stops new spending without deleting keys, so nothing is in flight during the move.",
-    },
-    {
-      name: "Create the new vault",
-      text: `The factory deploys ${vault.latestCodeHash} by hash and registers it. It classifies itself before you fund it.`,
-    },
-    {
-      name: "Move funds and re-register agents",
-      text: "Each agent gets a new function-call key. Labels and policies carry over; public keys do not.",
-    },
-    {
-      name: "Revoke the old keys and withdraw the remainder",
-      text: "Delete the keys on the old vault, then withdraw to the owner.",
-    },
-  ];
-
-  function migrate() {
-    ask({
-      title: "Migrate to the new vault?",
-      receiver: "aruna.testnet",
-      actions: [
-        "pause agents",
-        `factory: deploy ${vault.latestCodeHash} by hash`,
-        "move funds, re-register agents with new keys",
-        "delete old keys, withdraw the remainder",
-      ],
-      note: "Existing coverage stays with the old vault and runs to expiry.",
-      okLabel: "Migrate vault",
-      onOk: () => run(() => vaultStore.migrate(actor), "Migrated. Each agent has a new key on the new vault."),
-    });
+  const chosen = name || defaultNewName(live.vault);
+  async function check() {
+    if (live.status !== "ok" || !accountId) return;
+    setPlan({ state: "checking" });
+    try {
+      const p = await planMigration({ oldVault: live.vault, factory: FACTORY, name: chosen, transport: readOnlyMigrationTransport(reads, accountId), network: "testnet" });
+      setPlan({ state: "ok", plan: p });
+    } catch (e) {
+      setPlan({ state: "refused", message: e instanceof Error ? e.message : "The plan could not be made." });
+    }
   }
+  return <MigrationView vault={live.vault} owner={live.view.owner} account={accountId ?? null} name={chosen} setName={(v) => { setName(v); setPlan({ state: "idle" }); }} plan={plan} check={check} loading={false} error={null} />;
+}
 
+export function MigrationView({
+  vault,
+  owner,
+  account,
+  name,
+  setName,
+  plan,
+  check,
+  loading,
+  error,
+}: {
+  vault: string | null;
+  owner: string | null;
+  account: string | null;
+  name: string;
+  setName: (v: string) => void;
+  plan: PlanState;
+  check: () => void;
+  loading: boolean;
+  error: string | null;
+}) {
+  const problem = name ? vaultNameError(name) : null;
+  const canCheck = !!vault && !!account && !problem && name !== "" && plan.state !== "checking";
   return (
     <article>
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <h1 className="text-[clamp(28px,4vw,44px)]">Migrate to a new vault</h1>
-          <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-            This vault&apos;s code cannot be changed. That is what lets it classify itself as{" "}
-            <span className="mono">immutable_verified</span>, and its cost is that a new version means a new vault.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="outline" onClick={() => setOpen(true)}>
-            Versions
-          </Button>
-          {outdated && !isOperator && (
-            <Button type="button" onClick={migrate}>
-              Start the migration
-            </Button>
-          )}
-        </div>
-      </div>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Migrate to a new vault</h1>
+      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+        A vault&apos;s code cannot be changed. That is what lets it classify itself as <span className="mono">immutable_verified</span>, and its cost is that a
+        new version means a new vault. This page checks a migration and shows what it would do. It does not send one: the migration is several
+        transactions in a fixed order, and it is sent from the command line so that it can be resumed.
+      </p>
 
-      <Panel className="mt-8">
-        {!outdated && (
-          <p className="mb-5 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm">
-            You are on the latest version, <span className="mono">{vault.version}</span>. Nothing to migrate.
-          </p>
-        )}
-        {isOperator && outdated && (
-          <p className="mb-5 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm">
-            Only the client can migrate the vault. Ask {vault.owner} to start it.
-          </p>
-        )}
-        <ol className="grid gap-0">
-          {steps.map((s, i) => (
-            <li key={s.name} className="grid grid-cols-[2rem_1fr] gap-x-4 border-t border-line py-4 first:border-t-0 first:pt-0">
-              <b
-                className={`inline-flex size-7 items-center justify-center border text-xs ${outdated ? (i === 0 ? "border-ink bg-ink text-paper" : "border-line-2") : "border-ink"}`}
-              >
-                {i + 1}
-              </b>
+      {!vault && !loading && !error && (
+        <p className="mt-8 border border-line px-5 py-4 text-slate">Open a vault first, from Create a vault or with <span className="mono">?vault=</span> in the address.</p>
+      )}
+      {loading && <p className="mt-8 text-muted">Reading the vault.</p>}
+      {error && <p className="mt-8 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the vault. {error}</p>}
+
+      {vault && !loading && !error && (
+        <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
+          <Panel title="Check the plan">
+            <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
               <div>
-                <p className="font-medium">{s.name}</p>
-                <p className="mt-1 max-w-[80ch] text-sm leading-[1.6] text-slate">{s.text}</p>
+                <dt className="text-muted">Old vault</dt>
+                <dd className="mono break-all">{vault}</dd>
               </div>
+              <div>
+                <dt className="text-muted">Owner</dt>
+                <dd className="mono break-all">{owner}</dd>
+              </div>
+            </dl>
+            <div className="mt-5 max-w-xl">
+              <TextField label={`New vault name (the account will be <name>.${FACTORY})`} mono value={name} onChange={setName} />
+            </div>
+            {problem && <p className="mt-2 text-sm text-dawn-ink">{problem}</p>}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Button type="button" disabled={!canCheck} onClick={check}>
+                {plan.state === "checking" ? "Checking" : "Check the plan"}
+              </Button>
+              {!account && <span className="text-sm text-muted">Connect the owner&apos;s wallet. Only the owner can migrate, and the check says so if you are not.</span>}
+            </div>
+          </Panel>
+
+          {plan.state === "refused" && (
+            <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">
+              <strong className="font-medium">The plan was refused. Nothing was sent.</strong> {plan.message}
+            </p>
+          )}
+          {plan.state === "ok" && <PlanBody plan={plan.plan} account={account!} />}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function PlanBody({ plan, account }: { plan: MigrationPlan; account: string }) {
+  const warn = coverageWarning(plan.coverage);
+  const funds = fundsSummary(plan);
+  const cmd = migrateCommands(plan, account);
+  return (
+    <>
+      <p className={`border-l-[3px] px-5 py-4 leading-[1.6] ${warn.level === "warn" ? "border-dawn bg-dawn-wash" : "border-line-2"}`}>
+        <strong className="font-medium">Coverage. </strong>
+        {warn.text}
+      </p>
+
+      <Panel title="What it would do">
+        <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          {(
+            [
+              ["From", `${plan.oldVault} (${plan.oldVersion})`],
+              ["To", `${plan.newVault} (${plan.targetVersion})`],
+              ["Owner kept", plan.owner],
+              ["Operator kept", plan.operator ?? "none"],
+              ["New vault", plan.newVaultState === "ready" ? "already exists and is a copy of this one" : "will be created by the factory"],
+              ["Minimum deposit", `${plan.minDepositYocto} yoctoNEAR`],
+            ] as const
+          ).map(([l, v]) => (
+            <div key={l}>
+              <dt className="text-muted">{l}</dt>
+              <dd className="mono break-all">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <ol className="mt-6 grid gap-0 text-sm">
+          {[
+            "Pause every agent being carried over, so no key can spend on both vaults.",
+            "Create the new vault with the same owner, operator and ceiling.",
+            "Re-add each carried agent with its key, label and policy.",
+            "Move the funds.",
+            "Revoke the carried agents on the old vault.",
+          ].map((t, i) => (
+            <li key={t} className="grid grid-cols-[2rem_1fr] gap-x-3 border-t border-line py-2 first:border-t-0">
+              <span className="mono text-muted">{i + 1}</span>
+              <span className="text-slate">{t}</span>
             </li>
           ))}
         </ol>
-        <p className="mt-6 max-w-[80ch] text-sm text-muted">
-          Coverage does not transfer. Exposure recorded on the old vault stays attached to it, so leave existing coverage to run to expiry
-          rather than cancelling it.
+      </Panel>
+
+      <Panel title={`Agents carried over (${plan.agents.length})`}>
+        {plan.agents.length === 0 ? (
+          <p className="text-sm text-muted">No agent would be carried over.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] border-collapse text-[15px]">
+              <thead>
+                <tr>
+                  <th className={th}>Label</th>
+                  <th className={th}>Public key</th>
+                  <th className={th}>Status before</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plan.agents.map((a) => (
+                  <tr key={a.publicKey}>
+                    <td className={td}>{a.label}</td>
+                    <td className={`${td} mono break-all text-sm`}>{a.publicKey}</td>
+                    <td className={td}>
+                      {a.statusBefore}
+                      {a.autoDisabledBefore && <span className="block text-xs text-muted">auto-disabled</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-4 text-sm text-muted">
+          {plan.revokedAgents} already revoked, not carried. {plan.agentsWithReservations} with spends in flight.
         </p>
       </Panel>
 
-      <Drawer open={open} onClose={() => setOpen(false)} title="Versions">
-        <dl className="grid gap-4 text-sm">
-          <div>
-            <dt className="text-muted">This vault</dt>
-            <dd className="mono break-all">{vault.vault}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Runs</dt>
-            <dd className="mono break-all">
-              {vault.version}, {vault.codeHash}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">Latest</dt>
-            <dd className="mono break-all">
-              {vault.latestVersion}, {vault.latestCodeHash}
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-5 text-sm">{outdated ? "A new version is available." : "You are on the latest version."}</p>
-        <p className="mt-2 text-sm text-muted">You can always withdraw to the owner, in any state.</p>
-      </Drawer>
-    </article>
+      <Panel title="Funds">
+        <p className="text-[15px]">
+          Would move: <span className="mono">{funds.moves.join(", ")}</span>.
+        </p>
+        <p className="mt-2 text-sm text-muted">{funds.keeps}. Whatever is left on the old vault stays there and can always be withdrawn to the owner.</p>
+        {plan.notes.length > 0 && (
+          <ul className="mt-4 grid gap-2 text-sm text-slate">
+            {plan.notes.map((n) => (
+              <li key={n} className="flex gap-3">
+                <i aria-hidden className="mt-1.5 block size-2 shrink-0 bg-ink" />
+                {n}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel title="Run it">
+        <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
+          The migration is sent from the command line, on testnet, with the owner&apos;s key from the keychain. First the same plan, which signs nothing:
+        </p>
+        <div className="mt-3">
+          <CopyBlock text={cmd.dryRun} />
+        </div>
+        <p className="mt-4 text-sm text-slate">Then the migration. It asks before each transaction, and a stopped run resumes from its journal:</p>
+        <div className="mt-3">
+          <CopyBlock text={cmd.run} />
+        </div>
+      </Panel>
+    </>
   );
 }
