@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@aruna/classifier-core": "workspace:*",
-    "@aruna/rpc": "workspace:*"
+    "@aruna/rpc": "workspace:*",
+    "@aruna/sdk": "workspace:*"
   }
 }

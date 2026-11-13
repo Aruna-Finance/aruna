@@ -12,6 +12,7 @@ import { createHash, generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { classify } from "@aruna/classifier-core";
 import { createFetchReader } from "@aruna/rpc";
+import { classRecordArgs } from "@aruna/sdk/coverage";
 
 const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 function base58(bytes) {
@@ -42,13 +43,10 @@ if (cmd === "hash") {
 } else if (cmd === "exists") {
   process.exit((await reader.viewAccount(arg)).exists ? 0 : 1);
 } else if (cmd === "class-args") {
-  const { class: cls, evidence } = await classify(arg, reader);
-  const evidence_hash = createHash("sha256").update(JSON.stringify(evidence)).digest("hex");
-  // For coverage concentration (plan KTD7): the code that runs, and who can change it.
-  const resolved_code_hash = evidence.resolvedCodeHash;
-  const upgrade_authority = evidence.codeRef?.kind === "global_account" ? evidence.codeRef.ownerAccount : arg;
-  console.error(JSON.stringify({ class: cls, evidence }, null, 2));
-  console.log(JSON.stringify({ target: arg, class: cls, evidence_hash, resolved_code_hash, upgrade_authority }));
+  // One builder for the record, shared with the keeper (@aruna/sdk/coverage).
+  const classification = await classify(arg, reader);
+  console.error(JSON.stringify({ class: classification.class, evidence: classification.evidence }, null, 2));
+  console.log(JSON.stringify(await classRecordArgs(arg, classification)));
 } else if (cmd === "view") {
   const [method, json] = process.argv.slice(4);
   const res = await fetch("https://rpc.testnet.fastnear.com", {

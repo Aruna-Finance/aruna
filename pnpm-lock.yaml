@@ -105,6 +105,9 @@ importers:
       '@aruna/rpc':
         specifier: workspace:*
         version: link:../packages/rpc
+      '@aruna/sdk':
+        specifier: workspace:*
+        version: link:../packages/sdk
 
   packages/attestor:
     dependencies:
