@@ -245,7 +245,19 @@ node fixtures/tools.mjs view test-vault-0.factory2.arunafi.testnet get_class '{"
 
 Expected: report 3 `verified`; the class record `frozen:false` with `classified_at_block` 277550661; coverage 5 `paid_out`
 `80000000000000000000000` and one claim `paid`; and the vault's cached class still `frozen:true`. That last line is the
-freeze the keeper pushed, which outlives `lift_freeze` in each vault until `refresh_class` runs (the SDK does so on the next
-`spend`, `docs/SDK.md`). The SDK's retry on that refusal has unit tests; it was not run on chain here.
+freeze the keeper pushed, which outlives `lift_freeze` in each vault until `refresh_class` runs. The SDK does so on the next
+`spend` (`docs/SDK.md`), recorded on `mig1.factory2.arunafi.testnet` with `examples/honest-agent.ts` built from `main`
+(a new agent `honest`, `ed25519:EcJyBYiL...`, added by the operator `demo-company.arunafi.testnet`):
+
+| Block | What happened | Transaction |
+|---|---|---|
+| 277552079 | `add_agent` `honest` on `mig1` | `GHyakV9xAHAjkpBP5wD1dfzejHuFrTjc81TyEdjRHd8H` |
+| — | `simulate`: `block (TARGET_FROZEN)` from the vault's cached freeze | view |
+| 277552131 | `spend`: `execution_rejected` `ARUNA_TARGET_FROZEN` | `3qzRs2ioJRYoNFYCWcJLGGouZ3cpricusyn8AAeaiiZU` |
+| 277552140 | the SDK read `registry2` (`frozen:false`) and sent `refresh_class`: `class_refreshed`, `frozen:false` | `C9qwGCtsNWQoqEFw6mRa9STVEBroyrtq77uSnh8yDDLB` |
+| 277552146 | the retried `spend`: `execution_allowed`, settled, `exposure_recorded` 0.1 NEAR | `FknCgzwQhPChVK7PWvgjMz1tDm4zQ28EsGi3g6mxmo36` |
+
+`node fixtures/tools.mjs view mig1.factory2.arunafi.testnet get_class '{"target":"swap.arunafi.testnet"}'` now reads
+`frozen:false`, `fetched_at_block` 277552140. The other seven vaults still hold `swap` frozen until their next refresh.
 
 Next `swap` change: redeploy `fixtures/wasm/swap/swap.wasm` to flip back to v1.

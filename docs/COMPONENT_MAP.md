@@ -64,7 +64,7 @@ Owned by Ilham. Guided demo (`Story`) runs on mock data, labelled as such.
 | Drift: report | code change -> attestor `report_drift` -> registry freezes target | attestor (hosted) | [RUN] 13 Nov, report 3 on `swap` |
 | Drift: freeze reaches vaults | registry `push_freeze` -> each vault `freeze_target` | keeper | [RUN] 13 Nov, 8 vaults frozen by one push |
 | Drift: release | report final -> keeper re-classifies -> `lift_freeze`, `set_class` | keeper (hosted) | [RUN] 13 Nov, report 3, 8 blocks after Verified |
-| Drift: release reaches vaults | vault cache refreshed by `refresh_class` | agent sdk on `CLASS_STALE`, and on `TARGET_FROZEN` when the registry has lifted | G2 fixed in the SDK, unit-tested; not run on chain (8 vaults still hold `swap` frozen) |
+| Drift: release reaches vaults | vault cache refreshed by `refresh_class` | agent sdk on `CLASS_STALE`, and on `TARGET_FROZEN` when the registry has lifted | [RUN] 13 Nov on `mig1`: `TARGET_FROZEN` -> `refresh_class` -> settled, by the SDK alone |
 | Claim | console -> `pool.claim` -> report + exposure views -> payout | wallet | [RUN] coverage #5 from the console Claims screen, 0.08 NEAR, 13 Nov |
 
 ## 5. Gaps and inconsistencies found while mapping
@@ -88,4 +88,7 @@ Owned by Ilham. Guided demo (`Story`) runs on mock data, labelled as such.
   and README step 5b use `demo2.factory.arunafi.testnet`, whose `registry` is `registry.arunafi.testnet` [RUN], while
   every other console screen uses `registry2`. Not wrong for Lookup (it reads the vault), but a vault from that stack
   cannot buy coverage on `pool2`. Ilham's area.
+- **G6. `examples/add-agents.ts` sends a v2-shaped policy** (`max_per_tx`, `daily_cap` at the top level). Vault v3 and v4
+  require `limits: [...]` (`contracts/vault/src/lib.rs` `Policy`), so the script fits only v2 vaults such as `demo2` [READ,
+  not run]. On 13 Nov the agent for `mig1` was added with near CLI and the v4 shape instead.
 - **G5. Coverage purchase screen** does not pre-check window > 30 days or agent class (`PROJECT_STATE.md` §4.2). Ilham's area.
