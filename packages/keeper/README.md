@@ -23,6 +23,8 @@ Class order, least to most risky: `immutable_verified`, `local_upgradeable`, `gl
 (`contracts/common/src/class.rs`). The lift comes before the write, so a run that stops between them leaves the record
 older than the report and the next run finishes the write. The chain is the only memory: a handled target sends nothing.
 A target held for being riskier is released by an operator with `lift_freeze` once its new code is reviewed.
+The same goes for a target whose class someone wrote by hand with `set_class` after the report: the record is then newer than
+the report, so the keeper counts it as handled and leaves the freeze for an operator.
 
 ## Which targets it looks at
 

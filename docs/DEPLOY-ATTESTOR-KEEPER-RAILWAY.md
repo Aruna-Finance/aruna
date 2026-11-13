@@ -156,8 +156,9 @@ Restart the attestor service from the Railway dashboard. Expected: its log shows
 the keeper, add it to `ARUNA_KEEPER_TARGETS` only if the indexer is behind: once the indexer has the target's report it
 is found without a seed.
 
-**A freeze the keeper held.** When the new code classifies riskier than before, the keeper writes the new class and leaves
-the freeze, with a `HELD` line in its log naming the target, both classes and the report. Review the new code (`node
+**A freeze the keeper held.** When the new code classifies riskier than before, or when someone has already written the
+target's class by hand since the report, the keeper leaves the freeze. In the first case it writes the new class and logs
+a `HELD` line naming the target, both classes and the report. Review the new code (`node
 packages/cli/dist/index.js classify <target> --network testnet`), then decide. To release it:
 
 ```bash
