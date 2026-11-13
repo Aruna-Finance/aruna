@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (280).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (282).
 
 ### 2. Classify any NEAR contract
 
@@ -104,8 +104,8 @@ of agents. Click an agent. Expected: a page listing what its key cannot do, its 
 
 Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
 Agents and agent detail (step 5d), the Playground (step 5e), the Overview (step 5f), and Coverage, Buy
-coverage and Claims (step 5h). Every other screen (Targets, Migration, Pool, Simulation, Attestor and the
-Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
+coverage and Claims (step 5h), and Simulation (step 5i, the published results of `packages/sim`). Every other screen
+(Targets, Migration, Pool, Attestor and the Guided demo) still runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
 results are in steps 9 to 13.
 
 ### 5c. Connect a testnet wallet
@@ -257,6 +257,21 @@ Not met in v0: a coverage purchase and a claim sent from these screens. The purc
 check above) and has not been sent; the claim button is shown only when a verified report has no paid claim, and none has
 been sent from the console either. Only NEAR coverage can be bought from the console; token coverage is shown but not
 bought. Two points in the pool's claim code are under review and not yet confirmed (`docs/FOR-ARIS.md`, item 7).
+
+### 5i. Simulation, read from the published results
+
+1. Open `https://www.arunafi.xyz/console/simulation/`. Expected: one table with six scenarios as columns and six measures as rows,
+   from `packages/sim/results/2026-11-12/`; `P(event)` named an underwriting assumption, not a measurement; "Capital not enough"
+   set apart as the scenario that breaks the pool (98.8% of runs insolvent, time to insolvency 30.3 days); the solvent scenarios
+   reading "not insolvent within 60 days".
+2. Check that the page and the results agree:
+
+```bash
+pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published.test.ts
+```
+
+   Expected: 4 tests passed. The test re-derives the page's data from `summary.json` in the results folder. To refresh the page
+   after a new run: `node apps/web/scripts/sync-simulation.mjs packages/sim/results/<date>`.
 
 ### 6. Ask from an agent (MCP)
 

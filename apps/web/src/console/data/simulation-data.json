@@ -1,0 +1,326 @@
+{
+  "generatedFrom": "packages/sim/results/2026-11-12",
+  "date": "2026-11-12",
+  "runsPerScenario": 1000,
+  "firstSeed": 1,
+  "agents": 200,
+  "days": 60,
+  "pEventBps30d": {
+    "immutable_verified": 50,
+    "local_upgradeable": 500,
+    "global_by_account": 1000
+  },
+  "poolParams": {
+    "kX100": "500",
+    "concentrationBps": "20000"
+  },
+  "scenarios": [
+    {
+      "id": "normal",
+      "title": "Normal operation",
+      "note": "Independent, infrequent code changes, at the pool's own declared P(event). No scripted event.",
+      "breaksThePool": false,
+      "counterfactual": false,
+      "startingCapitalNear": 3000,
+      "adequacyOn": true,
+      "concentrationOn": true,
+      "lockEnforced": true,
+      "scripted": [],
+      "withdrawal": null,
+      "pInsolvency": {
+        "p": 0,
+        "lo": 0,
+        "hi": 0.0038
+      },
+      "endingCapitalNear": {
+        "median": 4765.2,
+        "p5": 3814,
+        "p95": 5104.5
+      },
+      "claimsPaidNear": {
+        "median": 115.2
+      },
+      "peakUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "claimsUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "solvencyRatio": {
+        "median": 0.44,
+        "p5": 0.36
+      },
+      "maxDrawdown": {
+        "median": 0.02,
+        "p95": 0.21
+      },
+      "timeToInsolvencyDays": {
+        "median": null,
+        "insolventRuns": 0
+      }
+    },
+    {
+      "id": "single_target_changes",
+      "title": "One target changes",
+      "note": "On top of the random changes, the implementation with the most coverage on it changes on day 20.",
+      "breaksThePool": false,
+      "counterfactual": false,
+      "startingCapitalNear": 3000,
+      "adequacyOn": true,
+      "concentrationOn": true,
+      "lockEnforced": true,
+      "scripted": [
+        {
+          "day": 20,
+          "kind": "most_exposed_implementation"
+        }
+      ],
+      "withdrawal": null,
+      "pInsolvency": {
+        "p": 0,
+        "lo": 0,
+        "hi": 0.0038
+      },
+      "endingCapitalNear": {
+        "median": 4165,
+        "p5": 3457,
+        "p95": 4579.5
+      },
+      "claimsPaidNear": {
+        "median": 720.3
+      },
+      "peakUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "claimsUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "solvencyRatio": {
+        "median": 0.38,
+        "p5": 0.32
+      },
+      "maxDrawdown": {
+        "median": 0.155,
+        "p95": 0.245
+      },
+      "timeToInsolvencyDays": {
+        "median": null,
+        "insolventRuns": 0
+      }
+    },
+    {
+      "id": "correlated_mass_claims",
+      "title": "Mass correlated claims",
+      "note": "On day 30 the upgrade authority with the most coverage behind it changes everything it controls at once, and every exposed agent claims within two hours of the report becoming claimable.",
+      "breaksThePool": false,
+      "counterfactual": false,
+      "startingCapitalNear": 3000,
+      "adequacyOn": true,
+      "concentrationOn": true,
+      "lockEnforced": true,
+      "scripted": [
+        {
+          "day": 30,
+          "kind": "most_concentrated_authority"
+        }
+      ],
+      "withdrawal": null,
+      "pInsolvency": {
+        "p": 0,
+        "lo": 0,
+        "hi": 0.0038
+      },
+      "endingCapitalNear": {
+        "median": 2911.4,
+        "p5": 2182.5,
+        "p95": 3449.5
+      },
+      "claimsPaidNear": {
+        "median": 1950.4
+      },
+      "peakUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "claimsUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "solvencyRatio": {
+        "median": 0.29,
+        "p5": 0.25
+      },
+      "maxDrawdown": {
+        "median": 0.457,
+        "p95": 0.592
+      },
+      "timeToInsolvencyDays": {
+        "median": null,
+        "insolventRuns": 0
+      }
+    },
+    {
+      "id": "underwriter_withdrawal",
+      "title": "Underwriter withdrawal",
+      "note": "On day 25 the underwriter tries to withdraw half its shares, daily until it works; on day 40 a mid-sized change lands. The contract refuses withdrawals while any coverage is open or in its reporting period.",
+      "breaksThePool": false,
+      "counterfactual": false,
+      "startingCapitalNear": 3000,
+      "adequacyOn": true,
+      "concentrationOn": true,
+      "lockEnforced": true,
+      "scripted": [
+        {
+          "day": 40,
+          "kind": "most_exposed_implementation"
+        }
+      ],
+      "withdrawal": {
+        "day": 25,
+        "shareBps": 5000
+      },
+      "pInsolvency": {
+        "p": 0,
+        "lo": 0,
+        "hi": 0.0038
+      },
+      "endingCapitalNear": {
+        "median": 3511.2,
+        "p5": 2871.3,
+        "p95": 4012.3
+      },
+      "claimsPaidNear": {
+        "median": 1393.4
+      },
+      "peakUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "claimsUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "solvencyRatio": {
+        "median": 0.33,
+        "p5": 0.27
+      },
+      "maxDrawdown": {
+        "median": 0.294,
+        "p95": 0.419
+      },
+      "timeToInsolvencyDays": {
+        "median": null,
+        "insolventRuns": 0
+      }
+    },
+    {
+      "id": "underwriter_withdrawal_without_lock",
+      "title": "Underwriter withdrawal, lock switched off (counterfactual, not the contract)",
+      "note": "The same run with the contract's withdrawal lock removed, to show what the lock protects. The contract does not behave like this.",
+      "breaksThePool": false,
+      "counterfactual": true,
+      "startingCapitalNear": 3000,
+      "adequacyOn": true,
+      "concentrationOn": true,
+      "lockEnforced": false,
+      "scripted": [
+        {
+          "day": 40,
+          "kind": "most_exposed_implementation"
+        }
+      ],
+      "withdrawal": {
+        "day": 25,
+        "shareBps": 5000
+      },
+      "pInsolvency": {
+        "p": 0.003,
+        "lo": 0.001,
+        "hi": 0.0088
+      },
+      "endingCapitalNear": {
+        "median": 1338.8,
+        "p5": 531.1,
+        "p95": 1856.7
+      },
+      "claimsPaidNear": {
+        "median": 1100.6
+      },
+      "peakUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "claimsUnpaidNear": {
+        "median": 0,
+        "p95": 0
+      },
+      "solvencyRatio": {
+        "median": 0.21,
+        "p5": 0.19
+      },
+      "maxDrawdown": {
+        "median": 0.485,
+        "p95": 0.781
+      },
+      "timeToInsolvencyDays": {
+        "median": 41.1,
+        "insolventRuns": 3
+      }
+    },
+    {
+      "id": "insufficient_capital",
+      "title": "Capital not enough",
+      "note": "The pool starts with 100 NEAR, with no adequacy rule and no concentration limit, against all the coverage the agents want to buy. On day 30 the upgrade authority with the most coverage behind it changes everything it controls, and every exposed agent claims within two hours. This is the scenario that breaks the pool.",
+      "breaksThePool": true,
+      "counterfactual": false,
+      "startingCapitalNear": 100,
+      "adequacyOn": false,
+      "concentrationOn": false,
+      "lockEnforced": true,
+      "scripted": [
+        {
+          "day": 30,
+          "kind": "most_concentrated_authority"
+        }
+      ],
+      "withdrawal": null,
+      "pInsolvency": {
+        "p": 0.988,
+        "lo": 0.9791,
+        "hi": 0.9931
+      },
+      "endingCapitalNear": {
+        "median": 107.7,
+        "p5": 12.5,
+        "p95": 549.5
+      },
+      "claimsPaidNear": {
+        "median": 1856.5
+      },
+      "peakUnpaidNear": {
+        "median": 706.7,
+        "p95": 1227
+      },
+      "claimsUnpaidNear": {
+        "median": 0,
+        "p95": 569.9
+      },
+      "solvencyRatio": {
+        "median": 0.01,
+        "p5": 0
+      },
+      "maxDrawdown": {
+        "median": 1,
+        "p95": 1
+      },
+      "timeToInsolvencyDays": {
+        "median": 30.3,
+        "insolventRuns": 988
+      }
+    }
+  ]
+}
