@@ -205,15 +205,25 @@ Expected: `"premium":"666293333333333333333332"` (0.6662 NEAR) and `"reachable_p
 which is the cap times 31 days times 80%. The sum insured is set above that bound, so the price follows the cap.
 Click **Save the policy** and sign: the panel then reads "No change from the current policy" and both columns match.
 
-### 5g. History from the indexer: not met in v0
+### 5g. History from the indexer
 
-The Activity tab and the Overview list refusals and exposure rows from `@aruna/indexer`, with the reason, the
-class at refusal and a transaction link. This build has no indexer URL (`NEXT_PUBLIC_INDEXER_URL` is unset), so
-those panels say "History is not connected in this build" instead of showing data. The hosted indexer
-(`https://aruna-near-indexer.up.railway.app`) answered on 12 November 2026 but had stopped at block 277,003,378,
-about 370,000 blocks behind, so it held nothing for the vaults in these steps. To run the indexer yourself, see
-[`packages/indexer`](packages/indexer/README.md); a backfill takes hours. Rebuild `apps/web` with
-`NEXT_PUBLIC_INDEXER_URL=<your indexer>` to read it.
+The Activity tab and the Overview list refusals and exposure rows from `@aruna/indexer`, with the reason, the class at refusal
+and a transaction link. The site at `https://www.arunafi.xyz` is built with `NEXT_PUBLIC_INDEXER_URL` set to the hosted
+indexer, `https://aruna-near-indexer.up.railway.app`, so these panels read it. A build without that variable says "History is
+not connected in this build" instead of showing data.
+
+1. Check the hosted indexer:
+
+```bash
+curl -s https://aruna-near-indexer.up.railway.app/health
+curl -s 'https://aruna-near-indexer.up.railway.app/v1/coverages?pool=pool2.arunafi.testnet&limit=100'
+```
+
+   Expected on 13 November 2026: `"healthy":true`, `"mode":"following"` and `"lag_blocks":0` (it had been about 370,000 blocks behind
+   earlier that day); coverages 0 to 5 on `pool2`, with #4 active on
+   `drift-target.arunafi.testnet` and #5 active on `swap.arunafi.testnet`.
+2. To run the indexer yourself, see [`packages/indexer`](packages/indexer/README.md); a backfill takes hours. Rebuild `apps/web`
+   with `NEXT_PUBLIC_INDEXER_URL=<your indexer>` to read it.
 
 ### 5h. Coverage and claims, read from the pool
 
@@ -251,11 +261,14 @@ node fixtures/tools.mjs view demo4.factory2.arunafi.testnet exposure_before '{"a
 node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"drift-target.arunafi.testnet"}'
 ```
 
-   Expected on 13 November 2026: `false`, which is why the button is off.
+   Expected on 13 November 2026: `false` until the hosted attestor started that afternoon (step 16), then `true`, and the button
+   is on.
 
-Not met in v0: a coverage purchase and a claim sent from these screens. The purchase needs a fresh attestor heartbeat (the
-check above) and has not been sent; the claim button is shown only when a verified report has no paid claim, and none has
-been sent from the console either. Only NEAR coverage can be bought from the console; token coverage is shown but not
+A purchase has been made since: coverage #5 on `swap.arunafi.testnet` (30 days, limit 1 NEAR, premium 0.0723 NEAR). Two
+earlier attempts were each refused by the pool with a `coverage_refused` event: one for an agent whose `max_risk_class`
+(`immutable_verified`) is below the target's class (`local_upgradeable`), one for a window of 47 days, above the 30-day
+maximum. Not met in v0: a claim sent from the console. The claim button is shown only when a verified report has no paid claim,
+and none has been sent from the console. Only NEAR coverage can be bought from the console; token coverage is shown but not
 bought. Two points in the pool's claim code are under review and not yet confirmed (`docs/FOR-ARIS.md`, item 7).
 
 ### 5i. Simulation, read from the published results
@@ -290,9 +303,9 @@ node fixtures/tools.mjs view pool2.arunafi.testnet get_book '{"token":"near"}'
 ### 5k. Targets, read from the registry
 
 1. Open `https://www.arunafi.xyz/console/targets/`. Expected: a table of the seeded targets and every target the pool has
-   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded `global_by_account`, frozen by a drift
-   report, attestor `attestor-a.arunafi.testnet` with its heartbeat state; `swap.arunafi.testnet` recorded `local_upgradeable`
-   with no attestor assigned.
+   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded `global_by_account`, attestor
+   `attestor-a.arunafi.testnet` with its heartbeat state, not frozen once the keeper has released it after report 2 (it was frozen
+   from that report until 13 November 2026); `swap.arunafi.testnet` recorded `local_upgradeable`, with the same attestor assigned.
 2. Open `https://www.arunafi.xyz/console/targets/detail/?id=drift-target.arunafi.testnet`. Expected: the registry's record
    (class, block, classifier, evidence hash, resolved code hash, upgrade authority) beside a fresh run of
    `@aruna/classifier-core` over public RPC, a sentence saying whether the two classes agree, and the latest drift report.
@@ -302,16 +315,16 @@ node fixtures/tools.mjs view pool2.arunafi.testnet get_book '{"token":"near"}'
 node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"drift-target.arunafi.testnet"}'
 ```
 
-   Expected: `"class":"global_by_account"`, `"frozen":true`, `"upgrade_authority":"drift-owner.arunafi.testnet"`, matching the
-   page. The registry has no view that lists its targets, so the list is the seeded targets plus the pool's covered ones; any
+   Expected on 13 November 2026, after the keeper ran (step 16): `"class":"global_by_account"`, `"frozen":false`,
+   `"upgrade_authority":"drift-owner.arunafi.testnet"`, matching the page. Before the keeper it read `"frozen":true`. The registry has no view that lists its targets, so the list is the seeded targets plus the pool's covered ones; any
    other target is opened by name.
 
 ### 5l. Attestors, read from the registry
 
 1. Open `https://www.arunafi.xyz/console/attestor/`. Expected: `attestor-a.arunafi.testnet` with its bond (1 NEAR), the block of
-   its last heartbeat and how many blocks ago that was, "Heartbeat stale" while it is more than 600 blocks, the targets it watches
-   (`drift-target.arunafi.testnet`) with their recorded class and latest report, and a notice that no attestor is assigned to
-   `swap.arunafi.testnet`.
+   its last heartbeat and how many blocks ago that was, "Heartbeat stale" while it is more than 600 blocks, and the targets it
+   watches (`drift-target.arunafi.testnet` and `swap.arunafi.testnet`) with their recorded class and latest report. A target
+   with no attestor assigned is listed in a notice instead.
 2. Check the record without the page:
 
 ```bash
@@ -319,8 +332,8 @@ node fixtures/tools.mjs view registry2.arunafi.testnet get_attestor '{"attestor"
 node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"drift-target.arunafi.testnet"}'
 ```
 
-   Expected: `bond` `1000000000000000000000000`, `last_heartbeat` equal to the block on the page, and `false` while the heartbeat is
-   stale. Heartbeats and drift reports are sent from the attestor's own account; the console only reads.
+   Expected with the hosted attestor running (step 16): `bond` `1000000000000000000000000`, `last_heartbeat` equal to the block on
+   the page (it moves about every 3 minutes), and `true`; `false` once the heartbeat is more than 600 blocks old. Heartbeats and drift reports are sent from the attestor's own account; the console only reads.
 
 ### 5m. Finding your vault
 
@@ -537,17 +550,20 @@ measured: how often contracts really change is still open (`docs/DECISIONS.md`, 
 
 ### 16. Are the attestor and the keeper alive?
 
-After the two services are deployed (`docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`):
+Both run on Railway (`docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`). Check them from chain state:
 
 ```bash
 node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"swap.arunafi.testnet"}'
 node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target":"drift-target.arunafi.testnet"}'
 node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"drift-target.arunafi.testnet"}'
+node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":5}'
 ```
 
-No key needed. Expected with both services running: `true`, `true`, and a class record with `"frozen":false`. Without the
-attestor, `heartbeat_fresh` reads `false` once its last heartbeat is more than 600 blocks old (on 13 November 2026 it did,
-for `drift-target`). The rules of both services run against a fake registry, with no key and no network:
+No key needed. Expected with both services running, as on 13 November 2026: `true`, `true`, a class record with
+`"frozen":false` (the keeper lifted the freeze that report 2 had left since the demo run, then wrote the class again), and
+coverage 5 on `swap.arunafi.testnet` with `"premium_paid":"72333333333333333333332"` and `"end_block":278832453`. Without the
+attestor, `heartbeat_fresh` reads `false` once its last heartbeat is more than 600 blocks old (on 13 November 2026, before it
+ran, it did, for `drift-target`). The rules of both services run against a fake registry, with no key and no network:
 `pnpm --filter @aruna/attestor --filter @aruna/keeper test`.
 
 ---
@@ -625,14 +641,14 @@ Aruna is verifiable and reproducible. It is not trustless.
 
 | In v0 | Not yet |
 |---|---|
-| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | a hosted indexer, and console history read from it |
-| console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price, coverage and claims read from the pool (steps 5c to 5f, 5h) | console pool and targets on chain data; a coverage purchase and a claim sent from the console (step 5h); console history from the indexer (step 5g) |
-| `@aruna/indexer`: testnet events into Postgres behind a read API, runnable yourself ([`packages/indexer`](packages/indexer/README.md)) | |
-| coverage on testnet: pool, registry drift path, attestor, vault v3 (step 12) | pool simulation, and `k` and the concentration limit derived from it |
-| live classifier page (`apps/web`) | migration tooling between vault versions |
+| `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | |
+| console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price; coverage, claims, pool, targets, attestors, simulation and the migration plan read from the chain or the published results (steps 5c to 5m) | a claim sent from the console (step 5h); a migration sent from the console, which is the CLI's (step 14); adding or withdrawing pool capital in the console |
+| `@aruna/indexer`: testnet events into Postgres behind a read API, hosted at `aruna-near-indexer.up.railway.app` and read by the console (step 5g) | |
+| coverage on testnet: pool, registry drift path, vault v3 (step 12); the attestor and the keeper as hosted services, with coverage bought on `swap` (step 16) | `k` and the concentration limit locked: derived by the simulation (D-66) but not locked until drift frequency is measured |
+| live classifier page (`apps/web`) | |
 | keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | an attestor independent of Aruna |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
-| testnet fixtures and the drift demo | the attestor and the keeper running as hosted services (`docs/DEPLOY-ATTESTOR-KEEPER-RAILWAY.md`) |
+| testnet fixtures and the drift demo; `aruna migrate`, resumable (step 14); the pool simulation, published (step 15) | an alert when a hosted service stops; the keeper's and the attestor's gas measured over a long run |
 | lab evidence T0–T9 | |
 | vault, registry and factory on testnet; vault self-classified `immutable_verified` | |
 | spend path, reservations, auto-disable and one swap adapter, proven on a sandbox | |

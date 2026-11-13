@@ -45,9 +45,10 @@ near account add-key arunafi.testnet grant-function-call-access \
 Each command prints a new key pair to your terminal. Copy each private key (`ed25519:...`) straight into the matching
 Railway variable in step 2; do not save it anywhere else.
 
-The allowance is the gas the key may spend over its life. `1 NEAR` is a starting point, not a measurement: the gas of
-`heartbeat`, `set_class` and `lift_freeze` has not been measured on testnet yet. Read it after a day and size the
-allowance from it. An exhausted allowance shows up as repeated failed calls in the service log.
+The allowance is the gas the key may spend over its life. `1 NEAR` is a starting point. The first measurement (see "Recorded
+runs") is about 0.0002 NEAR per call, which at one heartbeat every three minutes is about 0.09 NEAR a day: 1 NEAR lasts
+about 11 days. Read the remaining allowance with `near account list-keys` and size it for how long the service should run
+unattended. An exhausted allowance shows up as repeated failed calls in the service log.
 
 Expected: `near account list-keys attestor-a.arunafi.testnet network-config testnet now` and the same for
 `arunafi.testnet` each list the new public key next to the full-access key, with function-call permissions.
@@ -143,7 +144,10 @@ Expected within a few minutes of the keeper starting: `"frozen":false`, `"classi
 ### 7. Buy coverage on `swap` from the console
 
 In the console, open a vault whose agent may use `swap.arunafi.testnet` and buy coverage on it. Expected: the purchase is
-not refused for a stale heartbeat. (Before step 4 it was refused: the target had no attestor.)
+not refused for a stale heartbeat. (Before step 4 it was refused: the target had no attestor.) Two other rules of the pool
+refuse a purchase, each with a `coverage_refused` event in the transaction: the agent's `max_risk_class` must be at least the
+target's class (`swap` is `local_upgradeable`, so an agent limited to `immutable_verified` is refused), and the window must
+be longer than the waiting period (120 blocks) and at most 30 days (1,296,000 blocks).
 
 ### 8. Restart the attestor
 
@@ -192,5 +196,27 @@ run. Revisit when a customer depends on coverage being available.
 
 ## Recorded runs
 
-None yet: the two services have not been deployed. Record the result of steps 4 to 8 here, with the date and the
-transaction hashes the logs show, when you run them.
+13 November 2026, testnet, `registry2.arunafi.testnet` and `pool2.arunafi.testnet`. Transaction hashes are as the service
+logs and the explorer show them.
+
+| Step | What happened | Transaction |
+|---|---|---|
+| 2 | Attestor started: its signing key matched the registry, `drift-target` watched, first heartbeat at 14:32 UTC | `Ge8kVq33ky7cUzQf4DDAcQUL8gT8jTVai1Gfw7SuuHDu` |
+| 3, 6 | Keeper started at 14:40 UTC and, for `drift-target` (`global_by_account` before and after, report 2), lifted the freeze, then wrote the class | `d9agTuYvgnLYkxatJ4RYyGDyGSq4AMEnwAYyTJ9FuEn`, `FzQVaZNkFyJYfpRgg5qrJTxUTuhwWoX4GrP82Vf8eXQp` |
+| 4 | `assign_attestor` for `swap`: `assigned_attestor` read `"attestor-a.arunafi.testnet"` and `heartbeat_fresh` read `true` | `Xw3J34tpnfPJ1ssPo3GyijZepPmj48EK9JZAvE1Kt11` |
+| 7 | First purchase on `swap`, 30-day window: refused, agent `max_risk_class` below the target's class | `YmKQtikLa3oVsirbwrRe8z8WyGyhUWiMYu6VX4f9ZKR` |
+| 7 | Second purchase, 47-day window: refused, window above the 30-day maximum | `6xPdNrsYJtNCTUWoyvaJfUmxKi8uyfDHobzUqX2Gwq7J` |
+| 7 | Purchase with an agent whose `max_risk_class` allows the target, 30-day window: **coverage 5**, premium 0.0723 NEAR, blocks 277536453 to 278832453 | `5JKM2nNAbqHYgQXww9jrgH7VdEmyL4cLabmbPYjsdFpK` |
+| 8 | Attestor restarted at 16:48 UTC: it logged `watching swap.arunafi.testnet, drift-target.arunafi.testnet` and a heartbeat, and no `first observation` line, so the volume kept its state | `GScy37PSkLkiPU1nJMeuyxhjJd1Tobbww7h7pH6aANi9` |
+
+Gas, from the first hours (an estimate from a few calls, not a long run):
+
+| Call | Cost |
+|---|---|
+| attestor `heartbeat` | about 0.0002 NEAR of the key's allowance (0.99937 NEAR left of 1 after three) |
+| keeper `lift_freeze` or `set_class` | about 0.00024 NEAR each (0.99953 NEAR left of 1 after two) |
+| `assign_attestor` from the owner's full-access key | 2.4 Tgas used, fee 0.00022 NEAR |
+
+What was not exercised with the hosted services: a code change on a watched target, so that the attestor reports it and the
+keeper releases the freeze again. The keeper's release was exercised on `drift-target` by the report left from the earlier
+demo run, not by a new change.
