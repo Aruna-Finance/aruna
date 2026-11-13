@@ -10,6 +10,8 @@ type RpcBody = { result?: Record<string, unknown>; error?: { cause?: { name?: st
 export interface TestnetReads extends ChainReads {
   /** yoctoNEAR, or null when the account does not exist. */
   balance(id: string): Promise<bigint | null>;
+  /** The height of the latest final block. */
+  headBlock(): Promise<number>;
 }
 
 export function createTestnetReads(doFetch: typeof fetch = (...a) => fetch(...a), url = RPC): TestnetReads {
@@ -32,6 +34,12 @@ export function createTestnetReads(doFetch: typeof fetch = (...a) => fetch(...a)
       const b = await rpc("query", { request_type: "view_account", finality: "final", account_id: id });
       if (b.error || !b.result) throw new Error(unknownAccount(b) ? `${id} does not exist` : `could not read ${id}`);
       return { amount: String(b.result.amount), globalContractHash: (b.result.global_contract_hash as string | null | undefined) ?? null };
+    },
+    async headBlock() {
+      const b = await rpc("block", { finality: "final" });
+      const h = (b.result as { header?: { height?: number } } | undefined)?.header?.height;
+      if (b.error || typeof h !== "number") throw new Error("could not read the latest block");
+      return h;
     },
     async balance(id: string) {
       const b = await rpc("query", { request_type: "view_account", finality: "final", account_id: id });
