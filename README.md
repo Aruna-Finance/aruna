@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (245).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (263).
 
 ### 2. Classify any NEAR contract
 
@@ -81,6 +81,8 @@ Expected: `view_account.code_hash changed: no`, `view_code hash changed: YES`,
 `executed behaviour changed: YES`.
 
 ### 5. The classifier page, from a static host
+
+The same build is published at https://www.arunafi.xyz/ (also https://aruna-dun.vercel.app). Every step in 5 to 5f works there by replacing `http://localhost:4173` with that address; it is built without an indexer URL, so step 5g applies to it too.
 
 ```bash
 pnpm --filter @aruna/web build
