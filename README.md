@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (263).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (269).
 
 ### 2. Classify any NEAR contract
 
@@ -227,11 +227,15 @@ own build, replace `https://www.arunafi.xyz` with `http://localhost:4173`.
 2. Open `https://www.arunafi.xyz/console/claims/?vault=demo4.factory2.arunafi.testnet`. Expected: drift report 2 on
    `drift-target.arunafi.testnet`, state `verified`; two claim rows for coverage #2 (the first "challenge window still open"
    with 0 paid, the second "paid" with 0.08 NEAR) whose formula column ends `= 0.08 NEAR`.
+   Click report `2`. Expected: the report page with a timeline (drift_reported, challenge_window closed, claims_open),
+   the attestor `attestor-a.arunafi.testnet`, changed at block 277,193,145, both resolved code hashes, and a
+   `get_report` command that prints the same record.
 3. Check the same numbers on chain, without the page:
 
 ```bash
 node fixtures/tools.mjs view pool2.arunafi.testnet get_coverage '{"id":2}'
 node fixtures/tools.mjs view registry2.arunafi.testnet latest_report '{"target":"drift-target.arunafi.testnet"}'
+node fixtures/tools.mjs view registry2.arunafi.testnet get_report '{"id":2}'
 node fixtures/tools.mjs view demo4.factory2.arunafi.testnet exposure_before '{"agent":"ed25519:EcTZ2jgMfgrnYvD8pJPHPi349waY2jPbwqEPnhujx3FR","target":"drift-target.arunafi.testnet","token":"near","block":277193145}'
 node fixtures/tools.mjs view demo4.factory2.arunafi.testnet exposure_before '{"agent":"ed25519:EcTZ2jgMfgrnYvD8pJPHPi349waY2jPbwqEPnhujx3FR","target":"drift-target.arunafi.testnet","token":"near","block":277193101}'
 ```

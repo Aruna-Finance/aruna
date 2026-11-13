@@ -7,7 +7,7 @@ const cov = (o: Partial<Coverage> = {}): Coverage => ({
   payout_ratio_bps: 8000, premium_paid: "1", class: "global_by_account", code_hash: "H", upgrade_authority: "u", start_block: 10, waiting_period_ends: 20,
   end_block: 1000, policy_version: 1, daily_cap_priced: "1", paid_out: "0", claims: [], claim_in_flight: false, claim_started_at: 0, paid_through_block: 10, ...o,
 });
-const rep = (o: Partial<ReportRow> = {}): ReportRow => ({ id: 2, target: "drift-target.arunafi.testnet", attestor: "a", channel: "deploy_global_contract", state: "verified", changedAtBlock: 50, observedAtBlock: 51, reportedAtBlock: 52, beforeHash: "x", afterHash: "y", ...o });
+const rep = (o: Partial<ReportRow> = {}): ReportRow => ({ id: 2, target: "drift-target.arunafi.testnet", attestor: "a", channel: "deploy_global_contract", state: "verified", changedAtBlock: 50, observedAtBlock: 51, reportedAtBlock: 52, beforeHash: "x", afterHash: "y", nonce: 1, disputedBy: null, ...o });
 const read = (untilChange: string, untilStart: string): ExposureRead => ({ untilChange, untilStart });
 
 describe("claim formula", () => {
@@ -77,6 +77,6 @@ describe("startable claims", () => {
 
 describe("report row", () => {
   it("keeps the registry's fields", () => {
-    expect(reportRow({ id: 5, state: "pending", reported_at_block: 9, report: { target: "t", attestor: "a", channel: "c", changed_at_block: 1, observed_at_block: 2, before_resolved_hash: "b", after_resolved_hash: "z" } })).toMatchObject({ id: 5, state: "pending", changedAtBlock: 1, reportedAtBlock: 9 });
+    expect(reportRow({ id: 5, state: "pending", reported_at_block: 9, report: { nonce: 7, target: "t", attestor: "a", channel: "c", changed_at_block: 1, observed_at_block: 2, before_resolved_hash: "b", after_resolved_hash: "z" } })).toMatchObject({ id: 5, state: "pending", changedAtBlock: 1, reportedAtBlock: 9 });
   });
 });
