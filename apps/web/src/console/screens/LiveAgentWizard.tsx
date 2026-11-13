@@ -7,7 +7,9 @@ import { ACCESS_KEY_ROWS } from "@/landing/lib/facts";
 import { policyProblem } from "../agent-actions";
 import { browserStore, exportText, forgetKey, generateAgentKey, KEY_LABEL, saveKey } from "../agent-keys";
 import { createTestnetReads } from "../chain-reads";
+import { mcpAgentCommand, KEY_FILE_NOTE } from "../data/agent-connect";
 import { defaultDraft, draftToPolicy, type LiveDraft } from "../data/agent-draft";
+import { publicKeyProblem } from "../data/agent-key-input";
 import { classifiedTargets, readFactory, type TargetOption } from "../data/factory";
 import { actorFor, noActorReason } from "../live-vault";
 import { useLiveActions } from "../useLiveActions";
@@ -53,7 +55,9 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
   const [d, setD] = useState<LiveDraft | null>(null);
   const [ack, setAck] = useState(false);
   const [key, setKey] = useState(() => generateAgentKey());
-  const [created, setCreated] = useState<{ publicKey: string; label: string; stored: boolean } | null>(null);
+  const [own, setOwn] = useState(false);
+  const [ownKey, setOwnKey] = useState("");
+  const [created, setCreated] = useState<{ publicKey: string; label: string; stored: boolean; own: boolean } | null>(null);
   const [problemNote, setProblemNote] = useState<string | null>(null);
   const [options, setOptions] = useState<TargetOption[]>([]);
 
@@ -85,13 +89,20 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
 
   const policy = draftToPolicy(d);
   const problem = policyProblem(policy, ceiling);
-  const labelOk = label.trim().length > 0 && label.trim().length <= 64;
+  const labelOk = label.trim().length > 0 && label.trim().length <= 64 && (!own || publicKeyProblem(ownKey) === null);
   const ok = step === 1 ? labelOk : step === 2 ? !problem || !["limits", "maxPerTx", "dailyCap", "maxRiskClass", "maxSlippageBps"].includes(problem.field) : step === 3 ? d.targets.length > 0 && !problem : ack && !problem && !!actor;
   const shown = step === 2 || step === 3 ? problem?.message : null;
   const classOf = (t: string) => options.find((o) => o.target === t);
 
   function create() {
     if (!actor || problem) return;
+    if (own) {
+      // The key is held elsewhere: nothing is stored here, and a failed call has no local key to undo.
+      const publicKey = ownKey.trim();
+      if (publicKeyProblem(publicKey) !== null) return;
+      acts.addAgent({ publicKey, label: label.trim(), policy, onDone: () => setCreated({ publicKey, label: label.trim(), stored: false, own: true }), onFail: () => {} });
+      return;
+    }
     const stored = saveKey(browserStore(), { network: NETWORK, vault, ...key });
     if (!stored) {
       setProblemNote("This browser refuses to store the key (private window or blocked site data). Allow site data, or export the key first, then try again.");
@@ -102,7 +113,7 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
       publicKey: key.publicKey,
       label: label.trim(),
       policy,
-      onDone: () => setCreated({ publicKey: key.publicKey, label: label.trim(), stored }),
+      onDone: () => setCreated({ publicKey: key.publicKey, label: label.trim(), stored, own: false }),
       onFail: () => forgetKey(browserStore(), NETWORK, vault, key.publicKey),
     });
   }
@@ -111,6 +122,8 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
     setCreated(null);
     setStep(1);
     setLabel("");
+    setOwn(false);
+    setOwnKey("");
     setAck(false);
     setD(defaultDraft(ceiling!));
     setKey(generateAgentKey());
@@ -137,6 +150,12 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
           <Panel title="Connect your agent">
             <CopyBlock text={CONNECT} />
+            {created.own && (
+              <div className="mt-5">
+                <p className="mb-2 text-sm text-muted">Start the MCP server for this agent. {KEY_FILE_NOTE}</p>
+                <CopyBlock text={mcpAgentCommand(vault)} />
+              </div>
+            )}
             <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-[120px_1fr]">
               <dt className="text-muted">Public key</dt>
               <dd className="mono break-all">{created.publicKey}</dd>
@@ -144,14 +163,18 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
               <dd className="mono break-all">{vault}</dd>
               <dt className="text-muted">Private key</dt>
               <dd>
-                Kept in this browser only, labelled &quot;{KEY_LABEL}&quot;. Clearing site data loses it, so export it now.
+                {created.own
+                  ? "Held by you, outside this browser. This page never saw it, so it cannot export it and the Playground cannot sign for this agent."
+                  : `Kept in this browser only, labelled "${KEY_LABEL}". Clearing site data loses it, so export it now.`}
               </dd>
             </dl>
-            <div className="mt-5">
-              <Button type="button" variant="outline" onClick={() => download("agent-key.txt", exportText({ network: NETWORK, vault, publicKey: key.publicKey, secret: key.secret }))}>
-                Export the key
-              </Button>
-            </div>
+            {!created.own && (
+              <div className="mt-5">
+                <Button type="button" variant="outline" onClick={() => download("agent-key.txt", exportText({ network: NETWORK, vault, publicKey: key.publicKey, secret: key.secret }))}>
+                  Export the key
+                </Button>
+              </div>
+            )}
           </Panel>
           <Panel title="What the protocol refuses this key">
             <ul className="grid gap-2 text-[15px]">
@@ -198,11 +221,28 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
           {step === 1 && (
             <>
               <TextField label="Label, shown on the public page" value={label} onChange={setLabel} />
-              <p className="border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]">
-                <strong className="font-medium">An agent is a key, not an account.</strong> The vault adds one function-call key for it. The key pair is
-                generated in your browser, and only the public key leaves it.
-              </p>
-              <p className="mono break-all text-xs text-muted">New public key: {key.publicKey}</p>
+              <fieldset className="grid gap-2 text-sm">
+                <legend className="mb-1 font-medium">Where the key lives</legend>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input type="radio" name="key-home" checked={!own} onChange={() => setOwn(false)} className="mt-1 accent-ink" />
+                  <span>Make the key in this browser. Use this to run the agent from the Playground.</span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input type="radio" name="key-home" checked={own} onChange={() => setOwn(true)} className="mt-1 accent-ink" />
+                  <span>I already have the key (a CLI, an MCP server or another machine). Paste its public key.</span>
+                </label>
+              </fieldset>
+              {own ? (
+                <TextField label="Agent public key" mono value={ownKey} onChange={setOwnKey} hint={ownKey.trim() !== "" ? (publicKeyProblem(ownKey) ?? "That is a valid ed25519 public key.") : undefined} />
+              ) : (
+                <>
+                  <p className="border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]">
+                    <strong className="font-medium">An agent is a key, not an account.</strong> The vault adds one function-call key for it. The key pair is
+                    generated in your browser, and only the public key leaves it.
+                  </p>
+                  <p className="mono break-all text-xs text-muted">New public key: {key.publicKey}</p>
+                </>
+              )}
             </>
           )}
           {step === 2 && (
