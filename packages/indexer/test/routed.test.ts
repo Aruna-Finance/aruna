@@ -5,7 +5,7 @@ import { runIndexer } from "../src/indexer.js";
 import type { BlockSource } from "../src/ingest/blocks.js";
 import { routedSource, type Lane } from "../src/ingest/routed.js";
 import { rpcSource, type RpcScan } from "../src/ingest/rpc.js";
-import { FIRST, LAST, SEEDS, testStore } from "./helpers.js";
+import { FIRST, LAST, memorySource, recordedBlocks, SEEDS, testStore } from "./helpers.js";
 
 type Fake = BlockSource<RpcScan> & { calls: number[]; earliestHeight(): Promise<number>; inFlight: number; maxInFlight: number };
 
@@ -175,5 +175,78 @@ describe("routing and the ingest loop", () => {
       edgeMarginBlocks: 0,
     });
     expect(await run(split)).toBe(await run(endpoint("https://single.example/rpc")));
+  });
+});
+
+describe("neardata as the archive, with QuickNode as its backup (plan 2026-11-13-0431)", () => {
+  it("reads below the edge from the backup when the archive fails, and never calls the backup at or above the edge", async () => {
+    const archive = fake({ fail: () => true });
+    const backup = fake();
+    const fallback = fake();
+    const src = routedSource({ archive: laneOf(archive, "neardata"), archiveBackup: laneOf(backup, "QuickNode"), live: laneOf(fake({ earliest: 1_000 }), "dRPC"), fallback: laneOf(fallback, "NEAR archival"), edgeMarginBlocks: 0 });
+    await readAll(src, 995, 1_005);
+    expect(archive.calls).toEqual([995]);
+    expect(backup.calls).toEqual([995, 996, 997, 998, 999]);
+    expect(fallback.calls).toEqual([]);
+  });
+
+  it("goes to the fallback below the edge when the backup fails too", async () => {
+    const fallback = fake();
+    const src = routedSource({
+      archive: laneOf(fake({ fail: () => true }), "neardata"),
+      archiveBackup: laneOf(fake({ fail: () => true }), "QuickNode"),
+      live: laneOf(fake({ earliest: 1_000 }), "dRPC"),
+      fallback: laneOf(fallback, "NEAR archival"),
+      edgeMarginBlocks: 0,
+    });
+    await readAll(src, 998, 999);
+    expect(fallback.calls).toEqual([998, 999]);
+    expect(src.state().source).toBe("NEAR archival");
+  });
+
+  const recorded = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "rpc", "recorded.json"), "utf8")) as Record<string, unknown>;
+  const replayFetch = (async (_url: string | URL, init?: RequestInit) => {
+    const { method, params } = JSON.parse(String(init?.body)) as { method: string; params: unknown };
+    const hit = recorded[`${method}|${JSON.stringify(params)}`];
+    if (hit) return new Response(JSON.stringify(hit), { status: 200 });
+    if (method === "EXPERIMENTAL_changes_in_block") return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: { changes: [] } }), { status: 200 });
+    throw new Error(`no recording for ${method}`);
+  }) as typeof globalThis.fetch;
+  const rpc = (u: string) => rpcSource({ url: u, fetch: replayFetch, backoffMs: 1 });
+  const baseline = readFileSync(join(import.meta.dirname, "fixtures", "baseline", "recorded-window.json"), "utf8").trimEnd();
+  const edge = 277068800;
+
+  async function exportThrough(archive: BlockSource<unknown>) {
+    const live = rpc("https://live.example/rpc");
+    const src = routedSource<unknown>({
+      archive: { source: archive, label: "neardata", concurrency: 8 },
+      live: { source: Object.assign(live, { earliestHeight: async () => edge }) as BlockSource<unknown> & { earliestHeight(): Promise<number> }, label: "dRPC", concurrency: 4 },
+      fallback: { source: rpc("https://fallback.example/rpc") as BlockSource<unknown>, label: "NEAR archival", concurrency: 1 },
+      edgeMarginBlocks: 0,
+    });
+    const store = await testStore();
+    await runIndexer({ store, source: src, seeds: SEEDS, startBlock: FIRST, stopAt: LAST, concurrency: 8 });
+    return store.export();
+  }
+
+  it("builds the baseline store from neardata blocks below the edge and RPC scans above it", async () => {
+    expect(await exportThrough(memorySource(recordedBlocks()) as BlockSource<unknown>)).toBe(baseline);
+  });
+
+  it("re-reads a height from the fallback, instead of handing it a neardata block, when neardata fails in the middle of a window", async () => {
+    const inner = memorySource(recordedBlocks());
+    let failed = false;
+    const flaky: BlockSource<unknown> = {
+      ...inner,
+      async block(h) {
+        if (!failed && h === FIRST + 5) {
+          failed = true;
+          throw new Error("neardata answered 503");
+        }
+        return inner.block(h);
+      },
+    } as BlockSource<unknown>;
+    expect(await exportThrough(flaky)).toBe(baseline);
+    expect(failed).toBe(true);
   });
 });

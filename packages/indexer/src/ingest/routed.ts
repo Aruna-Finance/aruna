@@ -1,11 +1,14 @@
 // One block source over three RPC endpoints (plan U2, KTD1-KTD5):
 //
-//   archive   optional, paid (a QuickNode trial). Reads only the heights the live node no longer holds.
+//   archive   optional (neardata with a FastNear key, or a QuickNode trial). Reads only the heights the live node no
+//             longer holds. It may have a backup (QuickNode behind neardata) that reads what it fails to serve.
 //   live      free, prunes old blocks (dRPC). Reads everything from its lower edge on, and the head.
 //   fallback  free, archival, slow (NEAR's archival RPC). Reads whatever the other two cannot.
 //
-// The router only chooses which endpoint answers a call; every endpoint is an rpcSource, so a block decodes the
-// same whichever one served it (R10). Commit order stays with runIndexer.
+// The router only chooses which endpoint answers a call. The endpoints' scans differ (a neardata block, an RPC scan), so
+// a scan is only ever expanded by the endpoint that scanned it: when that endpoint fails, the height is read again from
+// the next one (plan 2026-11-13-0431, KTD3). Every endpoint gives the same records for a block. Commit order stays with
+// runIndexer.
 
 import type { BlockSource, NeardataBlock } from "./blocks.js";
 
@@ -19,6 +22,8 @@ export interface Lane<S> {
 
 export interface RoutedSourceOptions<S> {
   archive?: Lane<S>;
+  /** Reads, below the edge, what the archive fails to serve, before the fallback does. Never called at or above the edge. */
+  archiveBackup?: Lane<S>;
   live: Lane<S> & { source: BlockSource<S> & { earliestHeight(): Promise<number> } };
   fallback: Lane<S>;
   /** Heights below the live node's earliest block plus this many are read from the archive (KTD1). */
@@ -41,6 +46,7 @@ export interface RoutedSource<S> extends BlockSource<Routed<S>> {
 export interface Routed<S> {
   lane: InternalLane<S>;
   scan: S;
+  height: number;
 }
 
 interface InternalLane<S> extends Lane<S> {
@@ -67,6 +73,7 @@ async function limited<S, T>(l: InternalLane<S>, fn: () => Promise<T>): Promise<
 
 export function routedSource<S>(o: RoutedSourceOptions<S>): RoutedSource<S> {
   const archive = o.archive ? lane(o.archive) : undefined;
+  const archiveBackup = archive && o.archiveBackup ? lane(o.archiveBackup) : undefined;
   const live = lane(o.live);
   const fallback = lane(o.fallback);
   const margin = o.edgeMarginBlocks ?? 2_000;
@@ -92,21 +99,35 @@ export function routedSource<S>(o: RoutedSourceOptions<S>): RoutedSource<S> {
     return edge.height;
   }
 
-  async function laneFor(height: number): Promise<InternalLane<S>> {
-    if (!latched && height < (await currentEdge())) return archive && !benched(archive) ? archive : fallback;
+  /** The endpoints that may answer for `height`, in order; a benched one is skipped, and the fallback is always last. */
+  async function lanesFor(height: number): Promise<Array<InternalLane<S>>> {
+    if (!latched && height < (await currentEdge())) return [...[archive, archiveBackup].filter((l): l is InternalLane<S> => !!l && !benched(l)), fallback];
     latched = true;
-    return benched(live) ? fallback : live;
+    return benched(live) ? [fallback] : [live, fallback];
   }
 
-  /** Runs `call` on `first`; if it fails there, benches `first` and runs it on the fallback (KTD3). */
-  async function withFailover<T>(first: InternalLane<S>, call: (l: InternalLane<S>) => Promise<T>): Promise<{ value: T; lane: InternalLane<S> }> {
-    try {
-      return { value: await limited(first, () => call(first)), lane: first };
-    } catch (e) {
-      if (first === fallback) throw e;
-      first.benchedUntil = now() + benchMs;
-      console.error(`${first.label} failed (${e instanceof Error ? e.message : String(e)}); using ${fallback.label} for ${Math.round(benchMs / 60_000)} min`);
-      return { value: await limited(fallback, () => call(fallback)), lane: fallback };
+  /** The endpoints that come after `l` when it fails, for a height it served. */
+  function after(l: InternalLane<S>): Array<InternalLane<S>> {
+    if (l === fallback) return [];
+    const rest = l === archive && archiveBackup ? [archiveBackup] : [];
+    return [...rest.filter((x) => !benched(x)), fallback];
+  }
+
+  function bench(l: InternalLane<S>, e: unknown, next: InternalLane<S>) {
+    l.benchedUntil = now() + benchMs;
+    console.error(`${l.label} failed (${e instanceof Error ? e.message : String(e)}); using ${next.label} for ${Math.round(benchMs / 60_000)} min`);
+  }
+
+  /** Runs `call` on the first of `lanes`; if it fails there, benches that endpoint and runs it on the next (KTD3). */
+  async function withFailover<T>(lanes: Array<InternalLane<S>>, call: (l: InternalLane<S>) => Promise<T>): Promise<{ value: T; lane: InternalLane<S> }> {
+    for (let i = 0; ; i++) {
+      const l = lanes[i];
+      try {
+        return { value: await limited(l, () => call(l)), lane: l };
+      } catch (e) {
+        if (i === lanes.length - 1) throw e;
+        bench(l, e, lanes[i + 1]);
+      }
     }
   }
 
@@ -118,18 +139,34 @@ export function routedSource<S>(o: RoutedSourceOptions<S>): RoutedSource<S> {
 
   return {
     async block(height) {
-      const { value, lane: l } = await withFailover(await laneFor(height), (x) => x.source.block(height));
+      const { value, lane: l } = await withFailover(await lanesFor(height), (x) => x.source.block(height));
       served(l);
-      return value === null ? null : { lane: l, scan: value };
+      return value === null ? null : { lane: l, scan: value, height };
     },
 
     async expand(scanned, watched): Promise<NeardataBlock> {
-      const { value } = await withFailover(benched(scanned.lane) ? fallback : scanned.lane, (x) => x.source.expand(scanned.scan, watched));
+      const first = scanned.lane;
+      if (!benched(first)) {
+        try {
+          return await limited(first, () => first.source.expand(scanned.scan, watched));
+        } catch (e) {
+          if (first === fallback) throw e;
+          bench(first, e, after(first)[0]);
+        }
+      }
+      // The scan belongs to an endpoint that has failed: read the height again, whole, from the next one.
+      const lanes = after(first);
+      const { value, lane: l } = await withFailover(lanes, async (x) => {
+        const scan = await x.source.block(scanned.height);
+        if (scan === null) throw new Error(`${x.label} reports block ${scanned.height} skipped, which ${first.label} served`);
+        return x.source.expand(scan, watched);
+      });
+      served(l);
       return value;
     },
 
     async finalHeight() {
-      const { value } = await withFailover(benched(live) ? fallback : live, (x) => x.source.finalHeight());
+      const { value } = await withFailover(benched(live) ? [fallback] : [live, fallback], (x) => x.source.finalHeight());
       return value;
     },
 

@@ -21,10 +21,22 @@ describe("which block source the CLI uses", () => {
     expect(label).not.toContain("quiknode.pro");
   });
 
-  it("ignores a FastNear key and the retired source switch: there is no neardata path any more", () => {
-    expect(chooseSource(config, { FASTNEAR_API_KEY: "k" }).label).toContain("dRPC");
-    expect(chooseSource(config, { FASTNEAR_API_KEY: "k", ARUNA_BLOCK_SOURCE: "neardata" }).label).toContain("dRPC");
-    expect(chooseSource(config, { ARUNA_BLOCK_SOURCE: "neardata" }).defaultConcurrency).toBe(8);
+  it("uses neardata as the archive when FASTNEAR_API_KEY is set, and names it without printing the key", () => {
+    const { label, defaultConcurrency } = chooseSource(config, { FASTNEAR_API_KEY: "fastnear-secret-key-123456" });
+    expect(label).toBe("neardata to dRPC's edge, then dRPC; NEAR archival as fallback");
+    expect(label).not.toContain("fastnear-secret-key-123456");
+    expect(defaultConcurrency).toBe(8);
+  });
+
+  it("puts QuickNode behind neardata as its backup when both are set", () => {
+    const { label } = chooseSource(config, { FASTNEAR_API_KEY: "k", QUICKNODE_RPC_URL: "https://x.quiknode.pro/secrettoken123/" });
+    expect(label).toBe("neardata (QuickNode as its backup) to dRPC's edge, then dRPC; NEAR archival as fallback");
+    expect(label).not.toContain("secrettoken123");
+  });
+
+  it("ignores the retired source switch and an empty key", () => {
+    expect(chooseSource(config, { ARUNA_BLOCK_SOURCE: "neardata" }).label).toBe("dRPC; NEAR archival for older blocks and as fallback");
+    expect(chooseSource(config, { FASTNEAR_API_KEY: "" }).label).toBe("dRPC; NEAR archival for older blocks and as fallback");
   });
 
   it("treats an empty QUICKNODE_RPC_URL as unset", () => {
