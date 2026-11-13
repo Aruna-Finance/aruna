@@ -36,7 +36,7 @@ checked the files out with CRLF line endings (`git config core.autocrlf false`, 
 passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (244).
+ skipped), `cli` (28), `attestor` (13), `sdk` (102), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (245).
 
 ### 2. Classify any NEAR contract
 
