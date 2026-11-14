@@ -3,7 +3,7 @@ import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Select } from "@/shared/Select";
-import { LISTED_ROLES, SCREEN_IDS, roleById, roleFor, type RoleId, type ScreenId } from "./nav";
+import { ROLES, SCREEN_IDS, roleById, roleFor, type RoleId, type ScreenId } from "./nav";
 import { useRole } from "./RoleContext";
 import { ThemeToggle } from "./ui/ThemeToggle";
 import { WalletButton } from "./ui/WalletButton";
@@ -48,8 +48,8 @@ export function Shell({ children }: { children: ReactNode }) {
             <span className="label hidden shrink-0 text-xs text-muted sm:inline">View as</span>
             <Select<RoleId>
               label="View as"
-              value={current.unlisted ? "owner" : role}
-              options={LISTED_ROLES.map((r) => ({ value: r.id, label: r.label }))}
+              value={role}
+              options={ROLES.map((r) => ({ value: r.id, label: r.label }))}
               onValueChange={(id) => {
                 setRole(id);
                 router.push(`/console/${roleById(id).home}/`);
@@ -81,9 +81,16 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
           ))}
           <Link
+            href="/console/developers/"
+            aria-current={screen === "developers" ? "page" : undefined}
+            className="label shrink-0 border border-transparent px-3 py-2 text-sm text-muted transition-colors hover:border-line aria-[current=page]:border-line-2 aria-[current=page]:text-ink lg:mt-auto"
+          >
+            Developers
+          </Link>
+          <Link
             href="/console/story/"
             aria-current={screen === "story" ? "page" : undefined}
-            className="label shrink-0 border border-transparent px-3 py-2 text-sm text-muted transition-colors hover:border-line aria-[current=page]:border-line-2 aria-[current=page]:text-ink lg:mt-auto"
+            className="label shrink-0 border border-transparent px-3 py-2 text-sm text-muted transition-colors hover:border-line aria-[current=page]:border-line-2 aria-[current=page]:text-ink"
           >
             Demo (mock data)
           </Link>
