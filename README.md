@@ -315,7 +315,7 @@ node fixtures/tools.mjs view pool2.arunafi.testnet get_shares '{"underwriter":"<
 
    Expected: a non-zero amount of shares.
 6. Look at "Withdraw NEAR" under the NEAR book. Expected: "Your position is worth ... NEAR" (never a share count), the line "The book is locked for N more blocks.", and both "Review withdrawal" and "Withdraw everything" disabled.
-   The console does not send a transaction the pool would refuse, and a withdrawal it does send that the pool refuses (a lock raised after the page loaded) is shown as "Blocked by the pool." with `ARUNA_CAPITAL_LOCKED`, not as a failure.
+   While the book is locked the console offers no way to submit a withdrawal.
 7. The withdrawal itself is proven on a sandbox, because the NEAR book on `pool2` cannot be withdrawn from before the block in step 2. Build the contract wasm first (see `contracts/integration/Cargo.toml`), then:
 
 ```bash
