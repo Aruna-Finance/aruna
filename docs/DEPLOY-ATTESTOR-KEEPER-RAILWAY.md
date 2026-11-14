@@ -3,8 +3,7 @@
 Two services, two keys, both testnet only. The **attestor** watches the targets the registry assigns to it, keeps its
 heartbeat fresh and files signed drift reports. The **keeper** waits until a target's latest report is final,
 re-classifies the target, writes its class and lifts the freeze when the new class is no riskier. Both build from this
-repository with `pnpm deploy`; no `@aruna` package has to be on npm. Plan:
-`docs/plans/2026-11-13-2018-feat-hosted-attestor-keeper-plan.md`.
+repository with `pnpm deploy`; no `@aruna` package has to be on npm.
 
 Why this matters: the pool refuses to sell coverage on a target whose assigned attestor's heartbeat is older than 600
 blocks (about 10 minutes) or whose target is frozen. Without these two services, no target can be covered.

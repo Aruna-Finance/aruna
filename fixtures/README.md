@@ -71,7 +71,7 @@ a different toolchain may produce different bytes, and so a different hash.
 
 ## Coverage loop fixtures
 
-Used by the coverage loop (`docs/plans/2026-11-10-2106-feat-coverage-loop-testnet-plan.md`).
+Used by the coverage loop (README step 12).
 
 | Path | What |
 |---|---|

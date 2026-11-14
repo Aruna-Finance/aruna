@@ -1,8 +1,12 @@
-# Contract review, v0 — 10 November 2026
+# Internal contract review, v0 — not a third-party audit
 
-Internal review of `contracts/vault` (with `contracts/common`), and of `contracts/factory` and
+> This is an internal review, written by the same people and tools that wrote the code. It is
+> **not** the independent third-party security audit that release gate A requires
+> (`docs/PRODUCT.md`). No external auditor has looked at these contracts.
+
+Reviewed 10 November 2026. Internal review of `contracts/vault` (with `contracts/common`), and of `contracts/factory` and
 `contracts/registry` as its callers, using the `near-contract-audit` checklist. **This is not the
-independent third-party audit release gate A requires** (`docs/BUILD-PLAN.md`); it was done by the
+independent third-party audit release gate A requires** (`docs/PRODUCT.md`); it was done by the
 same people and tools that wrote the code.
 
 ## Findings
@@ -46,7 +50,7 @@ were fixed. Vaults are immutable, so it keeps them; it holds no real value. The 
 Scope: whether the coverage loop is right end to end against the product design, and critical bugs
 (funds stranded, paid twice or to the wrong party, access control). Not performance or style. One
 reviewer, no subagents, on `contracts/pool`, `contracts/registry`, `contracts/vault` and the SDK and
-attestor paths that feed them. Not an independent audit (docs/BUILD-PLAN.md gate A still requires one).
+attestor paths that feed them. Not an independent audit (docs/PRODUCT.md gate A still requires one).
 
 | # | Severity | Finding | Status |
 |---|---|---|---|

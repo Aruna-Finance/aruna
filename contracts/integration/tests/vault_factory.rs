@@ -1,4 +1,4 @@
-//! Stage 3 acceptance on a local sandbox (docs/BUILD-PLAN.md):
+//! Stage 3 acceptance on a local sandbox (docs/PRODUCT.md):
 //! - a factory-deployed vault holds no key at all and is bound to the vault code by hash
 //! - only authorized classifiers write a class; only the factory registers a vault
 //! - an agent key is refused by the network for every forbidden action (the isolation demo)

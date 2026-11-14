@@ -1,8 +1,7 @@
 # Product context
 
 For decisions about what is built and for whom. Technical decisions live in
-`ARCHITECTURE.md` and `NEAR-FACTS.md`. Positioning against the field lives in
-`COMPETITIVE.md`.
+`ARCHITECTURE.md` and `NEAR-FACTS.md`.
 
 ---
 
@@ -35,8 +34,8 @@ re-checks by instinct; an agent approves once and repeats the same assumption fo
 3. **Limiting is not eliminating.** A whitelisted contract can change under an agent
    that is still perfectly obedient to its policy.
 
-Five other hackathon projects address layers 1 and 2. **Aruna's thesis is that none of them
-is measuring layer 3**, and that measurement must come before risk can be priced or
+Agent wallets and policy engines address layers 1 and 2. **Aruna's thesis is that layer 3 is
+not being measured**, and that measurement must come before risk can be priced or
 transferred.
 
 ---
@@ -49,8 +48,8 @@ transferred.
 | **Protection** | A vault that acts on the classification and contains the agent | yes |
 | **Coverage** | Parametric protection against implementation drift | needs both above |
 
-What separates Aruna from existing agent wallets is not the limits — OutLayer, Agent
-API and five hackathon projects already have those. It is the **chain from policy to
+What separates Aruna from existing agent wallets is not the limits — OutLayer and the
+Agent API already have those. It is the **chain from policy to
 price**: a tighter policy means lower maximum exposure, which means a cheaper premium.
 Insurance stops being a patch on losses and becomes the mechanism that makes agents
 safer.
@@ -95,14 +94,37 @@ additional revenue once coverage reaches mainnet.
 ## Release status
 
 Measurement and the vault come first. **Coverage runs on testnet, with numbers labelled as
-assumptions, until drift frequency is measured.** Real funds need the gates in `BUILD-PLAN.md`.
+assumptions, until drift frequency is measured.** Real funds need the gates below.
+
+## Roadmap and release gates
+
+Everything here is still owed. v0 runs on testnet and holds no real funds.
+
+**Gate A — before a vault holds real funds on mainnet.** All of:
+- an independent third-party security audit
+- a TVL cap per vault
+- one or two agent-as-a-service pilot customers, on capped vaults
+
+**Gate B — before coverage is sold on mainnet.** Gate A, and all of:
+- drift frequency measured on mainnet history (open question 1 in `DECISIONS.md`)
+- `k` and the concentration limit derived from the simulation and locked; the simulation
+  derives a concentration limit of 1.4 x capital against the contract's 2 x, and does not
+  identify `k` at all (D-66)
+- at least one attestor independent of Aruna
+- legal review of whether the product counts as regulated cover where it is sold
+
+Until both pass, coverage runs in full on testnet with its numbers labelled as assumptions.
+
+**Also on the map: a NEP for mutability class.** The `global_by_account` problem is not
+Aruna's: it affects every indexer, risk dashboard and agent on NEAR. Solving it at the
+standard level is the part of this work most likely to outlive the product.
 
 ---
 
 ## Four UI surfaces
 
-Owned by a separate team, with `prototype/` as a flow reference. `FRONTEND.md` carries their role, the question each surface
-must answer, and the short list of non-negotiables.
+`FRONTEND.md` carries the role of each surface, the question it must answer, and the short list of
+non-negotiables.
 
 **Classifier page.** Static, no wallet, no backend. Paste any account id, see its class
 and the evidence. This is the first thing a judge should touch.

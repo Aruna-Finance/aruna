@@ -3,9 +3,7 @@
 Every `aruna` NEP-297 event on testnet, read from public RPC endpoints into a Postgres database and served
 over a read-only HTTP API. The indexer holds no keys and sends no transactions.
 
-Plans: `docs/plans/2026-11-11-1645-feat-live-console-indexer-migration-sim-plan.md` (U1 read contract,
-U2 ingest, U3 server) and `docs/plans/2026-11-13-0335-feat-indexer-postgres-supabase-plan.md` (the database).
-Every route answers with the types in `src/api.ts`.
+Every route answers with the types in `src/api.ts`. Deploying it: `docs/DEPLOY-INDEXER-RAILWAY.md`.
 
 ## How it reads the chain
 

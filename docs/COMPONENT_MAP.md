@@ -91,4 +91,5 @@ Owned by Ilham. Guided demo (`Story`) runs on mock data, labelled as such.
 - **G6. `examples/add-agents.ts` sends a v2-shaped policy** (`max_per_tx`, `daily_cap` at the top level). Vault v3 and v4
   require `limits: [...]` (`contracts/vault/src/lib.rs` `Policy`), so the script fits only v2 vaults such as `demo2` [READ,
   not run]. On 13 Nov the agent for `mig1` was added with near CLI and the v4 shape instead.
-- **G5. Coverage purchase screen** does not pre-check window > 30 days or agent class (`PROJECT_STATE.md` §4.2). Ilham's area.
+- **G5. Coverage purchase screen** does not pre-check a window over 30 days or the agent's class; the pool
+  refuses the purchase after the transaction is sent, with the right reason.

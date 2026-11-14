@@ -9,9 +9,8 @@ them wrong; that history is kept deliberately, because the reasons still apply.
 ## Product shape
 
 ### D-01 — The classifier is the differentiator and is built first
-Five comparable hackathon projects already shipped vault-plus-scoped-key spending
-guards, some with more tests than we will write. Building that as the product means
-being one of five. Build order is classifier-first. See `COMPETITIVE.md`. The first customer
+Vault-plus-scoped-key spending guards are widely shipped and well tested. Building one as the
+product means shipping a commodity. Build order is therefore classifier-first. The first customer
 buys the vault and public page (D-36); the classifier is why those are worth buying.
 *Supersedes an earlier plan that built isolation and the gate first.*
 
@@ -251,7 +250,7 @@ and rulings are public. An independent attestor is a condition of gate B.
 
 ### D-44 — Mainnet gates are explicit
 A vault with real funds needs gate A: T5–T9, an independent audit, migration tooling, a TVL
-cap and capped AaaS pilots. Coverage needs gate B on top. See `BUILD-PLAN.md`.
+cap and capped AaaS pilots. Coverage needs gate B on top. See `PRODUCT.md`.
 
 ### D-45 — The measurement uses the NEAR BigQuery public dataset
 Plain RPC cannot produce "top N by calls". The source is official and the query is published,
@@ -314,8 +313,7 @@ Coverage, premium, underwriter capital, payout and recorded exposure are always 
 NEAR, or one NEP-141 token the owner's ceiling lists. The pool keeps one book per token, and `k`
 and concentration apply per book. Paying a token claim from NEAR exposure would need a price
 oracle, a third trust assumption. Ceilings and policies therefore carry limits per token. On
-testnet the token is Aruna's own test USDC, which has no value. From
-`docs/plans/2026-11-10-2106-feat-coverage-loop-testnet-plan.md`.
+testnet the token is Aruna's own test USDC, which has no value.
 
 ### D-55 — Coverage is per target, priced through the agent's daily cap
 One coverage names one agent, one target and one token. Its price depends on the target's class,
@@ -462,8 +460,7 @@ Costs accepted. Spending into the changed code reopens without a person having r
 is the class order here and each agent's `max_risk_class`. The key can record any target as any class, so a leak could
 record a dangerous target as `immutable_verified`: guard it as a secret, keep the owner's full-access key off the
 host, and revisit before mainnet. Corrects D-59: the registry keeps a freeze after the arbiter's ruling, on either
-side; only `lift_freeze` ends it (`contracts/registry/src/drift.rs`). Plan:
-`docs/plans/2026-11-13-2018-feat-hosted-attestor-keeper-plan.md`.
+side; only `lift_freeze` ends it (`contracts/registry/src/drift.rs`).
 
 14 November 2026: the keeper also pushes the freeze. D-59 assumed the freeze reaches every vault by `push_freeze`, but
 nothing hosted called it, so a vault learned of a freeze only when its cached class went stale (up to 3600 blocks). For a
@@ -479,7 +476,7 @@ they back (`PRODUCT.md`). The next pool keeps capital, shares, lock, `k` and con
 drift frequency is measured, because until then a class is chosen on an assumed `P(event)`.
 *Rejected:* a maximum class per underwriter in one book, which makes shares non-uniform and every premium and claim an
 allocation; senior and junior tranches, which answer loss priority, not risk choice; class-weighted capacity with no choice,
-which drops the promise. Plan: `docs/plans/2026-11-14-1453-feat-underwriter-console-flow-plan.md`.
+which drops the promise.
 
 ### D-69 — An underwriter leaves by an exit request with a date known when it is made
 `pool2` locks a whole book until the latest coverage on it ends plus the reporting period, and every purchase moves that

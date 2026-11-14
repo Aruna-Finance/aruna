@@ -1,20 +1,19 @@
-# Aruna — project context
+# Contributing to Aruna
+
+Conventions, pinned versions and the rules that keep this repository consistent. Start with
+`README.md` for what the product is and how to try it, and `docs/README.md` for the document
+index.
 
 **Aruna measures whether the contracts an agent touches can still change — and found a
 class that can change invisibly to the method everyone uses.**
 
-That sentence is the project. Everything else exists to make it true, usable and
-actionable. Read `docs/COMPETITIVE.md` before writing product code: five comparable
-projects already shipped the thing Aruna is *not*.
+That sentence is the project. Everything else exists to make it true, usable and actionable.
 
 Three layers, built in this order: **Measurement** (classify targets, record exposure),
 **Protection** (a vault that acts on the classification), **Coverage** (parametric
-protection against implementation drift).
-
-A product, not a hackathon entry. The first paying customer is an **agent-as-a-service
-company**: one vault per client, the client as owner, the company as operator.
-**14 November 2026, 23:59 UTC** is the NEAR HACKATHON deadline and the date of public
-release v0. Where the two conflict, say so rather than quietly choosing the demo.
+protection against implementation drift). The first paying customer is an
+**agent-as-a-service company**: one vault per client, the client as owner, the company as
+operator (`docs/PRODUCT.md`).
 
 ---
 
@@ -27,7 +26,7 @@ Break one and the output is unusable.
    If you cannot verify it: **stop and say so.**
 2. **Read `docs/NEAR-FACTS.md` before any contract code.** It records what our lab
    proved, including five things that are **impossible** on NEAR.
-3. **Testnet only** for transactions, until the release gates in `docs/BUILD-PLAN.md`
+3. **Testnet only** for transactions, until the release gates in `docs/PRODUCT.md`
    pass. The classifier reads mainnet state read-only.
 4. **Never commit keys, seed phrases or `.env`.** Only `.env.example`.
 5. **The vault is never a generic executor.** Named actions with per-protocol adapters
@@ -58,7 +57,7 @@ Break one and the output is unusable.
 | Primitives | `near-primitives` 0.38 | |
 | CLI | `near-cli-rs` ≥ 0.31.0-rc.2 | |
 | TypeScript | pnpm workspace | |
-| Apps | Next.js | owned by a separate team, see `docs/FRONTEND.md` |
+| Apps | Next.js | see `docs/FRONTEND.md` |
 
 **Gas keys (NEP-611) are not used.** Agents are function-call keys on the vault with a
 classic `allowance`, so there is no `TransferToGasKey`, no TransactionV1 and no
@@ -101,14 +100,14 @@ docs/
 
 | Working on | Read first |
 |---|---|
-| Anything, first time | `docs/COMPETITIVE.md`, then `docs/ARCHITECTURE.md` |
+| Anything, first time | `docs/ARCHITECTURE.md` |
 | Any contract code | `docs/NEAR-FACTS.md`, `docs/CONTRACTS.md` |
 | Classifier or its surfaces | `docs/CLASSIFIER.md` |
 | SDK, or anything consuming contracts | `docs/SDK.md` |
 | MCP tools | `docs/MCP.md` |
 | Attestor, claims, challenge window | `docs/ATTESTOR.md` |
 | Apps | `docs/FRONTEND.md` |
-| Scope or ordering | `docs/BUILD-PLAN.md` |
+| Scope, roadmap and release gates | `docs/PRODUCT.md` |
 | Questioning a design choice | `docs/DECISIONS.md` — probably settled |
 | Tests | `docs/TESTING.md` |
 | NEAR skills and official sources | `docs/NEAR-SKILLS.md` |
@@ -132,12 +131,17 @@ docs/
 
 ## Definition of done
 
-A stage is done when its acceptance criteria in `docs/BUILD-PLAN.md` are green, a
-stranger can follow the README's numbered "do X, see Y" steps, and **no claim in the
-README lacks a command that proves it.**
+Work is done when the tests pass, a stranger can follow the README's numbered
+"do X, see Y" steps, and **no claim in the README lacks a command that proves it.**
 
-## For the judges
+## Build and test
 
-Initial screening is by Claude Code and Codex: they check the project runs and does
-what the README says. Write for a machine reader — numbered steps, each with an
-expected result, no marketing. Public repo, MIT LICENSE, before the deadline.
+```bash
+pnpm install
+pnpm -r build
+pnpm -r --no-bail test
+bash scripts/secret-scan.sh
+```
+
+Contracts need Rust >= 1.95 and `cargo-near`; their tests run on a local sandbox from
+`contracts/` with `cargo test -p aruna-integration`. See `docs/TESTING.md`.

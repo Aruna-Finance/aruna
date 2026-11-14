@@ -1,5 +1,5 @@
 // Endpoints and request bodies are copied from docs.near.org/api/rpc (providers + contracts pages).
-// CORS from a browser origin is NOT stated by those docs: confirm before wiring live lookups (BUILD-PLAN stage 2).
+// CORS from a browser origin is NOT stated by those docs: confirm before wiring live lookups.
 import type { Network } from "./classifier-types";
 
 export const RPC_ENDPOINT: Record<Network, string> = {

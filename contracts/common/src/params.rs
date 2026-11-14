@@ -1,7 +1,7 @@
-//! Coverage parameters. TESTNET values: short, so one run finishes in one session (plan R32). The
-//! economic ones are UNDERWRITING ASSUMPTIONS (plan R8, docs/CONTRACTS.md "Premium"), declared here
-//! and returned next to every quote; the simulation (docs/BUILD-PLAN.md stage 8) is what derives
-//! them. None of these are safe for funds that matter.
+//! Coverage parameters. TESTNET values: short, so one run finishes in one session. The economic
+//! ones are UNDERWRITING ASSUMPTIONS (docs/CONTRACTS.md "Premium"), declared here and returned
+//! next to every quote; `@aruna/sim` is what derives them. None of these are safe for funds that
+//! matter.
 
 use crate::RiskClass;
 

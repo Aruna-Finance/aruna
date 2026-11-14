@@ -89,11 +89,11 @@ Useful facts when judging a result:
 
 ## 3. L1: wallet transport and transaction preview
 
-Plan unit U4. Needs a connected wallet. Automated coverage: `wallet-transport.test.ts`, `tx-status.test.ts`, `history.test.ts`, `TxDialog.test.tsx`.
+Needs a connected wallet. Automated coverage: `wallet-transport.test.ts`, `tx-status.test.ts`, `history.test.ts`, `TxDialog.test.tsx`.
 
 | ID | Scenario | Result | Evidence |
 |---|---|---|---|
-| L1-1 | Connect a wallet, the account shows in the header, disconnect works | [x] | pasted output of the local L0 page: connected account and balance (L0, see `docs/ILHAM-PLAN.md`) |
+| L1-1 | Connect a wallet, the account shows in the header, disconnect works | [x] | pasted output of the local wallet test page: connected account and balance |
 | L1-2 | A signed call goes through the transport: `set_ceiling` with exactly 1 yocto from the vault owner | [x] | tx `Axf3JmvfU2R3B1HqEerbR6UnMrbxJXaFoR41zeiEeqzJ`, `FINAL`, event `ceiling_updated` |
 | L1-3 | The preview shows signer, receiver, method, deposit (`1 yoctoNEAR`) and gas before the wallet opens | [x] | pasted log of the local L1 page |
 | L1-4 | Declining at the preview sends nothing and ends as cancelled | [x] | three `WalletCancelledError` entries in the pasted L1 log |
@@ -106,7 +106,7 @@ Not recorded: which wallet was used for L0 and L1. Only one wallet was tried.
 
 ## 4. L2: create a vault
 
-Plan unit U5. Route `/console/create/`. Automated coverage: `data/factory.test.ts`, `chain-reads.test.ts`, `wallet-transport.test.ts` (`sendNear`).
+Route `/console/create/`. Automated coverage: `data/factory.test.ts`, `chain-reads.test.ts`, `wallet-transport.test.ts` (`sendNear`).
 
 | ID | Scenario | Result | Evidence |
 |---|---|---|---|
@@ -123,7 +123,7 @@ Plan unit U5. Route `/console/create/`. Automated coverage: `data/factory.test.t
 
 ## 5. L3: agents and role actions
 
-Plan unit U6. Route `/console/agents/?vault=l2ocbae.factory2.arunafi.testnet`. Connect the wallet first; the header role switch (Client, Operator) only narrows what the wallet may do. Every signed action opens a dialog: the left button is named after the action (for example "Pause agent", "Delete the key", "Save the policy"), the right one is Cancel. After the wallet signs, the dialog says "Confirmed." with the hash as a link.
+Route `/console/agents/?vault=l2ocbae.factory2.arunafi.testnet`. Connect the wallet first; the header role switch (Client, Operator) only narrows what the wallet may do. Every signed action opens a dialog: the left button is named after the action (for example "Pause agent", "Delete the key", "Save the policy"), the right one is Cancel. After the wallet signs, the dialog says "Confirmed." with the hash as a link.
 
 Automated coverage: `agent-keys.test.ts`, `agent-actions.test.ts`, `data/agent-draft.test.ts`, `data/ceiling.test.ts`, `ui/LiveAgentsTable.test.tsx`.
 
@@ -229,7 +229,7 @@ Read-only pages first, then the one that needs a wallet. Use the vault `demo4.fa
 | C10 | `/console/coverage/buy/?vault=l2ocbae.factory2.arunafi.testnet`, wallet of the owner connected | A premium from the pool (about 0.13 NEAR for 1 NEAR, 30 days, 80%); the message "has not sent a fresh heartbeat"; Buy this coverage off | [x] 13 Nov |
 | C11 | Same page with no wallet connected | Same, plus "Connect the owner's wallet to buy" | [x] 13 Nov |
 | C12 | Same page, wallet of a vault's operator | "The owner buys coverage" | [ ] |
-| C13 | Buy, once an attestor's heartbeat is fresh (`heartbeat_fresh` true): tick the box, Buy this coverage, sign | Preview shows the premium as the attached deposit; after signing the coverage appears in `/console/coverage/` | [ ] blocked: no fresh heartbeat (`docs/FOR-ARIS.md` item 1) |
+| C13 | Buy, once an attestor's heartbeat is fresh (`heartbeat_fresh` true): tick the box, Buy this coverage, sign | Preview shows the premium as the attached deposit; after signing the coverage appears in `/console/coverage/` | [ ] blocked at the time of the run: no fresh heartbeat. The hosted attestor started that afternoon and the purchase was then made (README step 5h) |
 | C14 | Start a claim on a coverage with a verified report | A claim inside the challenge window is refused and recorded; after it, the pool pays or says why not | [ ] blocked: needs C13 or a deliberate claim on #0 or #1 |
 
 | A1 | `/console/agents/new/?vault=<your vault>`, step 1: choose "I already have the key", paste a public key with a letter changed or `ed25519:abc` | The field names the problem ("32 bytes; this one decodes to ...", or "not base58"); Next stays off; nothing is signed | [ ] |

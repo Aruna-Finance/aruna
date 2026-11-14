@@ -309,7 +309,7 @@ earlier attempts were each refused by the pool with a `coverage_refused` event: 
 (`immutable_verified`) is below the target's class (`local_upgradeable`), one for a window of 47 days, above the 30-day
 maximum. A claim has been sent from the console: coverage #5 on report 3, paid 0.08 NEAR on 13 November 2026
 (tx `Bpqr87b3Fzw4afXmEmMYZLoze3nahUWi7WjkZJYMqjW5`). Only NEAR coverage can be bought from the console; token coverage is
-shown but not bought. Two points in the pool's claim code are under review and not yet confirmed (`docs/FOR-ARIS.md`, item 7).
+shown but not bought. Two points in the pool's claim code are read but not reproduced, and are not yet confirmed or refuted by a test: see Limits below.
 
 ### 5i. Simulation, read from the published results
 
@@ -731,7 +731,7 @@ Aruna is verifiable and reproducible. It is not trustless.
   Reproducing the deployed hash needs the `sourcescan/cargo-near:0.21.1` image at that commit, which we
   have not run (`docs/COMPONENT_MAP.md` §5, G3). The vault's hash does match (step 14).
 - Two points in the pool's claim code are read but not reproduced, and are not yet confirmed or refuted
-  by a test (`docs/FOR-ARIS.md` item 7): a claim may still pay after `release_expired` released the
+  by a test: a claim may still pay after `release_expired` released the
   coverage, which would leave the book's `total_limits` lower than the limits really outstanding; and the
   payout transfer is fire-and-forget, so a failed token transfer would still read as paid. Neither touches
   the NEAR path for coverage that is still active.
@@ -755,7 +755,7 @@ Aruna is verifiable and reproducible. It is not trustless.
 | spend path, reservations, auto-disable and one swap adapter, proven on a sandbox | |
 | the same spend path on testnet: an honest and an injected agent (`examples/`) | |
 
-Build order and release gates: [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
+Build order and release gates: [`docs/PRODUCT.md`](docs/PRODUCT.md).
 
 ## Repository
 

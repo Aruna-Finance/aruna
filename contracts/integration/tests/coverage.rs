@@ -1,4 +1,4 @@
-//! The coverage loop on a sandbox (plan U7; docs/BUILD-PLAN.md Stage 7 acceptance). One stack per
+//! The coverage loop on a sandbox. One stack per
 //! test: registry v2, factory, pool, vault v3, a test USDC token, and the drift target running a
 //! global contract BY ACCOUNT under `target-owner`, whose redeploy is a real code change that the
 //! target's `view_account.code_hash` never shows. Run with --nocapture to read the story.
