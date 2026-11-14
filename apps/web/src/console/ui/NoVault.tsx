@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { WithPlus } from "@/shared/WithPlus";
 import type { LiveVault } from "../useLiveVault";
 import { useOperatedVaults } from "../useOperatedVaults";
 import { useOwnedVaults } from "../useOwnedVaults";
 import { useWallet } from "../WalletContext";
 import { Button } from "@/shared/Button";
+import { PageHeader } from "./PageHeader";
 
 /** With a wallet connected, the vaults it owns, so a vault is one click away even when the browser forgot it. */
 function OwnedChoice() {
@@ -21,7 +23,7 @@ function OwnedChoice() {
           <span className="mono">{accountId}</span> has no vault yet.
         </p>
         <Link href="/console/create/" tabIndex={-1} className="mt-5 inline-block">
-          <Button type="button">Create a vault</Button>
+          <Button type="button"><WithPlus>Create a vault</WithPlus></Button>
         </Link>
       </div>
     );
@@ -82,7 +84,7 @@ function ConnectFirst() {
 export function NoVault({ live, title }: { live: Exclude<LiveVault, { status: "ok" }>; title: string }) {
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">{title}</h1>
+      <PageHeader title={title} />
       {live.status === "loading" && <p className="mt-4 text-muted">Reading the vault.</p>}
       {live.status === "error" && (
         <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "../ui/PageHeader";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/shared/Button";
@@ -39,11 +40,9 @@ export function PublicAgent() {
   if (state.status === "error") {
     return (
       <article>
-        {crumb}
-        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Could not read this vault</h1>
-        <p className="mt-4 max-w-[70ch] text-slate">
+        <PageHeader title="Could not read this vault" lead={crumb}>
           <span className="mono">{vault}</span>: {state.message}.
-        </p>
+        </PageHeader>
       </article>
     );
   }
@@ -53,11 +52,9 @@ export function PublicAgent() {
   if (!a) {
     return (
       <article>
-        {crumb}
-        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Agent not found</h1>
-        <p className="mt-4 max-w-[70ch] text-slate">
+        <PageHeader title="Agent not found" lead={crumb}>
           No agent with key <span className="mono break-all">{key}</span> is registered on <span className="mono">{view.vault}</span>.
-        </p>
+        </PageHeader>
       </article>
     );
   }
@@ -76,22 +73,23 @@ export function PublicAgent() {
 
   return (
     <article>
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          {crumb}
-          <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">{a.label}</h1>
-          <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className={warn ? "text-dawn-ink" : ""}>{a.autoDisabled ? "Stopped by vault" : a.status}</span>
-            <span className="mono text-muted break-all">{a.publicKey}</span>
-            <span className="text-muted">on</span>
-            <span className="mono">{view.vault}</span>
-            <span className="text-muted">No login needed</span>
-          </p>
-        </div>
-        <Button type="button" variant="outline" onClick={copyLink}>
-          Copy this page&apos;s link
-        </Button>
-      </div>
+      <PageHeader
+        title={a.label}
+        lead={crumb}
+        actions={
+          <Button type="button" variant="outline" onClick={copyLink}>
+            Copy this page&apos;s link
+          </Button>
+        }
+      >
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span className={warn ? "text-dawn-ink" : ""}>{a.autoDisabled ? "Stopped by vault" : a.status}</span>
+          <span className="mono text-muted break-all">{a.publicKey}</span>
+          <span className="text-muted">on</span>
+          <span className="mono">{view.vault}</span>
+          <span className="text-muted">No login needed</span>
+        </span>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="What this agent cannot do" aside={<span className="text-sm text-muted">The NEAR protocol refuses these</span>}>

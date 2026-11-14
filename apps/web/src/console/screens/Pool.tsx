@@ -26,6 +26,7 @@ import { useTokenMeta } from "../useTokenMeta";
 import { NO_ACTIONS, useUnderwriterActions, type UnderwriterActions } from "../useUnderwriterActions";
 import { useWallet } from "../WalletContext";
 import { Panel } from "../ui/Panel";
+import { PageHeader } from "../ui/PageHeader";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
@@ -53,10 +54,9 @@ export function PoolView({ data, account, wallet = new Map(), actions = NO_ACTIO
   const meta = given ?? fetched;
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Pool</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Pool">
         Capital in the pool and the coverage it backs. Underwriters add capital to a book and take it out once the book&apos;s lock ends.
-      </p>
+      </PageHeader>
       {data.state === "loading" && <p className="mt-6 text-muted">Reading the pool.</p>}
       {data.state === "error" && <ReadError what="the pool" detail={data.message} className="mt-6" />}
       {data.state === "ok" && (
@@ -181,7 +181,7 @@ function TokenBook({
   );
 }
 
-const inputClass = "mono mt-1.5 block w-full border border-line-2 bg-white px-3 py-3.5 text-sm outline-none transition-colors hover:border-ink focus:border-ink disabled:opacity-60";
+const inputClass = "mono mt-1.5 block w-full border border-line-2 bg-paper px-3 py-3.5 text-sm outline-none transition-colors hover:border-ink focus:border-ink disabled:opacity-60";
 
 /**
  * The underwriter's own actions on one book. Every figure the forms show is an estimate read from the contract; the dialog says

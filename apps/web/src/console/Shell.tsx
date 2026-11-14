@@ -5,12 +5,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { Select } from "@/shared/Select";
 import { LISTED_ROLES, SCREEN_IDS, roleById, roleFor, type RoleId, type ScreenId } from "./nav";
 import { useRole } from "./RoleContext";
+import { ThemeToggle } from "./ui/ThemeToggle";
 import { WalletButton } from "./ui/WalletButton";
 
 const screenOf = (path: string): ScreenId | null => {
   const seg = path.split("/").filter(Boolean)[1]; // /console/<screen>/
   return (SCREEN_IDS as string[]).includes(seg) ? (seg as ScreenId) : null;
 };
+
+/** Screens reached from another screen's page, not from the sidebar: the sidebar item they belong to stays highlighted. */
+const BELONGS_TO: Partial<Record<ScreenId, ScreenId>> = { create: "vault", migrate: "vault" };
 
 /** Top bar, role switcher, sidebar. */
 export function Shell({ children }: { children: ReactNode }) {
@@ -30,6 +34,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [screen, ready]);
 
   const current = roleById(role);
+  const lit = screen && current.items.some((i) => i.id === BELONGS_TO[screen] && !i.hidden) ? BELONGS_TO[screen] : screen;
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -37,14 +42,14 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 max-sm:justify-between md:px-6">
           <Link href="/" aria-label="Aruna site" className="shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/logo.png" alt="" width={40} height={40} className="size-10" />
+            <img src="/images/logo.png" alt="" width={40} height={40} className="size-10 dark:mix-blend-lighten dark:invert" />
           </Link>
           <div className="flex min-w-0 flex-1 items-center gap-3 max-sm:order-last max-sm:basis-full">
             <span className="label hidden shrink-0 text-xs text-muted sm:inline">View as</span>
             <Select<RoleId>
               label="View as"
-              value={role}
-              options={[...LISTED_ROLES, ...(current.unlisted ? [current] : [])].map((r) => ({ value: r.id, label: r.label }))}
+              value={current.unlisted ? "owner" : role}
+              options={LISTED_ROLES.map((r) => ({ value: r.id, label: r.label }))}
               onValueChange={(id) => {
                 setRole(id);
                 router.push(`/console/${roleById(id).home}/`);
@@ -53,6 +58,7 @@ export function Shell({ children }: { children: ReactNode }) {
             />
           </div>
           <div className="flex shrink-0 items-center gap-3">
+            <ThemeToggle />
             <span className="label border border-line-2 px-1.5 py-0.5 text-[10px] sm:px-2 sm:text-xs">testnet</span>
             <WalletButton />
           </div>
@@ -68,29 +74,21 @@ export function Shell({ children }: { children: ReactNode }) {
             <Link
               key={i.id}
               href={`/console/${i.id}/`}
-              aria-current={screen === i.id ? "page" : undefined}
-              className="shrink-0 px-3 py-2 text-[15px] transition-colors hover:bg-wash aria-[current=page]:bg-fog aria-[current=page]:font-medium"
+              aria-current={lit === i.id ? "page" : undefined}
+              className="label shrink-0 border border-transparent px-3 py-2 text-sm transition-colors hover:border-line aria-[current=page]:border-line-2"
             >
               {i.label}
             </Link>
           ))}
           <Link
-            href="/console/developers/"
-            onClick={() => setRole("developer")}
-            aria-current={screen === "developers" ? "page" : undefined}
-            className="shrink-0 px-3 py-2 text-[13px] text-muted transition-colors hover:bg-wash aria-[current=page]:bg-fog lg:mt-auto"
-          >
-            Developers
-          </Link>
-          <Link
             href="/console/story/"
             aria-current={screen === "story" ? "page" : undefined}
-            className="shrink-0 px-3 py-2 text-[13px] text-muted transition-colors hover:bg-wash aria-[current=page]:bg-fog"
+            className="label shrink-0 border border-transparent px-3 py-2 text-sm text-muted transition-colors hover:border-line aria-[current=page]:border-line-2 aria-[current=page]:text-ink lg:mt-auto"
           >
             Demo (mock data)
           </Link>
         </nav>
-        <main className="min-w-0 flex-1 bg-wash px-4 py-8 md:px-10 md:py-10">{children}</main>
+        <main className="console-main min-w-0 flex-1 bg-wash px-4 py-8 md:px-10 md:py-10">{children}</main>
       </div>
     </div>
   );

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* The console sets data-theme="dark" on the page root while it is open (console/ui/ThemeToggle.tsx). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Style reference: bitnomial.com (see docs/UI-STYLE.md). Layout follows the Claude web prototype. */
 @theme {
   --color-paper: #ffffff;
@@ -57,6 +60,23 @@
   }
 }
 
+/* Dark mode redefines the same tokens, so every utility that uses them follows. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-paper: #181818;
+  --color-wash: #0f0f0f;
+  --color-fog: #262626;
+  --color-ink: #f2f2f2;
+  --color-slate: #d0d0d0;
+  --color-muted: #a0a0a0;
+  --color-dawn: #ff7756;
+  --color-dawn-hot: #ff8a6e;
+  --color-dawn-ink: #ff8a6e;
+  --color-dawn-wash: #2b1a14;
+  --color-line: #2b2b2b;
+  --color-line-2: #3d3d3d;
+}
+
 @layer base {
   body {
     @apply bg-paper font-sans text-ink antialiased;
@@ -83,6 +103,18 @@
   font-family: var(--font-mono);
   font-size: 0.9em;
   overflow-wrap: anywhere;
+}
+
+/* Inside the console, page and card titles use the label font, and the line under a page title uses its family, so the titles match the menu and the dropdown. */
+.console-main h1,
+.console-main h2 {
+  font-family: var(--font-label);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.console-main h1 + p {
+  font-family: var(--font-label);
 }
 
 /* Small uppercase mono label: buttons, tags, column titles. */

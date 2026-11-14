@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "../ui/PageHeader";
 import { ReadError } from "@/shared/ReadError";
 import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
@@ -71,9 +72,9 @@ export function TargetView({ id, data }: { id: string; data: RegistryTargetView 
   if (!id) {
     return (
       <article>
-        {crumb}
-        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">No target named</h1>
-        <p className="mt-4 max-w-[70ch] text-slate">Open a target from the Targets page.</p>
+        <PageHeader title="No target named" lead={crumb}>
+          Open a target from the Targets page.
+        </PageHeader>
       </article>
     );
   }
@@ -101,13 +102,13 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
   const owner = live?.evidence.codeRef?.kind === "global_account" ? live.evidence.codeRef.ownerAccount : null;
   return (
     <article>
-      {crumb}
-      <h1 className="mt-3 break-all text-[clamp(28px,4vw,44px)]">{id}</h1>
-      <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {rec ? <ClassTag c={rec.class} /> : <span className="mono text-sm text-muted">not recorded</span>}
-        {rec?.frozen && <span className="text-sm text-dawn-ink">Frozen by a change report</span>}
-        <span className="text-sm text-muted">Read at block {blk(head)}.</span>
-      </p>
+      <PageHeader title={id} lead={crumb}>
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {rec ? <ClassTag c={rec.class} /> : <span className="mono text-sm text-muted">not recorded</span>}
+          {rec?.frozen && <span className="text-sm text-dawn-ink">Frozen by a change report</span>}
+          <span className="text-sm text-muted">Read at block {blk(head)}.</span>
+        </span>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="Recorded in the registry">

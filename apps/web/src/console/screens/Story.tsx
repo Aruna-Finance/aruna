@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "../ui/PageHeader";
 import { useSyncExternalStore } from "react";
 import { Button } from "@/shared/Button";
 import { storyStore } from "../data/story";
@@ -23,18 +24,17 @@ export function Story() {
 
   return (
     <article>
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <h1 className="text-[clamp(28px,4vw,44px)]">Guided demo in {steps.length} steps</h1>
-          <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-            A scripted walkthrough on mock data, from checking a contract to a paid claim and a rejected false report. Nothing here touches your
-            vault. One step reads a real testnet vault, and says so.
-          </p>
-        </div>
-        <Button type="button" variant="outline" onClick={() => window.location.reload()}>
-          Restart the demo
-        </Button>
-      </div>
+      <PageHeader
+        title={`Guided demo in ${steps.length} steps`}
+        actions={
+          <Button type="button" variant="outline" onClick={() => window.location.reload()}>
+            Restart the demo
+          </Button>
+        }
+      >
+        A scripted walkthrough on mock data, from checking a contract to a paid claim and a rejected false report. Nothing here touches your
+        vault. One step reads a real testnet vault, and says so.
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel>

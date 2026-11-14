@@ -60,7 +60,7 @@ export function LiveAgentsTable({
             const btn = (action: AgentAction, text: string, run: () => void) => {
               const v = can(action);
               return (
-                <div key={action} className="flex flex-col items-end gap-1 max-sm:items-start">
+                <div key={action} className="flex flex-col items-start gap-1">
                   <Button type="button" variant="outline" className="px-3! py-1.5! text-sm!" disabled={!v.enabled} onClick={run}>
                     {text}
                   </Button>
@@ -100,12 +100,19 @@ export function LiveAgentsTable({
                   {a.status === "Revoked" ? <span className="text-muted">Deleted</span> : keyInThisBrowser(held, a.publicKey) ? "In this browser" : <span className="text-muted">Held elsewhere</span>}
                 </td>
                 <td className={`${td} text-right`}>
-                  {a.status === "Revoked" ? null : (
-                    <div className="flex flex-col items-end gap-2 max-sm:flex-row max-sm:flex-wrap max-sm:items-start">
-                      {a.status === "Active" ? btn("pause", "Pause", () => onPause(a)) : btn("resume", "Resume", () => onResume(a))}
-                      {btn("revoke", "Revoke", () => onRevoke(a))}
-                    </div>
-                  )}
+                  <div className="flex flex-row flex-wrap items-start justify-end gap-2 max-sm:justify-start">
+                    <Link href={`/console/agents/detail/?agent=${encodeURIComponent(a.publicKey)}`} tabIndex={-1}>
+                      <Button type="button" variant="outline" className="px-3! py-1.5! text-sm!">
+                        Open
+                      </Button>
+                    </Link>
+                    {a.status !== "Revoked" && (
+                      <>
+                        {a.status === "Active" ? btn("pause", "Pause", () => onPause(a)) : btn("resume", "Resume", () => onResume(a))}
+                        {btn("revoke", "Revoke", () => onRevoke(a))}
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

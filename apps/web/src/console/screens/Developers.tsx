@@ -1,5 +1,6 @@
 import { REFUSALS } from "@/landing/lib/facts";
 import { Panel } from "../ui/Panel";
+import { PageHeader } from "../ui/PageHeader";
 
 // Static reference. Tool names, inputs and returns are copied from docs/MCP.md; reasons from docs/CONTRACTS.md
 // through landing/lib/facts. Nothing here is invented, and console/developers.test.ts checks the reason set
@@ -63,10 +64,9 @@ function ToolTable({ rows }: { rows: { tool: string; input: string; returns: str
 export function Developers() {
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">SDK and MCP</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="SDK and MCP">
         Tools for agents whose framework speaks tool-calling. They wrap <span className="mono">@aruna/sdk</span>.
-      </p>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="Keyless tools" aside={<span className="text-sm text-muted">No account, vault or key</span>}>

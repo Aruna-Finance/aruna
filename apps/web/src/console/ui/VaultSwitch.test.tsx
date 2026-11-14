@@ -16,6 +16,10 @@ describe("VaultSwitch", () => {
     expect(html).toContain("<ul");
     expect(html).toContain("a.f");
   });
+  it("says how many vaults there are, and says so when there is only one", () => {
+    expect(renderToStaticMarkup(<VaultSwitchView vault="b.f" options={two} onPick={() => {}} />)).toContain("You have 2 vaults");
+    expect(renderToStaticMarkup(<VaultSwitchView vault="b.f" options={[two[0]]} onPick={() => {}} />)).toContain("Your only vault");
+  });
   it("is just the name when there is only one vault", () => {
     const html = renderToStaticMarkup(<VaultSwitchView vault="b.f" options={[two[0]]} onPick={() => {}} />);
     expect(html).not.toContain("Switch vault");

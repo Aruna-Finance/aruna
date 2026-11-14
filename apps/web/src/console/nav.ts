@@ -5,6 +5,7 @@ export type RoleId = "owner" | "operator" | "underwriter" | "counterparty" | "de
 export type ScreenId =
   | "dashboard"
   | "agents"
+  | "vault"
   | "targets"
   | "coverage"
   | "claims"
@@ -35,6 +36,7 @@ export const ROLES: Role[] = [
     home: "dashboard",
     items: [
       { id: "dashboard", label: "Overview" },
+      { id: "vault", label: "Vault" },
       { id: "agents", label: "Agents" },
       { id: "targets", label: "Contracts" },
       { id: "coverage", label: "Coverage" },
@@ -104,6 +106,12 @@ export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: str
     phase: "F5",
     role: "owner",
     plan: "Vault, active agents, recorded exposure, premium for current policies, contracts touched and the cost of protection.",
+  },
+  vault: {
+    title: "Vault",
+    phase: "F5",
+    role: "owner",
+    plan: "The vault's funds with deposit and withdraw, its operator and limits, creating another vault and moving to a new one.",
   },
   agents: {
     title: "Agents",

@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "../ui/PageHeader";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -11,9 +12,10 @@ import { availability, isTighter, policyProblem, type ActorRole } from "../agent
 import { createTestnetReads } from "../chain-reads";
 import { draftFromPolicy, draftToPolicy } from "../data/agent-draft";
 import { classifiedTargets, readFactory, type TargetOption } from "../data/factory";
-import { block, nearToYocto, yoctoToNear } from "../fmt";
+import { block, yoctoToNear } from "../fmt";
 import { defaultHistory, type HistoryState } from "../history";
 import { actorFor, noActorReason } from "../live-vault";
+import { useBalance } from "../useBalance";
 import { useLiveActions } from "../useLiveActions";
 import { useLiveVault, type LiveVault } from "../useLiveVault";
 import { useRole } from "../RoleContext";
@@ -52,14 +54,13 @@ const COUNTED = new Set(REFUSALS.filter((r) => r.counts).map((r) => r.reason));
 function NotFound({ id }: { id: string | null }) {
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Agent not found</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Agent not found">
         {id ? <>No agent with key <span className="mono break-all">{id}</span> exists on this vault.</> : "No agent was named in the link."}{" "}
         <Link href="/console/agents/" className="underline underline-offset-4">
           Back to the agent list
         </Link>
         .
-      </p>
+      </PageHeader>
     </article>
   );
 }
@@ -101,33 +102,36 @@ function Detail({ live, agent: a }: { live: Extract<LiveVault, { status: "ok" }>
 
   return (
     <article>
-      <p className="text-sm text-muted">
-        <Link href="/console/agents/" className="underline underline-offset-4">
-          Agents
-        </Link>{" "}
-        / <span className="mono break-all">{a.publicKey}</span>
-      </p>
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <h1 className="text-[clamp(28px,4vw,44px)]">{a.label}</h1>
-          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <StatusChip a={a} />
-            <span className="text-sm text-muted">Counted refusals {counted === null ? "unavailable" : counted}</span>
+      <PageHeader
+        title={a.label}
+        lead={
+          <p className="text-muted">
+            <Link href="/console/agents/" className="underline underline-offset-4">
+              Agents
+            </Link>{" "}
+            / <span className="mono break-all">{a.publicKey}</span>
           </p>
-        </div>
-        <div className="flex flex-wrap items-start gap-3">
-          {a.status === "Active" && <ActionButton v={pause} variant="dark" onClick={() => acts.pause(a.publicKey, a.label)}>Freeze agent</ActionButton>}
-          {a.status === "Paused" && <ActionButton v={resume} onClick={() => acts.resume(a.publicKey, a.label)}>Resume agent</ActionButton>}
-          {a.status !== "Revoked" && <ActionButton v={revoke} variant="dark" onClick={() => acts.revoke(a.publicKey, a.label)}>Revoke agent</ActionButton>}
-        </div>
-      </div>
+        }
+        actions={
+          <>
+            {a.status === "Active" && <ActionButton v={pause} variant="dark" onClick={() => acts.pause(a.publicKey, a.label)}>Freeze agent</ActionButton>}
+            {a.status === "Paused" && <ActionButton v={resume} onClick={() => acts.resume(a.publicKey, a.label)}>Resume agent</ActionButton>}
+            {a.status !== "Revoked" && <ActionButton v={revoke} variant="dark" onClick={() => acts.revoke(a.publicKey, a.label)}>Revoke agent</ActionButton>}
+          </>
+        }
+      >
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <StatusChip a={a} />
+          <span className="text-sm text-muted">Counted refusals {counted === null ? "unavailable" : counted}</span>
+        </span>
+      </PageHeader>
 
       <div className="mt-8">
         <Tabs tabs={TABS} value={tab} onChange={setTab}>
           {tab === "overview" && <OverviewTab live={live} a={a} />}
           {tab === "policy" && <PolicyTab live={live} a={a} actor={actor} reason={noActorReason(relation)} />}
           {tab === "activity" && <ActivityTab live={live} a={a} />}
-          {tab === "funding" && <FundingTab live={live} a={a} actor={actor} reason={noActorReason(relation)} />}
+          {tab === "funding" && <FundingTab live={live} a={a} />}
           {tab === "access" && <AccessTab live={live} a={a} />}
         </Tabs>
       </div>
@@ -144,19 +148,6 @@ function ActionButton({ v, variant, onClick, children }: { v: ReturnType<typeof 
       {!v.enabled && <span className="max-w-[28ch] text-right text-xs leading-[1.4] text-muted">{v.reason}</span>}
     </div>
   );
-}
-
-function useBalance(vault: string, refreshKey: unknown) {
-  const reads = useMemo(() => createTestnetReads(), []);
-  const [b, setB] = useState<bigint | null>(null);
-  useEffect(() => {
-    let alive = true;
-    reads.balance(vault).then((v) => alive && setB(v)).catch(() => alive && setB(null));
-    return () => {
-      alive = false;
-    };
-  }, [reads, vault, refreshKey]);
-  return b;
 }
 
 function OverviewTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView }) {
@@ -367,48 +358,21 @@ function ActivityTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; 
   );
 }
 
-function FundingTab({ live, a, actor, reason }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView; actor: ActorRole | null; reason: string }) {
-  const acts = useLiveActions(live.vault, live.refresh);
-  const balance = useBalance(live.vault, live.view);
-  const [dep, setDep] = useState(0);
-  const [wd, setWd] = useState(0);
+function FundingTab({ live, a }: { live: Extract<LiveVault, { status: "ok" }>; a: AgentView }) {
   const allowance = a.key?.allowance ?? null;
-  const owner = live.view.owner;
-  const wdOk = availability(actor ?? "operator", "withdraw", a);
-
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
-      <Panel title="Balance in the vault" aside={<span className="text-[28px] leading-none">{balance === null ? "unknown" : yoctoToNear(balance.toString())} <small className="text-base text-muted">NEAR</small></span>}>
-        <p className="-mt-2 mb-5 text-sm text-muted">The vault holds the funds, for all of its agents. The agent holds none.</p>
-        <div className="grid gap-5">
-          <div className="grid gap-3">
-            <NumberField label="Deposit" suffix={<TokenIcon t="NEAR" />} step={0.5} value={dep} onChange={setDep} />
-            <div>
-              <Button type="button" disabled={!acts.accountId || !(dep > 0)} onClick={() => acts.deposit(nearToYocto(dep))}>
-                Deposit NEAR
-              </Button>
-              {!acts.accountId && <p className="mt-1 text-xs text-muted">Connect a wallet to deposit.</p>}
-            </div>
-          </div>
-          {actor === "owner" ? (
-            <div className="grid gap-3">
-              <NumberField label={`Withdraw to ${owner}`} suffix={<TokenIcon t="NEAR" />} step={0.5} value={wd} onChange={setWd} hint="Only the owner can do this, in any state, and only to the owner's account." />
-              <div>
-                <Button type="button" variant="outline" disabled={!wdOk.enabled || !(wd > 0)} onClick={() => acts.withdraw(nearToYocto(wd).toString(), owner)}>
-                  Withdraw to owner
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted">{actor === "operator" ? "Only the client can withdraw, and only to its own account." : `Withdrawing: ${reason}.`}</p>
-          )}
-        </div>
-      </Panel>
-
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       <Panel title="Fee allowance" aside={<span className="text-[28px] leading-none">{allowance === null ? "none" : yoctoToNear(allowance)} <small className="text-base text-muted">NEAR</small></span>}>
         <p className="-mt-2 mb-5 text-sm leading-[1.6] text-muted">
           A classic allowance on the key, paid from the vault&apos;s balance. The owner&apos;s ceiling sets it when an agent is added. This console cannot change it
           on an existing key.
+        </p>
+        <p className="text-sm text-muted">
+          The vault&apos;s funds, deposit and withdraw are on the{" "}
+          <Link href={`/console/vault/detail/?vault=${encodeURIComponent(live.vault)}`} className="underline underline-offset-4">
+            Vault page
+          </Link>
+          .
         </p>
       </Panel>
     </div>

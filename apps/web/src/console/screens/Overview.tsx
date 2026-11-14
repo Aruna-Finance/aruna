@@ -10,7 +10,7 @@ import { yoctoToNear } from "../fmt";
 import { useLiveVault } from "../useLiveVault";
 import { newestFirst, useVaultHistory } from "../useVaultHistory";
 import { useWallet } from "../WalletContext";
-import { relationOf, RELATION_TEXT } from "../walletRole";
+import { relationOf } from "../walletRole";
 import { ActivityList } from "../ui/ActivityList";
 import { ExposureHistory } from "../ui/ExposureHistory";
 import { HistoryBlock } from "../ui/HistoryBlock";
@@ -18,13 +18,14 @@ import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
 import { VaultSwitch } from "../ui/VaultSwitch";
 import { StatusChip } from "../ui/StatusChip";
+import { PageHeader } from "../ui/PageHeader";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
 
 function Tile({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) {
   return (
-    <div className="border border-line-2 bg-paper p-5">
+    <div className="border-b border-r border-line-2 bg-paper p-5">
       <dt className="label text-xs text-muted">{label}</dt>
       <dd className="mt-2 text-[28px] leading-[1.1]">{children}</dd>
       {sub && <div className="mt-1">{sub}</div>}
@@ -58,14 +59,13 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Overview</h1>
+      <PageHeader
+        title="Overview"
+        relation={relation}
+      >Your vault at a glance: funds, agents, and what they touched.</PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
-        <p className="border-l-[3px] border-line-2 bg-fog px-5 py-4 text-[15px] leading-[1.6]">
-          {relation ? RELATION_TEXT[relation] : "Connect a wallet to act on this vault. You can read it without one."}
-        </p>
-
-        <dl className="grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2 lg:grid-cols-4 [&>div]:border-0">
+        <dl className="grid border-l border-t border-line-2 sm:grid-cols-2 lg:grid-cols-4">
           <Tile label="Vault" sub={<VaultSwitch vault={vault} />}>
             <span className="text-lg">{vault.split(".")[0]}</span>
             <small className="mt-1 block text-xs text-muted">

@@ -12,6 +12,7 @@ import { useWallet } from "../WalletContext";
 import { CopyBlock } from "../ui/CopyBlock";
 import { TextField } from "../ui/Field";
 import { Panel } from "../ui/Panel";
+import { PageHeader } from "../ui/PageHeader";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
@@ -65,11 +66,10 @@ export function MigrationView({
   const canCheck = !!vault && !!account && !problem && name !== "" && plan.state !== "checking";
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Migrate to a new vault</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Migrate to a new vault">
         A vault&apos;s code can&apos;t change, so a new version means a new vault. This page checks the plan. The migration itself runs from the
         command line, so it can be resumed.
-      </p>
+      </PageHeader>
 
       {!vault && !loading && !error && (
         <p className="mt-8 border border-line px-5 py-4 text-slate">Open a vault first: connect your wallet and choose one on the Overview.</p>

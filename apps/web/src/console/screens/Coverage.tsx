@@ -14,6 +14,7 @@ import { LiveCoverageTable } from "../ui/LiveCoverageTable";
 import { NotCovered } from "../ui/CoverageNotes";
 import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
+import { PageHeader } from "../ui/PageHeader";
 
 export function Coverage() {
   const live = useLiveVault();
@@ -32,24 +33,24 @@ function LiveCoverage({ live }: { live: Extract<LiveVault, { status: "ok" }> }) 
 
   return (
     <article>
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <h1 className="text-[clamp(28px,4vw,44px)]">Coverage</h1>
-          <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-            Pays out when a covered contract&apos;s code changes after your agents sent funds to it, whether the change was malicious or routine.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="outline" onClick={() => setOpen(true)}>
-            What is not covered
-          </Button>
-          {relation !== "operator" && (
-            <Link href={`/console/coverage/buy/?vault=${encodeURIComponent(vault)}`} tabIndex={-1}>
-              <Button type="button">Buy coverage</Button>
-            </Link>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Coverage"
+        relation={relation}
+        actions={
+          <>
+            <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+              What is not covered
+            </Button>
+            {relation !== "operator" && (
+              <Link href={`/console/coverage/buy/?vault=${encodeURIComponent(vault)}`} tabIndex={-1}>
+                <Button type="button">Buy coverage</Button>
+              </Link>
+            )}
+          </>
+        }
+      >
+        Pays out when a covered contract&apos;s code changes after your agents sent funds to it, whether the change was malicious or routine.
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="Coverage held for this vault">

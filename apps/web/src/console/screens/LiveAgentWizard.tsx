@@ -4,6 +4,8 @@ import { shortKey } from "../fmt";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/Button";
+import { WithPlus } from "@/shared/WithPlus";
+import { PageHeader } from "../ui/PageHeader";
 import { ACCESS_KEY_ROWS } from "@/landing/lib/facts";
 import { policyProblem } from "../agent-actions";
 import { browserStore, exportText, forgetKey, generateAgentKey, KEY_LABEL, saveKey } from "../agent-keys";
@@ -82,8 +84,9 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
   if (!ceiling || !d) {
     return (
       <article>
-        <h1 className="text-[clamp(28px,4vw,44px)]">Create an agent</h1>
-        <p className="mt-4 text-slate">{ceiling ? "Reading the vault." : "This vault's version does not expose a ceiling, so a policy cannot be checked against it. Nothing is signed."}</p>
+        <PageHeader title="Create an agent">
+          {ceiling ? "Reading the vault." : "This vault's version does not expose a ceiling, so a policy cannot be checked against it. Nothing is signed."}
+        </PageHeader>
       </article>
     );
   }
@@ -143,11 +146,9 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
     const refused = ACCESS_KEY_ROWS.filter((r) => !r.action.startsWith("Parent"));
     return (
       <article>
-        {crumbs}
-        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">{created.label} is live</h1>
-        <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+        <PageHeader title={`${created.label} is live`} lead={crumbs}>
           Give this key to your agent&apos;s runtime. It can call the listed methods on one contract, and nothing else.
-        </p>
+        </PageHeader>
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
           <Panel title="Connect your agent">
             <CopyBlock text={CONNECT} />
@@ -191,7 +192,7 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
                 <Button type="button">Back to agents</Button>
               </Link>
               <button type="button" onClick={again} className="cursor-pointer text-sm underline underline-offset-4">
-                Create another agent
+                <WithPlus>Create another agent</WithPlus>
               </button>
             </div>
           </Panel>
@@ -202,11 +203,9 @@ export function LiveAgentWizard({ live }: { live: Extract<LiveVault, { status: "
 
   return (
     <article>
-      {crumbs}
-      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Create an agent</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Create an agent" lead={crumbs}>
         Set its limits first. The vault enforces them from the agent&apos;s first call. Vault: <span className="mono break-all">{vault}</span>.
-      </p>
+      </PageHeader>
 
       <ol className="mt-8 flex flex-wrap gap-x-6 gap-y-2" aria-label="Steps">
         {STEPS.map((n, i) => (
@@ -327,7 +326,7 @@ receiver = the vault, classic allowance, no full-access key`}</pre>
             </Button>
           )}
           <Button type="button" disabled={!ok} onClick={() => (step < 4 ? setStep(step + 1) : create())}>
-            {step === 4 ? "Create the agent" : "Continue"}
+            {step === 4 ? <WithPlus>Create the agent</WithPlus> : "Continue"}
           </Button>
           {shown && <span className="text-sm text-dawn-ink">{shown}</span>}
           {problemNote && <span className="text-sm text-dawn-ink">{problemNote}</span>}

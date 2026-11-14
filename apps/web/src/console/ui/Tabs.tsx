@@ -15,7 +15,7 @@ export function Tabs<T extends string>({
 }) {
   return (
     <div>
-      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-line-2">
+      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-line-2 pt-px">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -25,7 +25,7 @@ export function Tabs<T extends string>({
             aria-selected={t.id === value}
             aria-controls="tabpanel"
             onClick={() => onChange(t.id)}
-            className="-mb-px shrink-0 cursor-pointer border-b-2 border-transparent px-4 py-3 text-[15px] text-muted transition-colors hover:text-ink aria-selected:border-ink aria-selected:font-medium aria-selected:text-ink"
+            className="label -mb-px shrink-0 cursor-pointer border border-line-2 bg-paper px-5 py-2.5 text-sm text-slate transition-colors hover:border-dawn hover:text-dawn aria-selected:border-dawn aria-selected:border-b-paper aria-selected:text-dawn"
           >
             {t.label}
           </button>

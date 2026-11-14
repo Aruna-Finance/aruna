@@ -66,10 +66,19 @@ describe("live agents table", () => {
     expect(out).not.toContain("wallet to act");
     expect(out).not.toMatch(/<button(?![^>]*disabled)[^>]*>(Pause|Revoke)/);
   });
-  it("a revoked agent shows no actions at all, like the sample table", () => {
+  it("a revoked agent can be opened but has no pause, resume or revoke", () => {
     const out = html([agent({ status: "Revoked" })], [], "owner");
     expect(out).toContain("Deleted");
-    expect(out).not.toContain("<button");
+    expect(out).toContain("Open");
+    expect(out).not.toContain(">Pause<");
+    expect(out).not.toContain(">Resume<");
+    expect(out).not.toContain(">Revoke<");
+  });
+  it("puts Open beside Pause and Revoke on one row", () => {
+    const out = html([agent()], [], "owner");
+    expect(out).toContain("Open");
+    expect(out).toContain("Pause");
+    expect(out).toContain("flex-row");
   });
   it("shows NEAR usage against the daily limit, and an empty vault says so", () => {
     expect(html([agent()], [], "owner")).toContain("0.1 of 0.4 NEAR");

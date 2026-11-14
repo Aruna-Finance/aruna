@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "../ui/PageHeader";
 import { ReadError } from "@/shared/ReadError";
 import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
@@ -53,13 +54,11 @@ export function ReportDetail() {
   if (id === null || out.state === "none") {
     return (
       <article>
-        {crumb}
-        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Report not found</h1>
-        <p className="mt-4 max-w-[70ch] text-slate">
+        <PageHeader title="Report not found" lead={crumb}>
           {id === null
             ? "A report is named by the number the registry gave it. Open one from the Claims page."
             : `The registry has no report ${id}.`}
-        </p>
+        </PageHeader>
       </article>
     );
   }
@@ -87,16 +86,21 @@ function Report({ r, head, crumb }: { r: ReportRow; head: number; crumb: React.R
   const live = useLiveVault();
   return (
     <article>
-      {crumb}
-      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">
-        Drift on <span className="mono text-[0.86em]">{r.target}</span>
-      </h1>
-      <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span className="mono text-sm">{STATE_TEXT[r.state] ?? r.state}</span>
-        <span className="text-sm text-muted">
-          Report {r.id}, made at block {block(r.reportedAtBlock)}. Read at block {block(head)}.
+      <PageHeader
+        lead={crumb}
+        title={
+          <>
+            Drift on <span className="mono text-[0.86em]">{r.target}</span>
+          </>
+        }
+      >
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="mono text-sm">{STATE_TEXT[r.state] ?? r.state}</span>
+          <span className="text-sm text-muted">
+            Report {r.id}, made at block {block(r.reportedAtBlock)}. Read at block {block(head)}.
+          </span>
         </span>
-      </p>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="Report timeline">

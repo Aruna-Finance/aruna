@@ -18,6 +18,7 @@ import { explorerTxUrl } from "../tx-status";
 import { useLiveVault } from "../useLiveVault";
 import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
+import { PageHeader } from "../ui/PageHeader";
 
 // The playground sends real spend calls to the vault with an agent key held in this browser (plan U7, R22, KTD8).
 // It does not simulate anything and does not check a policy itself: the vault decides, and a refusal is shown with
@@ -126,11 +127,10 @@ function LivePlayground({ live }: { live: Extract<ReturnType<typeof useLiveVault
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Playground</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Playground">
         Send real testnet calls from an agent key in this browser and watch the vault allow or refuse them. Enough refusals stop the agent
         automatically.
-      </p>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="Choose a run">

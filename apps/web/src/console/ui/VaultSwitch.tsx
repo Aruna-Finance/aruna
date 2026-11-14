@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check } from "@phosphor-icons/react";
+import { ArrowsLeftRight, Check } from "@phosphor-icons/react";
+import { Button } from "@/shared/Button";
 import { switchHref, switchOptions, type SwitchOption } from "../data/vault-switch";
 import { useOperatedVaults } from "../useOperatedVaults";
 import { useOwnedVaults } from "../useOwnedVaults";
 import { useWallet } from "../WalletContext";
 
-/** The current vault as plain text, with a Switch vault button on the right when the account has other vaults. */
+/** The current vault, and a Switch vault button that says how many vaults the account has. With only one, it says so instead. */
 export function VaultSwitch({ vault }: { vault: string }) {
   const { accountId } = useWallet();
   const owned = useOwnedVaults(accountId ?? null);
@@ -36,28 +37,49 @@ export function VaultSwitchView({ vault, options, onPick, startOpen = false }: {
     document.addEventListener("keydown", esc);
     return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
   }, [open]);
-  if (options.length < 2) return <span className="mono block break-all text-xs text-muted">{vault}</span>;
+  const mono = <span className="mono block break-all text-xs text-muted">{vault}</span>;
+  if (options.length < 2) {
+    return (
+      <div>
+        {mono}
+        <p className="mt-3 text-xs text-muted">Your only vault. Add more from the Vault menu and they will switch from here.</p>
+      </div>
+    );
+  }
   return (
-    <div ref={box} className="relative flex items-start justify-between gap-3">
-      <span className="mono min-w-0 break-all text-xs text-muted">{vault}</span>
-      <button type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)} className="shrink-0 cursor-pointer text-xs underline underline-offset-4">
-        Switch vault
-      </button>
+    <div ref={box} className="relative">
+      {mono}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-muted">You have {options.length} vaults</span>
+        <Button type="button" variant="outline" className="px-3! py-1.5! text-sm!" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <span className="inline-flex items-center gap-2">
+            <ArrowsLeftRight size={16} weight="regular" aria-hidden />
+            Switch vault
+          </span>
+        </Button>
+      </div>
       {open && (
-        <ul role="listbox" aria-label="Switch vault" className="absolute right-0 top-full z-50 mt-2 max-h-64 w-72 max-w-[80vw] overflow-auto border border-ink bg-white">
-          {options.map((o) => (
-            <li key={o.value} role="option" aria-selected={o.value === vault}>
-              <button
-                type="button"
-                onClick={() => { setOpen(false); onPick(o.value); }}
-                className={`mono flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-left text-xs hover:bg-dawn ${o.value === vault ? "bg-wash" : ""}`}
-              >
-                <span className="break-all">{o.label}</span>
-                {o.value === vault && <Check size={14} weight="regular" aria-hidden />}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[85vw] border border-ink bg-paper">
+          <p className="border-b border-line px-3 py-2 text-xs text-muted">Pick the vault to show on this screen</p>
+          <ul role="listbox" aria-label="Switch vault" className="max-h-64 overflow-auto">
+            {options.map((o) => (
+              <li key={o.value} role="option" aria-selected={o.value === vault}>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); onPick(o.value); }}
+                  className={`mono flex w-full cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-left text-xs hover:bg-dawn ${o.value === vault ? "bg-wash" : ""}`}
+                >
+                  <span className="break-all">{o.label}</span>
+                  {o.value === vault ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 font-sans text-muted">
+                      showing <Check size={14} weight="regular" aria-hidden />
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
