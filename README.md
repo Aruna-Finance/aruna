@@ -104,7 +104,7 @@ of agents. Click an agent. Expected: a page listing what its key cannot do, its 
 
 Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
 Agents and agent detail (step 5d), the Playground (step 5e), the Overview (step 5f), and Coverage, Buy
-coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) Pool (step 5j, read-only) and Targets with its detail page
+coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) Pool (step 5j: read the books, deposit and withdraw) and Targets with its detail page
 (step 5k) and Attestors (step 5l). Migration checks a plan from the SDK (step 14). Only the Guided demo, a scripted walkthrough, runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
 results are in steps 9 to 13.
 
@@ -287,19 +287,50 @@ pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published
    Expected: 4 tests passed. The test re-derives the page's data from `summary.json` in the results folder. To refresh the page
    after a new run: `node apps/web/scripts/sync-simulation.mjs packages/sim/results/<date>`.
 
-### 5j. Pool, read from the contract
+### 5j. Pool: read the books, deposit, and see the withdraw lock
 
-1. Open `https://www.arunafi.xyz/console/pool/`. Expected: a "NEAR book" (the page does not name the contract; the figures come from `pool2.arunafi.testnet`, checked in step 2) with capital, coverage
+An underwriter adds capital to a book and takes it out once the book's lock ends. The lock covers the whole book and any
+coverage bought on it moves it later, so a deposit made now cannot be withdrawn before the `locked_until` block in step 2.
+Deposit a small amount.
+
+1. Open `https://www.arunafi.xyz/console/pool/` without a wallet. Expected: a "NEAR book" and a "tUSDC book" (the page does not name the contract; the figures come from `pool2.arunafi.testnet`, checked in step 2) each with capital, coverage
    outstanding against what capital allows, whether withdrawals are locked and for how many more blocks, coverage counts (active, ended and not yet released, paid), and a table of coverage
-   by code version or by who can upgrade it, against the cap of 2 x capital per group. Connect a wallet to see your share of each book, as a percentage.
+   by code version or by who can upgrade it, against the cap of 2 x capital per group. Under each book: "Connect a wallet to deposit or withdraw."
 2. Check the book without the page:
 
 ```bash
 node fixtures/tools.mjs view pool2.arunafi.testnet get_book '{"token":"near"}'
 ```
 
-   Expected: `capital`, `total_limits` and `locked_until` equal the tiles on the page. Adding and withdrawing capital are not in
-   the console in v0.
+   Expected: `capital`, `total_limits` and `locked_until` equal the tiles on the page.
+3. Connect a testnet wallet that holds a little NEAR (step 5c). Expected: under each book a deposit form with "Your wallet holds ...", and your share of the book as a percentage. With no shares you see
+   "You have no position in this book." instead of a withdraw form. A wallet with no test USDC sees "You hold no tUSDC. It isn't publicly mintable ..." under the tUSDC book: only `arunafi.testnet` can mint it.
+4. In "Deposit NEAR" enter `0.1` and choose "Review deposit". Expected: a dialog that lists "Deposit 0.1 NEAR into the NEAR book", an estimated share of the book as a percentage with the share price it is based on, and a note that
+   names the block the book is locked until (the `locked_until` of step 2) and says any new coverage on the book can push it later, for every underwriter.
+5. Confirm in your wallet. Expected: "Confirmed" with a link to the transaction, and "Your share of this book" updates without reloading the page. Check it on chain:
+
+```bash
+node fixtures/tools.mjs view pool2.arunafi.testnet get_shares '{"underwriter":"<your account>","token":"near"}'
+```
+
+   Expected: a non-zero amount of shares.
+6. Look at "Withdraw NEAR" under the NEAR book. Expected: "Your position is worth ... NEAR" (never a share count), the line "The book is locked for N more blocks.", and both "Review withdrawal" and "Withdraw everything" disabled.
+   The console does not send a transaction the pool would refuse, and a withdrawal it does send that the pool refuses (a lock raised after the page loaded) is shown as "Blocked by the pool." with `ARUNA_CAPITAL_LOCKED`, not as a failure.
+7. The withdrawal itself is proven on a sandbox, because the NEAR book on `pool2` cannot be withdrawn from before the block in step 2. Build the contract wasm first (see `contracts/integration/Cargo.toml`), then:
+
+```bash
+cd contracts && cargo test -p aruna-integration --test coverage -- an_underwriter_is_refused_while_locked_and_withdraws_pro_rata_after a_usdc_deposit_too_small_to_mint_a_share_is_refunded_not_credited
+```
+
+   Expected: `2 passed`. The first deposits 50 NEAR, buys a coverage that locks the book, shows `ARUNA_CAPITAL_LOCKED` before the lock ends and `ARUNA_NOT_ENOUGH_SHARES` for more shares than held after it, and withdraws every share for the
+   book's whole capital: the deposit plus the premium. The second shows a USDC deposit too small to mint a share handed back by the token: it returns 0, the pool logs no `capital_deposited`, and the book is untouched.
+8. The client behind the forms, and the rule that no agent key or MCP tool can deposit or withdraw:
+
+```bash
+pnpm --filter @aruna/sdk test && pnpm --filter @aruna/mcp test && pnpm --filter "@aruna/web" test
+```
+
+   Expected: every suite passes, including `coverage-underwriter.test.ts` (a refused USDC deposit and a USDC withdrawal to an account not registered on the token are refusals, never a success) and the MCP guard that rejects a tool named for a deposit.
 
 ### 5k. Targets, read from the registry
 
