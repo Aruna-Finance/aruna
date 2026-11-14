@@ -1,7 +1,7 @@
 // Roles, sidebar sections and screen metadata. See docs/FRONTEND.md.
 // Signer names are the prototype's mock values.
 
-export type RoleId = "owner" | "operator" | "underwriter" | "counterparty" | "developer";
+export type RoleId = "owner" | "operator" | "underwriter";
 export type ScreenId =
   | "dashboard"
   | "agents"
@@ -23,8 +23,6 @@ export type Role = {
   id: RoleId;
   label: string;
   home: ScreenId;
-  /** Kept out of the "View as" picker: reached by link (Developers in the sidebar, the attestor page from Contracts). */
-  unlisted?: true;
   /** `hidden` screens belong to the role (deep links keep it) but are reached from a page or a footer link, not the sidebar. */
   items: { id: ScreenId; label: string; hidden?: true }[];
 };
@@ -38,12 +36,15 @@ export const ROLES: Role[] = [
       { id: "dashboard", label: "Overview" },
       { id: "vault", label: "Vault" },
       { id: "agents", label: "Agents" },
-      { id: "targets", label: "Contracts" },
       { id: "coverage", label: "Coverage" },
-      { id: "claims", label: "Claims" },
       { id: "create", label: "Create a vault", hidden: true },
       { id: "migrate", label: "Migration", hidden: true },
       { id: "story", label: "Guided demo", hidden: true },
+      { id: "developers", label: "SDK and MCP", hidden: true },
+      { id: "targets", label: "Contracts", hidden: true },
+      { id: "claims", label: "Change reports", hidden: true },
+      { id: "lookup", label: "Check an agent", hidden: true },
+      { id: "attestor", label: "Who reports changes", hidden: true },
     ],
   },
   {
@@ -54,10 +55,13 @@ export const ROLES: Role[] = [
       { id: "dashboard", label: "Overview" },
       { id: "agents", label: "Agents" },
       { id: "playground", label: "Playground" },
-      { id: "targets", label: "Contracts" },
       { id: "coverage", label: "Coverage" },
-      { id: "claims", label: "Claims" },
       { id: "story", label: "Guided demo", hidden: true },
+      { id: "developers", label: "SDK and MCP", hidden: true },
+      { id: "targets", label: "Contracts", hidden: true },
+      { id: "claims", label: "Change reports", hidden: true },
+      { id: "lookup", label: "Check an agent", hidden: true },
+      { id: "attestor", label: "Who reports changes", hidden: true },
     ],
   },
   {
@@ -66,38 +70,16 @@ export const ROLES: Role[] = [
     home: "pool",
     items: [
       { id: "pool", label: "Pool" },
-      { id: "claims", label: "Claims" },
       { id: "simulation", label: "Stress test" },
       { id: "story", label: "Guided demo", hidden: true },
-    ],
-  },
-  {
-    id: "counterparty",
-    label: "Check an agent",
-    home: "lookup",
-    items: [
-      { id: "lookup", label: "Check an agent" },
-      { id: "claims", label: "Change reports" },
-      { id: "targets", label: "Contracts" },
+      { id: "developers", label: "SDK and MCP", hidden: true },
+      { id: "targets", label: "Contracts", hidden: true },
+      { id: "claims", label: "Change reports", hidden: true },
+      { id: "lookup", label: "Check an agent", hidden: true },
       { id: "attestor", label: "Who reports changes", hidden: true },
-      { id: "story", label: "Guided demo", hidden: true },
-    ],
-  },
-  {
-    id: "developer",
-    label: "Developers",
-    home: "developers",
-    unlisted: true,
-    items: [
-      { id: "developers", label: "SDK and MCP" },
-      { id: "playground", label: "Playground" },
-      { id: "story", label: "Guided demo", hidden: true },
     ],
   },
 ];
-
-/** The roles offered in the "View as" picker. */
-export const LISTED_ROLES = ROLES.filter((r) => !r.unlisted);
 
 /** Which phase builds each screen, and what it will hold. */
 export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: string; role: RoleId }> = {
@@ -122,7 +104,7 @@ export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: str
   targets: {
     title: "Contracts",
     phase: "F4",
-    role: "counterparty",
+    role: "owner",
     plan: "Class, certainty, premium effect, last recorded and freshness for each target, with the four drift channels and stored evidence.",
   },
   coverage: {
@@ -134,7 +116,7 @@ export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: str
   claims: {
     title: "Change reports and claims",
     phase: "F4",
-    role: "counterparty",
+    role: "owner",
     plan: "Reports and claims, readable by everyone, with the challenge window and dispute state.",
   },
   migrate: {
@@ -158,7 +140,7 @@ export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: str
   attestor: {
     title: "Who reports changes",
     phase: "F6",
-    role: "counterparty",
+    role: "owner",
     plan: "Heartbeat, monitored targets and report drift. Built only after ownership is confirmed with the engine team.",
   },
   create: {
@@ -170,25 +152,25 @@ export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: str
   lookup: {
     title: "Check an agent",
     phase: "F4",
-    role: "counterparty",
+    role: "owner",
     plan: "Find an agent by vault, label or public key and read what it cannot do, with no login.",
   },
   developers: {
     title: "SDK and MCP",
     phase: "F7",
-    role: "developer",
+    role: "owner",
     plan: "Keyless and vault tools, and the reason-code table matching the contract set.",
   },
   playground: {
     title: "Playground",
     phase: "F7",
-    role: "developer",
+    role: "operator",
     plan: "Simulate an agent and run the injected agent, with refusals and auto-disable.",
   },
   story: {
     title: "Guided demo",
     phase: "F7",
-    role: "developer",
+    role: "owner",
     plan: "Eight steps from classifying a contract to a paid claim and a rejected false report, on the same state the screens read.",
   },
 };

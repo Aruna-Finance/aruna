@@ -158,7 +158,7 @@ export function TxDialog({ tx, onClose }: { tx: TxRequest | null; onClose: () =>
       onClick={(e) => {
         if (e.target === ref.current) close();
       }}
-      className="m-auto w-[min(520px,calc(100vw-2rem))] border border-line-2 bg-paper p-0 text-ink backdrop:bg-ink/30"
+      className="m-auto w-[min(520px,calc(100vw-2rem))] border border-line-2 bg-paper p-0 text-ink backdrop:bg-ink/30 dark:backdrop:bg-black/65"
     >
       {tx && (
         <div className="p-6 md:p-8">

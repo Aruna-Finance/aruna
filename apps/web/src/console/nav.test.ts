@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LISTED_ROLES, ROLES, SCREENS, SCREEN_IDS, roleById, roleFor } from "./nav";
+import { ROLES, SCREENS, SCREEN_IDS, roleById, roleFor } from "./nav";
 
 describe("console navigation", () => {
   it("has a screen entry for every sidebar item", () => {
@@ -22,16 +22,18 @@ describe("console navigation", () => {
     expect(roleFor("pool", "owner")).toBe("underwriter");
   });
 
-  it("offers four roles in the picker and keeps Developers out of it", () => {
-    expect(LISTED_ROLES.map((r) => r.label)).toEqual(["Client", "Operator", "Underwriter", "Check an agent"]);
-    expect(roleFor("developers", "owner")).toBe("developer");
-    expect(roleFor("attestor", "owner")).toBe("counterparty");
+  it("offers three roles in the picker, and the public pages are global and keep the current role", () => {
+    expect(ROLES.map((r) => r.label)).toEqual(["Client", "Operator", "Underwriter"]);
+    for (const page of ["developers", "targets", "claims", "lookup", "attestor"] as const)
+      for (const r of ROLES) expect(roleFor(page, r.id)).toBe(r.id);
   });
 
   it("shows no demo, migration or create entry in any sidebar", () => {
     for (const r of ROLES) {
       const shown = r.items.filter((i) => !i.hidden).map((i) => i.id);
       expect(shown).not.toContain("story");
+      expect(shown).not.toContain("developers");
+      for (const page of ["targets", "claims", "lookup"]) expect(shown).not.toContain(page);
       expect(shown).not.toContain("migrate");
       expect(shown).not.toContain("create");
     }
