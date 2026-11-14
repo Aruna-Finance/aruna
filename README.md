@@ -15,7 +15,7 @@ should see.
 
 Built at NEAR HACKATHON (1-14 November 2026). Tracks: AI Security & Defense, Open Innovation, Agent
 Economy. All code in this repository was written in the hackathon window; the first commit is
-2026-11-08. Demo video: `<X post link>`
+2026-11-08. Demo video: https://x.com/xris_/status/2121658181319610515
 
 ## Who it is for
 
@@ -75,7 +75,7 @@ passes). `pnpm -r --no-bail test` runs the rest.
 
 Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests skipped),
 `cli` (28), `attestor` (38), `keeper` (37), `sdk` (132), `mcp` (23), `indexer` (158, 8 skipped), `sim` (36)
-and `apps/web` (397). Counts from a full `pnpm -r --no-bail test` run on macOS, 14 November 2026.
+and `apps/web` (402). Counts from a full `pnpm -r --no-bail test` run on macOS, 14 November 2026.
 
 ### 2. Classify any NEAR contract
 
