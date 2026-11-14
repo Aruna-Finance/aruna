@@ -472,6 +472,42 @@ open, and not in the run that lifts it. Its key adds `push_freeze`, which anyone
 SDK's: a pushed freeze stays in the vault's cache after `lift_freeze`, so `AgentVault.spend` refreshes on
 `TARGET_FROZEN` when the registry no longer records the target as frozen.
 
+### D-68 — v0 underwriting is one book per token; per-class books come with the next pool
+In v0 an underwriter deposits into and withdraws from the console against `pool2` unchanged, and one book per token backs
+every risk class (D-54). That is a proof that the flow works, not the product: an underwriter is meant to choose the risk
+they back (`PRODUCT.md`). The next pool keeps capital, shares, lock, `k` and concentration per token and per class, after
+drift frequency is measured, because until then a class is chosen on an assumed `P(event)`.
+*Rejected:* a maximum class per underwriter in one book, which makes shares non-uniform and every premium and claim an
+allocation; senior and junior tranches, which answer loss priority, not risk choice; class-weighted capacity with no choice,
+which drops the promise. Plan: `docs/plans/2026-11-14-1453-feat-underwriter-console-flow-plan.md`.
+
+### D-69 — An underwriter leaves by an exit request with a date known when it is made
+`pool2` locks a whole book until the latest coverage on it ends plus the reporting period, and every purchase moves that
+later for every holder, so while coverage keeps selling nobody can leave. The next pool takes an exit request instead: from
+the request, the holder's shares stop counting toward capacity for new coverage, and they can be withdrawn once every coverage
+that existed at the request has ended, its reporting period has passed and its claims are decided (D-70). The date is
+computable when the request is made and is shown then.
+*Rejected:* a lock per deposit, which lets capital leave in the middle of coverage it backs; epochs, which force coverage to
+end on period boundaries; the current book-wide lock, which has no exit while the business runs.
+
+### D-70 — A book is frozen while a loss on it is being decided
+While a drift report on a target with live coverage in a book is pending, disputed, or verified and not yet paid, the next pool
+takes no deposit into that book and pays no withdrawal from it. Otherwise a holder who knows of the report leaves before the
+payout, and a new depositor buys in at a share price that still holds capital about to be paid out. This also closes a defect
+in `pool2`: `CONTRACTS.md` "Capital lockup" says capital stays locked until pending claims are resolved and challenge windows
+closed, but the contract unlocks at coverage end plus the reporting period, before a report filed late in that period can
+clear its challenge window. In v0 the deposit dialog warns when a claim is in flight; it cannot freeze the book.
+*Rejected:* a warning alone, which lets a known loss move between underwriters; pricing the liability into the share price,
+which needs the payout before the claim computes it.
+
+### D-71 — The pool holds no full-access key from the next version on; `pool2`'s key is disclosed
+`pool2` holds a full-access key, so whoever holds it can move underwriter capital or replace the code. That contradicts what
+Aruna measures: our own classifier would not record it as unable to change. In v0 the key stays and is stated openly, with
+`pool2`'s class from our own classifier. The next pool is deployed with no full-access key, like the vault (D-06, D-08); a fix ships
+as a new pool version, and underwriters move by the exit request of D-69, which is what makes a keyless pool workable.
+*Rejected:* keeping a disclosed key, a third trust assumption beside the attestor and the arbiter; a multisig with a delay,
+which needs infrastructure and partners v0 does not have.
+
 ## Open questions — do not invent answers
 
 Flag and ask. Writing a plausible number here is the failure this list exists to
