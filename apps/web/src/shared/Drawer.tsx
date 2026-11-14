@@ -57,7 +57,7 @@ export function Drawer({
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
-      className="m-0 ml-auto h-svh max-h-none w-[min(460px,100vw)] border-l border-line-2 bg-paper p-0 text-ink backdrop:bg-ink/30 open:animate-drawer-in open:backdrop:animate-fade-in data-[closing]:animate-drawer-out data-[closing]:backdrop:animate-fade-out motion-reduce:animate-none motion-reduce:backdrop:animate-none"
+      className="m-0 ml-auto h-svh max-h-none w-[min(460px,100vw)] border-l border-line-2 bg-paper p-0 text-ink backdrop:bg-ink/30 dark:backdrop:bg-black/65 open:animate-drawer-in open:backdrop:animate-fade-in data-[closing]:animate-drawer-out data-[closing]:backdrop:animate-fade-out motion-reduce:animate-none motion-reduce:backdrop:animate-none"
     >
       <div className="flex h-full flex-col">
         <div className="flex items-start justify-between gap-4 border-b border-line-2 px-6 py-5">

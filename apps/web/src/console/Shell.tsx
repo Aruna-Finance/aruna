@@ -14,6 +14,13 @@ const screenOf = (path: string): ScreenId | null => {
 };
 
 /** Screens reached from another screen's page, not from the sidebar: the sidebar item they belong to stays highlighted. */
+/** Public pages, in the top bar for every role. None of them needs a wallet, and none changes the role being viewed. */
+const PUBLIC_PAGES: { id: ScreenId; label: string }[] = [
+  { id: "targets", label: "Contracts" },
+  { id: "claims", label: "Change reports" },
+  { id: "lookup", label: "Check an agent" },
+];
+
 const BELONGS_TO: Partial<Record<ScreenId, ScreenId>> = { create: "vault", migrate: "vault" };
 
 /** Top bar, role switcher, sidebar. */
@@ -44,7 +51,7 @@ export function Shell({ children }: { children: ReactNode }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/logo.png" alt="" width={40} height={40} className="size-10 dark:mix-blend-lighten dark:invert" />
           </Link>
-          <div className="flex min-w-0 flex-1 items-center gap-3 max-sm:order-last max-sm:basis-full">
+          <div className="flex min-w-0 items-center gap-3 max-sm:order-last max-sm:basis-full sm:w-[320px]">
             <span className="label hidden shrink-0 text-xs text-muted sm:inline">View as</span>
             <Select<RoleId>
               label="View as"
@@ -57,6 +64,18 @@ export function Shell({ children }: { children: ReactNode }) {
               className="w-full max-w-[260px] min-w-0! truncate py-2.5! max-sm:max-w-none [&>span]:truncate"
             />
           </div>
+          <nav aria-label="Public pages" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto max-sm:order-last max-sm:basis-full">
+            {PUBLIC_PAGES.map((p) => (
+              <Link
+                key={p.id}
+                href={`/console/${p.id}/`}
+                aria-current={screen === p.id || (p.id === "targets" && screen === "attestor") ? "page" : undefined}
+                className="label shrink-0 border border-transparent px-3 py-2 text-sm transition-colors hover:border-line aria-[current=page]:border-line-2"
+              >
+                {p.label}
+              </Link>
+            ))}
+          </nav>
           <div className="flex shrink-0 items-center gap-3">
             <ThemeToggle />
             <span className="label border border-line-2 px-1.5 py-0.5 text-[10px] sm:px-2 sm:text-xs">testnet</span>
@@ -85,7 +104,7 @@ export function Shell({ children }: { children: ReactNode }) {
             aria-current={screen === "developers" ? "page" : undefined}
             className="label shrink-0 border border-transparent px-3 py-2 text-sm text-muted transition-colors hover:border-line aria-[current=page]:border-line-2 aria-[current=page]:text-ink lg:mt-auto"
           >
-            Developers
+            SDK and MCP
           </Link>
           <Link
             href="/console/story/"
