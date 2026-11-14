@@ -7,13 +7,8 @@
 // throws. An outcome the logs do not show is never reported as success: it throws, so the caller
 // looks at the chain instead of assuming.
 import { ArunaRpcError, type VaultTransport } from "../vault/transport.js";
-import { parseEvents } from "./events.js";
+import { poolEvents } from "./events.js";
 import type { Coverage, TokenName } from "./pool.js";
-
-/** Events from the pool only. An FT purchase runs through the token's contract, which is chosen by the caller and could print an event of its own. */
-function poolEvents(pool: string, r: { logs?: readonly string[]; receipts?: readonly { executor: string; logs: readonly string[] }[] }) {
-  return parseEvents(r.receipts ? r.receipts.filter((x) => x.executor === pool).flatMap((x) => x.logs) : r.logs);
-}
 
 /** Mirrors aruna_common::params::MIN_CLAIM_GAS_TGAS; a test keeps the two equal. */
 export const MIN_CLAIM_GAS_TGAS = 150n;

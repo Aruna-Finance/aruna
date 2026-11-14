@@ -18,3 +18,8 @@ export function parseEvents(logs: readonly string[] | undefined): ArunaEvent[] {
   }
   return out;
 }
+
+/** Events from the pool only. A token purchase or deposit runs through the token's contract, which is chosen by the caller and could print an event of its own. */
+export function poolEvents(pool: string, r: { logs?: readonly string[]; receipts?: readonly { executor: string; logs: readonly string[] }[] }): ArunaEvent[] {
+  return parseEvents(r.receipts ? r.receipts.filter((x) => x.executor === pool).flatMap((x) => x.logs) : r.logs);
+}
