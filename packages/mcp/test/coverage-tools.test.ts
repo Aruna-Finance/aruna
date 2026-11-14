@@ -109,8 +109,15 @@ describe("aruna_simulate with a coverage shape", () => {
   });
 });
 
-describe("no tool buys, claims or holds a key", () => {
-  it("every tool the server can register is read-only or an agent action, and none is named buy, claim or key", async () => {
+// Coverage purchase, claims and an underwriter's deposit and withdrawal are owner-side actions: no MCP tool is named for them.
+const FORBIDDEN_TOOL_NAME = /buy|claim|key|purchase|withdraw|deposit/;
+
+describe("no tool buys, claims, deposits or holds a key", () => {
+  it("the name guard rejects a tool named for a deposit or a withdrawal", () => {
+    for (const n of ["aruna_deposit_capital", "aruna_pool_deposit", "aruna_withdraw"]) expect(n).toMatch(FORBIDDEN_TOOL_NAME);
+  });
+
+  it("every tool the server can register is read-only or an agent action, and none is named buy, claim, deposit, withdraw or key", async () => {
     const c = await connect((s) => {
       registerTools(s);
       registerCoverageTools(s, chain());
@@ -118,6 +125,6 @@ describe("no tool buys, claims or holds a key", () => {
     });
     const names = (await c.listTools()).tools.map((t) => t.name);
     expect(names).toContain("aruna_coverage_quote");
-    for (const n of names) expect(n).not.toMatch(/buy|claim|key|purchase|withdraw/);
+    for (const n of names) expect(n).not.toMatch(FORBIDDEN_TOOL_NAME);
   });
 });
