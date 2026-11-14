@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import { planMigration, type MigrationPlan } from "@aruna/sdk/vault";
 import { useMemo, useState } from "react";
 import { Button } from "@/shared/Button";
@@ -66,16 +67,15 @@ export function MigrationView({
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Migrate to a new vault</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        A vault&apos;s code cannot be changed. That is what lets it classify itself as <span className="mono">immutable_verified</span>, and its cost is that a
-        new version means a new vault. This page checks a migration and shows what it would do. It does not send one: the migration is several
-        transactions in a fixed order, and it is sent from the command line so that it can be resumed.
+        A vault&apos;s code can&apos;t change, so a new version means a new vault. This page checks the plan. The migration itself runs from the
+        command line, so it can be resumed.
       </p>
 
       {!vault && !loading && !error && (
-        <p className="mt-8 border border-line px-5 py-4 text-slate">Open a vault first, from Create a vault or with <span className="mono">?vault=</span> in the address.</p>
+        <p className="mt-8 border border-line px-5 py-4 text-slate">Open a vault first: connect your wallet and choose one on the Overview.</p>
       )}
       {loading && <p className="mt-8 text-muted">Reading the vault.</p>}
-      {error && <p className="mt-8 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the vault. {error}</p>}
+      {error && <ReadError what="the vault" detail={error} className="mt-8" />}
 
       {vault && !loading && !error && (
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">

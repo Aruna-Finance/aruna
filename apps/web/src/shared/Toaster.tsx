@@ -3,13 +3,16 @@ import { useEffect } from "react";
 import { Toaster as Sonner, toast } from "sonner";
 import { CheckCircle, WarningCircle, X } from "@phosphor-icons/react";
 
-/** Mounted once in the root layout. Also turns uncaught errors into error toasts. */
+/**
+ * Mounted once in the root layout. Also turns uncaught errors into error toasts. The library's own message is a
+ * developer's detail, so the toast says what happened in plain words and keeps the raw text in the description.
+ */
 export function Toaster() {
   useEffect(() => {
-    const onError = (e: ErrorEvent) => toast.error(e.message || "Something went wrong.");
+    const onError = (e: ErrorEvent) => toast.error("Something went wrong on this page. Reload and try again.", { description: e.message || undefined });
     const onRejection = (e: PromiseRejectionEvent) => {
       const r = e.reason;
-      toast.error(r instanceof Error ? r.message : "A request failed. Try again.");
+      toast.error("A request to NEAR testnet failed. Try again in a moment.", { description: r instanceof Error ? r.message : undefined });
     };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);

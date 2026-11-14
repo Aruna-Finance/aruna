@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { isValidAccountId } from "@aruna/rpc";
 import { useEffect, useMemo, useState } from "react";
@@ -48,7 +49,7 @@ import { createWalletTransport, sendNear } from "../wallet-transport";
 const GAS_TGAS = 150n;
 
 export function CreateVault() {
-  const { accountId, getWallet } = useWallet();
+  const { accountId, getWallet, connect, status: walletStatus } = useWallet();
   const { open } = useTx();
   const reads = useMemo(() => createTestnetReads(), []);
   const history = useMemo(() => defaultHistory(), []);
@@ -113,7 +114,7 @@ export function CreateVault() {
       setTargets((l) => [...l, t]);
       setExtra("");
     } catch {
-      setExtraNote("Could not read the registry. Try again.");
+      setExtraNote("Couldn't check that contract. Try again.");
     }
   }
 
@@ -134,7 +135,7 @@ export function CreateVault() {
       method: "create_vault",
       depositYocto: depositYocto.toString(),
       gas: GAS_CREATE_VAULT,
-      actions: [`create ${vault}`, `owner ${accountId}`, `operator ${operator ?? "none"}`, `ceiling targets ${chosen.map((t) => t.target).join(", ")}`],
+      actions: [`Create ${vault}`, `Owner: ${accountId}`, `Operator: ${operator ?? "none"}`, `Allowed contracts: ${chosen.map((t) => t.target).join(", ")}`],
       note: "The deposit becomes the vault's balance. The vault has no full-access key, so only its own rules can move the money.",
       okLabel: "Create vault",
       onOk: async () => {
@@ -153,17 +154,21 @@ export function CreateVault() {
     <article>
       <h1 className="text-[clamp(28px,4vw,44px)]">Create your vault</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        A vault holds an agent&apos;s money and enforces its limits. You become its owner. It is created by the current factory on testnet,
-        with no full-access key, and you set which contracts agents may touch.
+        You&apos;ll own this vault. Your agents can only spend from it within the limits you set.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         {!accountId && (
           <Panel>
-            <p className="leading-[1.6]">Connect a testnet wallet with the button in the header. The account you connect becomes the owner.</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button type="button" disabled={walletStatus === "connecting"} onClick={() => void connect()}>
+                {walletStatus === "connecting" ? "Connecting" : "Connect wallet"}
+              </Button>
+              <p className="text-[15px] leading-[1.6] text-slate">The testnet account you connect becomes the vault&apos;s owner.</p>
+            </div>
           </Panel>
         )}
-        {infoError && <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the factory. {infoError}</p>}
+        {infoError && <ReadError what="the vault setup details" detail={infoError} />}
 
         <Panel title="1. Name and roles">
           <div className="grid gap-5 sm:max-w-xl">
@@ -195,7 +200,7 @@ export function CreateVault() {
           </div>
         </Panel>
 
-        <Panel title="2. Which contracts agents may touch" aside={<span className="text-sm text-muted">Only targets the registry has classified</span>}>
+        <Panel title="2. Which contracts agents may touch" aside={<span className="text-sm text-muted">Only contracts Aruna has checked</span>}>
           {info && targets.length === 0 && <p className="text-sm text-muted">The registry has no class for the listed targets yet.</p>}
           <ul className="grid gap-3">
             {targets.map((t) => (
@@ -226,17 +231,16 @@ export function CreateVault() {
           <div className="mt-5 sm:max-w-xl">
             <div className="flex items-end gap-3">
               <div className="min-w-0 flex-1">
-                <TextField label="Add a classified target" value={extra} onChange={setExtra} mono />
+                <TextField label="Add a checked contract" value={extra} onChange={setExtra} mono />
               </div>
               <Button type="button" variant="outline" className="inline-flex h-[51px] items-center py-0!" onClick={addExtra} disabled={!info || !extra.trim()}>
                 Check
               </Button>
             </div>
-            <p className="mt-1.5 text-sm text-muted">{extraNote ?? "Checked against the registry, not classified here."}</p>
+            <p className="mt-1.5 text-sm text-muted">{extraNote ?? "Only contracts Aruna has already checked can be added."}</p>
           </div>
           <p className="mt-4 max-w-[70ch] text-sm leading-[1.6] text-muted">
-            The ceiling limits every agent to 0.5 NEAR per transaction and 2 NEAR per day, and admits the riskiest class you pick here. You can
-            change it later as owner.
+            Vault limits start at 0.5 NEAR per transaction and 2 NEAR per day for every agent, and allow only the contracts you pick here. You can change them later as owner.
           </p>
         </Panel>
 
@@ -248,12 +252,12 @@ export function CreateVault() {
               onChange={setDeposit}
               suffix={<TokenIcon t="NEAR" />}
               step={0.1}
-              hint={info ? `The factory requires at least ${yoctoToNear(info.minDepositYocto.toString())} NEAR. It becomes the vault's balance.` : undefined}
+              hint={info ? `At least ${yoctoToNear(info.minDepositYocto.toString())} NEAR. It becomes the vault's balance.` : undefined}
             />
             <dl className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-1 text-sm">
               <dt className="text-muted">Your balance</dt>
-              <dd className="mono text-right">{balance === null ? (accountId ? "reading" : "no wallet") : `${yoctoToNear(balance.toString())} NEAR`}</dd>
-              <dt className="text-muted">Needed (deposit + gas reserve)</dt>
+              <dd className="mono text-right">{balance === null ? (accountId ? "reading" : "connect a wallet") : `${yoctoToNear(balance.toString())} NEAR`}</dd>
+              <dt className="text-muted">You&apos;ll need (deposit and fees)</dt>
               <dd className="mono text-right">{plan ? `${yoctoToNear(plan.neededYocto.toString())} NEAR` : "n/a"}</dd>
             </dl>
             {plan && plan.shortfallYocto > 0n && (
@@ -340,7 +344,7 @@ function CreatedVault({
       receiver: vault,
       method: "transfer",
       depositYocto: yocto.toString(),
-      actions: [`transfer ${yoctoToNear(yocto.toString())} NEAR to ${vault}`],
+      actions: [`Deposit ${yoctoToNear(yocto.toString())} NEAR into ${vault}`],
       note: "A plain transfer. Only the vault's rules can move it out again.",
       okLabel: "Deposit",
       onOk: async () => {
@@ -459,7 +463,7 @@ export function MyVaults({ account, history }: { account: string | null; history
         </ul>
       )}
       {rows === null && <p className="text-sm text-muted">Reading your vaults.</p>}
-      {problem && <p className="mt-3 text-sm text-dawn-ink">Could not read the registry. {problem}</p>}
+      {problem && <ReadError what="the contract records" detail={problem} className="mt-3" />}
       {notice && <p className="mt-3 text-sm text-muted">{notice}</p>}
     </Panel>
   );

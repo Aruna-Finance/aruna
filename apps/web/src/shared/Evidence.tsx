@@ -1,3 +1,4 @@
+import { CLASS_HINT, CLASS_LABEL, classHint } from "@/landing/lib/class-labels";
 import type { Classification, ClassEvidence } from "@/landing/lib/classifier-types";
 import { Disclosure } from "@/shared/Disclosure";
 import { ZERO_HASH } from "@/landing/lib/classifier-adapter";
@@ -88,7 +89,10 @@ export function ClassResult({ c }: { c: Classification }) {
   const e = c.evidence;
   return (
     <div>
-      <p className={`mt-4 mb-1 font-mono text-[22px] font-medium ${CLS_STYLE[c.class]}`}>{c.class}</p>
+      <p className={`mt-4 mb-1 text-[22px] font-medium ${CLS_STYLE[c.class]}`} title={classHint(c.class)}>
+        {CLASS_LABEL[c.class]} <span className="mono text-sm font-normal text-muted">{c.class}</span>
+      </p>
+      <p className="mb-2 max-w-[62ch] text-sm text-slate">{CLASS_HINT[c.class]}</p>
       <p className="max-w-[62ch]">
         <span className="mono">{e.mutabilityBasis}</span>: {BASIS_TEXT[e.mutabilityBasis]}
       </p>

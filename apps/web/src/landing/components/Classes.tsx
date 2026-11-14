@@ -1,22 +1,24 @@
+import { CLASS_LABEL } from "@/landing/lib/class-labels";
+
 // Copy from the prototype's CLASS_INFO. `unknown` is never styled as safe: dashed frame, no price.
 const CLASSES = [
   {
     id: "immutable_verified",
-    title: "Immutable, proved",
+    title: CLASS_LABEL.immutable_verified,
     basis: "Code by hash, no full-access key, and none of the scanned imports in the WASM.",
     sure: "No detected upgrade path, and sticky",
     price: "Lowest premium",
   },
   {
     id: "local_upgradeable",
-    title: "Local upgradeable",
+    title: CLASS_LABEL.local_upgradeable,
     basis: "The account's own code, or an upgrade path that cannot be ruled out.",
     sure: "Detected",
     price: "Base premium",
   },
   {
     id: "global_by_account",
-    title: "Global by account",
+    title: CLASS_LABEL.global_by_account,
     basis: "References a global contract another account can redeploy.",
     sure: "Detected through a separate channel",
     price: "Highest premium",
@@ -24,7 +26,7 @@ const CLASSES = [
   },
   {
     id: "unknown",
-    title: "Unknown",
+    title: CLASS_LABEL.unknown,
     basis: "Cannot be determined from the available data.",
     sure: "Not known",
     price: "Cannot be covered",

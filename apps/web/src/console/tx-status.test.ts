@@ -11,6 +11,9 @@ describe("phaseOf", () => {
       hash: "H",
     });
   });
+  it("shows a refusal the SDK returned without a transaction as refused with no hash", () => {
+    expect(phaseOf({ ok: false, reason: "CAPITAL_LOCKED", tx: null })).toEqual({ kind: "refused", reason: "CAPITAL_LOCKED", targetClass: null, hash: null });
+  });
   it("confirms a result with a hash, and one without", () => {
     expect(phaseOf({ ok: true, settled: true, tx: "H" })).toEqual({ kind: "confirmed", hash: "H" });
     expect(phaseOf(undefined)).toEqual({ kind: "confirmed", hash: null });

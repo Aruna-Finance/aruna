@@ -13,7 +13,7 @@ export function Simulation() {
   const pEvent = SIM.pEventBps30d;
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Where the pool holds and where it breaks</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Stress test</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
         Published results of the project&apos;s pool simulation (<span className="mono">{SIM.generatedFrom}</span>, run on {SIM.date}). Every number
         below follows from the assumptions on this page. None is measured.
@@ -27,7 +27,7 @@ export function Simulation() {
               <dd>{peopleText()}</dd>
             </div>
             <div>
-              <dt className="text-muted">Chance a contract changes, per 30 days (P(event))</dt>
+              <dt className="text-muted">Assumed chance a contract changes, per 30 days</dt>
               <dd>
                 <strong className="font-medium">Underwriting assumption, not a measurement.</strong> The pool&apos;s own declared values: immutable{" "}
                 {pEvent.immutable_verified / 100}%, local upgradeable {pEvent.local_upgradeable / 100}%, global by account {pEvent.global_by_account / 100}%.

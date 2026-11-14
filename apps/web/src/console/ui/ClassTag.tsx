@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { RiskClass } from "@/landing/lib/classifier-types";
-import { CLASS_INFO } from "../classInfo";
+import { CLASS_INFO, classHint } from "../classInfo";
 import { targetHref } from "./Freshness";
 
 /**
@@ -10,20 +10,20 @@ import { targetHref } from "./Freshness";
  */
 export function ClassTag({ c, target }: { c: RiskClass; target?: string }) {
   const unknown = c === "unknown";
-  const cls = `mono inline-block text-[13px] ${
+  const cls = `inline-block text-[14px] ${
     unknown ? "border-l-[3px] border-dashed border-muted pl-2 text-muted" : c === "global_by_account" ? "text-dawn-ink" : ""
   }`;
-  const title = `${CLASS_INFO[c].title}. ${CLASS_INFO[c].basis}`;
+  const title = classHint(c);
   if (target) {
     return (
       <Link href={targetHref(target)} className={`${cls} underline underline-offset-4`} title={`${title} Open the evidence.`}>
-        {c}
+        {CLASS_INFO[c].title}
       </Link>
     );
   }
   return (
-    <span className={cls} title={title}>
-      {c}
+    <span className={`${cls} cursor-help underline decoration-dotted underline-offset-4`} title={title}>
+      {CLASS_INFO[c].title}
     </span>
   );
 }

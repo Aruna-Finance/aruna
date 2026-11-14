@@ -27,3 +27,10 @@ export function nearToYocto(near: number): bigint {
   if (!Number.isFinite(near) || near < 0) return 0n;
   return BigInt(Math.round(near * 1_000_000)) * 10n ** 18n;
 }
+
+/** A public key shortened for display, such as ed25519:7THA…UxHFi. The full key stays in a title or detail view. */
+export function shortKey(key: string): string {
+  const [curve, body] = key.includes(":") ? key.split(":", 2) : ["", key];
+  if (body.length <= 12) return key;
+  return `${curve ? `${curve}:` : ""}${body.slice(0, 4)}\u2026${body.slice(-5)}`;
+}

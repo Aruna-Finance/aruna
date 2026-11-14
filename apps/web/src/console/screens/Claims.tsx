@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/shared/Button";
@@ -9,7 +10,6 @@ import { useClaimAction } from "../useClaimAction";
 import { useLiveVault, type LiveVault } from "../useLiveVault";
 import { useTokenMeta } from "../useTokenMeta";
 import { useVaultClaims } from "../useVaultClaims";
-import { ExposureBefore } from "../ui/ExposureBefore";
 import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
 
@@ -20,7 +20,7 @@ const reportLink = (id: number, vault: string) => `/console/claims/detail/?id=${
 
 export function Claims() {
   const live = useLiveVault();
-  if (live.status !== "ok") return <NoVault live={live} title="Reports and claims" />;
+  if (live.status !== "ok") return <NoVault live={live} title="Change reports and claims" />;
   return <LiveClaims live={live} />;
 }
 
@@ -34,18 +34,17 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Reports and claims</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Change reports and claims</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Every drift report and every claim is public. A report freezes the target. A claim pays only if the pool&apos;s conditions hold, and the formula
-        is shown with it.
+        Code-change reports and claims are public. A report freezes the contract.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         {data.state === "loading" && <p className="text-sm text-muted">Reading the registry and the pool.</p>}
-        {data.state === "error" && <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the reports and claims. {data.message}</p>}
+        {data.state === "error" && <ReadError what="the reports and claims" detail={data.message} />}
         {data.state === "ok" && (
           <>
-            <Panel title="Drift reports on your covered targets">
+            <Panel title="Code changes on your covered contracts">
               {data.reports.length ? (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[640px] border-collapse text-[15px]">
@@ -162,7 +161,6 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
             </Panel>
           </>
         )}
-        <ExposureBefore vault={vault} agents={view.agents} defaultTarget={view.ceiling?.allowedTargets[0]} />
       </div>
     </article>
   );

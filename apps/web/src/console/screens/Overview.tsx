@@ -1,5 +1,7 @@
 "use client";
 
+import { STACK_ON_MOBILE } from "../ui/stack";
+import { classLabelOf } from "@/landing/lib/class-labels";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createTestnetReads } from "../chain-reads";
@@ -32,7 +34,7 @@ function Tile({ label, children, sub }: { label: string; children: React.ReactNo
 
 export function Overview() {
   const live = useLiveVault();
-  if (live.status !== "ok") return <NoVault live={live} title="Agents and what they have at stake" />;
+  if (live.status !== "ok") return <NoVault live={live} title="Overview" />;
   return <LiveOverview live={live} />;
 }
 
@@ -56,10 +58,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Agents and what they have at stake</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Exposure is what agents sent through the vault. It is not the current value of their positions, which a contract cannot read.
-      </p>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Overview</h1>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <p className="border-l-[3px] border-line-2 bg-fog px-5 py-4 text-[15px] leading-[1.6]">
@@ -68,7 +67,10 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
 
         <dl className="grid gap-px border border-line-2 bg-line-2 sm:grid-cols-2 lg:grid-cols-4 [&>div]:border-0">
           <Tile label="Vault" sub={<VaultSwitch vault={vault} />}>
-            <span className="mono text-lg">{view.fullAccessKeys === 0 ? "No full-access key" : `${view.fullAccessKeys} full-access`}</span>
+            <span className="text-lg">{vault.split(".")[0]}</span>
+            <small className="mt-1 block text-xs text-muted">
+              {view.fullAccessKeys === 0 ? "No admin (full-access) key" : `${view.fullAccessKeys} admin (full-access) keys`}
+            </small>
           </Tile>
           <Tile label="Agents">
             {o.agentsActive}
@@ -78,7 +80,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
             {balance === null ? <span className="text-base text-muted">unknown</span> : yoctoToNear(balance.toString())}
             <small className="ml-1 text-base text-muted">NEAR</small>
           </Tile>
-          <Tile label="Recorded exposure">
+          <Tile label="Sent through vault">
             {yoctoToNear(o.exposureNear.toString())}
             <small className="ml-1 text-base text-muted">NEAR</small>
           </Tile>
@@ -96,7 +98,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
             <p className="text-sm text-muted">This vault has no agents yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-[15px]">
+              <table className={`w-full min-w-[520px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
                 <thead>
                   <tr>
                     <th className={th}>Agent</th>
@@ -119,7 +121,7 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
                         <td className={td}>
                           <StatusChip a={a} />
                         </td>
-                        <td className={`${td} mono whitespace-nowrap text-right text-sm`}>
+                        <td data-label="Today" className={`${td} mono whitespace-nowrap text-right text-sm`}>
                           {near ? `${yoctoToNear(used.toString())} of ${yoctoToNear(near.dailyCap)} NEAR` : "No NEAR limit"}
                         </td>
                       </tr>
@@ -136,12 +138,12 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
             <p className="text-sm text-muted">No agent is allowed to call anything yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] border-collapse text-[15px]">
+              <table className={`w-full min-w-[560px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
                 <thead>
                   <tr>
-                    <th className={th}>Target</th>
-                    <th className={th}>Class when last sent to</th>
-                    <th className={`${th} text-right`}>Your exposure</th>
+                    <th className={th}>Contract</th>
+                    <th className={th}>Risk when last sent to</th>
+                    <th className={`${th} text-right`}>Sent through vault</th>
                     <th className={`${th} text-right`}>Agents allowed</th>
                   </tr>
                 </thead>
@@ -149,9 +151,9 @@ function LiveOverview({ live }: { live: Extract<ReturnType<typeof useLiveVault>,
                   {o.targets.map((r) => (
                     <tr key={r.target}>
                       <td className={`${td} mono break-all text-sm`}>{r.target}</td>
-                      <td className={`${td} text-sm`}>{r.classAtRecord ?? <span className="text-muted">Nothing sent yet</span>}</td>
-                      <td className={`${td} mono whitespace-nowrap text-right`}>{yoctoToNear(r.exposure.toString())} NEAR</td>
-                      <td className={`${td} mono text-right`}>{r.allowedBy}</td>
+                      <td data-label="Risk when last sent to" className={`${td} text-sm`}>{(r.classAtRecord && classLabelOf(r.classAtRecord)) ?? <span className="text-muted">Nothing sent yet</span>}</td>
+                      <td data-label="Sent through vault" className={`${td} mono whitespace-nowrap text-right`}>{yoctoToNear(r.exposure.toString())} NEAR</td>
+                      <td data-label="Agents allowed" className={`${td} mono text-right`}>{r.allowedBy}</td>
                     </tr>
                   ))}
                 </tbody>

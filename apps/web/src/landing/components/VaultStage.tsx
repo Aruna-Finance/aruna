@@ -1,10 +1,11 @@
+import { CLASS_LABEL } from "@/landing/lib/class-labels";
 // Static diagram (first design). Node names and classes follow the prototype's mock data; they are an
 // illustration, not a live classification. Colors are for a dark section.
 const TARGETS = [
-  { y: 40, name: "vault.testnet", cls: "immutable_verified", pass: true },
-  { y: 140, name: "dex.testnet", cls: "local_upgradeable", pass: true },
-  { y: 240, name: "router.testnet", cls: "global_by_account", pass: true },
-  { y: 340, name: "bridge.testnet", cls: "unknown", pass: false },
+  { y: 40, name: "vault.testnet", cls: "immutable_verified" as const, pass: true },
+  { y: 140, name: "dex.testnet", cls: "local_upgradeable" as const, pass: true },
+  { y: 240, name: "router.testnet", cls: "global_by_account" as const, pass: true },
+  { y: 340, name: "bridge.testnet", cls: "unknown" as const, pass: false },
 ] as const;
 
 const METERS = [
@@ -24,7 +25,7 @@ export function VaultStage() {
     <svg
       viewBox="0 0 1440 600"
       role="img"
-      aria-label="An owner writes the policy. An agent key that holds no funds sends every call through the vault. The vault passes calls to vault.testnet, dex.testnet and router.testnet, and refuses bridge.testnet because its class is unknown. The passing targets are backed by a coverage pool."
+      aria-label="An owner writes the policy. An agent key that holds no funds sends every call through the vault. The vault passes calls to vault.testnet, dex.testnet and router.testnet, and refuses bridge.testnet because its risk is unknown. The passing targets are backed by a coverage pool."
       className="block h-auto w-full font-mono"
     >
       <g fill="none" stroke="#ffffff">
@@ -90,7 +91,7 @@ export function VaultStage() {
           />
           <text x={T_X + 16} y={t.y + 30} fontSize="15" fontWeight="500" fill="#ffffff">{t.name}</text>
           <text x={T_X + 16} y={t.y + 54} fontSize="12" fill={t.pass ? "#bdbdbd" : "#ff7756"}>
-            {t.pass ? t.cls : `${t.cls}: refused`}
+            {t.pass ? CLASS_LABEL[t.cls] : `${CLASS_LABEL[t.cls]}: refused`}
           </text>
         </g>
       ))}

@@ -131,7 +131,7 @@ describe("checks before a run", () => {
   it("no agent is offered without its key in this browser", () => {
     const c = checks({ held: [] });
     expect(allPass(c)).toBe(false);
-    expect(c.find((x) => x.id === "key")?.reason).toMatch(/does not hold/);
+    expect(c.find((x) => x.id === "key")?.reason).toMatch(/doesn.t hold/);
   });
   it("a missing swap target blocks the run, with a fix link", () => {
     const c = checks({ targets: ["drift-target.arunafi.testnet"] });
@@ -143,7 +143,7 @@ describe("checks before a run", () => {
     const c = checks({ agent: agent({ policy: { ...agent().policy, allowedTargets: ["drift-target.arunafi.testnet"] } }) });
     const t = c.find((x) => x.id === "agentTarget");
     expect(allPass(c)).toBe(false);
-    expect(t?.reason).toMatch(/TARGET_NOT_ALLOWED/);
+    expect(t?.reason).toContain("isn't allowed to use the swap contract");
     expect(t?.fix?.href).toContain("/console/agents/detail?agent=");
   });
   it("a paused or auto-disabled agent blocks the run", () => {

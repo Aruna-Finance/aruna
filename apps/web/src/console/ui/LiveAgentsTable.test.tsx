@@ -47,7 +47,7 @@ describe("live agents table", () => {
   });
   it("AE5: a key not held here is marked, and revoke stays enabled", () => {
     const out = html([agent()], [], "owner");
-    expect(out).toContain("Not in this browser");
+    expect(out).toContain("Held elsewhere");
     expect(out).not.toMatch(/<button[^>]*disabled=""[^>]*>Revoke/);
   });
   it("the label links to the agent detail page by public key", () => {
@@ -59,6 +59,11 @@ describe("live agents table", () => {
   it("a wallet that may not act sees every action disabled with one reason", () => {
     const out = html([agent()], [], null);
     expect(out).toContain("connect the owner&#x27;s or operator&#x27;s wallet to act");
+    expect(out).not.toMatch(/<button(?![^>]*disabled)[^>]*>(Pause|Revoke)/);
+  });
+  it("with no reason given (the page banner says it), disabled actions carry no repeated hint", () => {
+    const out = renderToStaticMarkup(<LiveAgentsTable agents={[agent()]} held={[]} actor={null} blockedReason="" onPause={noop} onResume={noop} onRevoke={noop} />);
+    expect(out).not.toContain("wallet to act");
     expect(out).not.toMatch(/<button(?![^>]*disabled)[^>]*>(Pause|Revoke)/);
   });
   it("a revoked agent shows no actions at all, like the sample table", () => {

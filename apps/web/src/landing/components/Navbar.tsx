@@ -5,7 +5,6 @@ const LINKS = [
   { id: "check", label: "Classifier" },
   { id: "classes", label: "Risk classes" },
   { id: "hero", label: "Vault" },
-  { id: "pricing", label: "Coverage" },
 ] as const;
 
 /** On the landing page links are in-page anchors (smooth scroll); elsewhere they go back to the landing page. */

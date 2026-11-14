@@ -6,7 +6,7 @@ import { WalletProvider } from "@/console/WalletContext";
 
 export const metadata: Metadata = {
   title: "Aruna console",
-  description: "Owner, operator, underwriter and attestor views for Aruna vaults. Testnet, simulated data.",
+  description: "Vaults, agents and coverage for Aruna on NEAR testnet.",
 };
 
 /** Everything under /console/ is the app. Its code lives in src/console and is never imported by the landing page. */

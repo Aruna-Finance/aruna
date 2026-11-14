@@ -459,3 +459,114 @@ async fn a_stale_heartbeat_blocks_new_coverage() -> anyhow::Result<()> {
     assert_eq!(s.pool_view("coverage_count", json!({})).await?, json!(0));
     Ok(())
 }
+
+impl Stack {
+    async fn near_shares(&self) -> anyhow::Result<String> {
+        Ok(self.pool_view("get_shares", json!({ "underwriter": self.underwriter.id(), "token": "near" })).await?.as_str().unwrap().to_string())
+    }
+
+    /// The underwriter's NEAR withdrawal, at the SDK client's gas; the caller reads the result, success or not.
+    async fn withdraw_near(&self, shares: String) -> anyhow::Result<near_workspaces::result::ExecutionFinalResult> {
+        Ok(self.underwriter.call(self.pool.id(), "withdraw").args_json(json!({ "token": "near", "shares": shares })).deposit(NearToken::from_yoctonear(1)).gas(Gas::from_tgas(50)).transact().await?)
+    }
+
+    /// The underwriter's USDC deposit through the token, at the SDK client's gas.
+    async fn deposit_usdc(&self, amount: u128) -> anyhow::Result<near_workspaces::result::ExecutionFinalResult> {
+        let args = json!({ "receiver_id": self.pool.id(), "amount": amount.to_string(), "msg": "{\"action\":\"deposit\"}" });
+        Ok(self.underwriter.call(self.usdc.id(), "ft_transfer_call").args_json(args).deposit(NearToken::from_yoctonear(1)).gas(Gas::from_tgas(100)).transact().await?)
+    }
+
+    async fn underwriter_usdc(&self) -> anyhow::Result<String> {
+        Ok(self.worker.view(self.usdc.id(), "ft_balance_of").args_json(json!({ "account_id": self.underwriter.id() })).await?.json::<String>()?)
+    }
+}
+
+/// Covers R10, AE4, AE5: an underwriter's capital is locked by a coverage purchase and refused while
+/// locked (`ARUNA_CAPITAL_LOCKED`), refused for more shares than held (`ARUNA_NOT_ENOUGH_SHARES`), and
+/// after the lock a withdrawal pays out the book's capital pro rata, premium included. The gas on the
+/// calls is the SDK underwriter client's (packages/sdk/src/coverage/underwriter.ts).
+#[tokio::test]
+async fn an_underwriter_is_refused_while_locked_and_withdraws_pro_rata_after() -> anyhow::Result<()> {
+    let s = Stack::new().await?;
+    s.underwrite_near(50).await?;
+    s.heartbeat(&s.attestor_a).await?;
+    let shares = s.near_shares().await?;
+    assert_eq!(shares, (50 * NEAR).to_string(), "the first deposit into an empty book mints 1:1");
+
+    // One coverage, with the shortest window the pool accepts: it sets the book's lock.
+    let window = WAITING + 1;
+    let premium: u128 = s.quote(10 * NEAR, window, NEAR).await?["premium"].as_str().unwrap().parse()?;
+    let bought = s.buy_near(10 * NEAR, window, premium).await?;
+    assert_eq!(ev(&bought, "coverage_refused"), Vec::<Value>::new(), "{:?}", bought.logs());
+    let locked_until = s.pool_view("get_book", json!({ "token": "near" })).await?["locked_until"].as_u64().unwrap();
+    let head = s.height().await?;
+    assert!(head < locked_until, "the purchase locked the book: head {head}, locked until {locked_until}");
+
+    let refused = s.withdraw_near(shares.clone()).await?;
+    assert!(!refused.is_success());
+    assert!(format!("{:?}", refused.failures()).contains("ARUNA_CAPITAL_LOCKED"), "{:?}", refused.failures());
+    assert_eq!(s.near_shares().await?, shares, "a refused withdrawal changes nothing");
+
+    s.worker.fast_forward(locked_until - head + 1).await?;
+    assert!(s.height().await? >= locked_until);
+
+    let too_many = s.withdraw_near((50 * NEAR + 1).to_string()).await?;
+    assert!(!too_many.is_success());
+    assert!(format!("{:?}", too_many.failures()).contains("ARUNA_NOT_ENOUGH_SHARES"), "{:?}", too_many.failures());
+
+    let balance_before = s.near_balance(&s.underwriter).await?;
+    let paid = ok(s.withdraw_near(shares.clone()).await?, "withdraw").await?;
+    let events = ev(&paid, "capital_withdrawn");
+    assert_eq!(events.len(), 1, "{:?}", paid.logs());
+    let amount: u128 = events[0]["amount"].as_str().unwrap().parse()?;
+    assert!(amount > 50 * NEAR, "the premium is in the share value: {amount}");
+    assert_eq!(amount, 50 * NEAR + premium, "the only holder takes all of the book's capital");
+    let received = s.near_balance(&s.underwriter).await? - balance_before;
+    assert!(received <= amount && amount - received < 10 * MILLI, "received {received} of {amount}, less the gas");
+    assert_eq!(s.near_shares().await?, "0");
+    let book = s.pool_view("get_book", json!({ "token": "near" })).await?;
+    assert_eq!((book["capital"].as_str(), book["total_shares"].as_str()), (Some("0"), Some("0")), "{book}");
+    Ok(())
+}
+
+/// Covers R14, AE6: a USDC deposit too small to mint a share is panicked on by the pool inside
+/// `ft_on_transfer`, so the token refunds it: the transaction succeeds, returns 0, and the pool logs no
+/// `capital_deposited`. Only a book whose capital exceeds its shares can refuse this, so a coverage
+/// premium goes in first.
+#[tokio::test]
+async fn a_usdc_deposit_too_small_to_mint_a_share_is_refunded_not_credited() -> anyhow::Result<()> {
+    let s = Stack::new().await?;
+    s.heartbeat(&s.attestor_a).await?;
+    let usdc = s.usdc.id().clone();
+    for a in [s.vault.as_str(), s.pool.id().as_str(), s.client.id().as_str(), s.underwriter.id().as_str(), s.target.as_str()] {
+        ok(s.owner.call(&usdc, "storage_deposit").args_json(json!({ "account_id": a })).deposit(NearToken::from_millinear(10)).transact().await?, "storage_deposit").await?;
+    }
+    for (a, amt) in [(s.underwriter.id().as_str(), 1_001 * USDC), (s.client.id().as_str(), 50 * USDC)] {
+        ok(s.owner.call(&usdc, "mint").args_json(json!({ "account_id": a, "amount": amt.to_string() })).transact().await?, "mint").await?;
+    }
+    ok(s.deposit_usdc(1_000 * USDC).await?, "usdc deposit").await?;
+
+    // A premium in the USDC book lifts its capital above its shares.
+    let window = WAITING + 1;
+    let q = s.pool_view("quote", json!({ "class": "global_by_account", "limit": (100 * USDC).to_string(), "payout_ratio_bps": 8_000, "window_blocks": window, "daily_cap": (10 * USDC).to_string() })).await?;
+    let premium: u128 = q["premium"].as_str().unwrap().parse()?;
+    let mut msg = s.request(100 * USDC, window);
+    msg["action"] = json!("buy");
+    let bought = ok(
+        s.client.call(&usdc, "ft_transfer_call").args_json(json!({ "receiver_id": s.pool.id(), "amount": (premium + USDC).to_string(), "msg": msg.to_string() })).deposit(NearToken::from_yoctonear(1)).gas(Gas::from_tgas(300)).transact().await?,
+        "usdc buy",
+    )
+    .await?;
+    assert_eq!(ev(&bought, "coverage_refused"), Vec::<Value>::new(), "{:?}", bought.logs());
+    let book_before = s.pool_view("get_book", json!({ "token": { "ft": usdc } })).await?;
+    assert!(premium > 0 && book_before["capital"].as_str().unwrap().parse::<u128>()? > book_before["total_shares"].as_str().unwrap().parse::<u128>()?);
+    assert_eq!(s.underwriter_usdc().await?, USDC.to_string(), "1 USDC is left after the first deposit");
+
+    let tiny = ok(s.deposit_usdc(1).await?, "tiny usdc deposit").await?;
+    assert_eq!(ev(&tiny, "capital_deposited"), Vec::<Value>::new());
+    let logs = format!("{:?}", tiny.logs());
+    assert_eq!(tiny.json::<String>()?, "0", "the token returns the unused amount, which is all of it: {logs}");
+    assert_eq!(s.underwriter_usdc().await?, USDC.to_string(), "the refund left the underwriter's balance as it was");
+    assert_eq!(s.pool_view("get_book", json!({ "token": { "ft": usdc } })).await?, book_before, "the book is untouched");
+    Ok(())
+}

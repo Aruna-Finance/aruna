@@ -8,6 +8,8 @@ import { yoctoToNear } from "../fmt";
 /** The testnet contracts the factory deploys against. The pool reads classes from this registry. */
 export const REGISTRY = "registry2.arunafi.testnet";
 export const POOL = "pool2.arunafi.testnet";
+/** The test USDC the pool keeps a second book for. Only the owner can mint it, so few wallets hold any. */
+export const USDC = "usdc.arunafi.testnet";
 
 export const PAYOUT_RATIO_BPS = 8000;
 /** The pool's own assumption (`quote.assumptions.blocks_per_day`); the window below is only a length in blocks. */

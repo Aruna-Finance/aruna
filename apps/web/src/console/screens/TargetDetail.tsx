@@ -1,5 +1,7 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
+import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { Classification, CodeRef } from "@/landing/lib/classifier-types";
@@ -86,7 +88,7 @@ export function TargetView({ id, data }: { id: string; data: RegistryTargetView 
     return (
       <article>
         {crumb}
-        <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the registry. {data.message}</p>
+        <ReadError what="the contract records" detail={data.message} className="mt-4" />
       </article>
     );
   return <Detail id={id} t={data.target} head={data.head} live={data.live} liveProblem={data.liveProblem} crumb={crumb} />;
@@ -103,7 +105,7 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
       <h1 className="mt-3 break-all text-[clamp(28px,4vw,44px)]">{id}</h1>
       <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
         {rec ? <ClassTag c={rec.class} /> : <span className="mono text-sm text-muted">not recorded</span>}
-        {rec?.frozen && <span className="text-sm text-dawn-ink">Frozen by a drift report</span>}
+        {rec?.frozen && <span className="text-sm text-dawn-ink">Frozen by a change report</span>}
         <span className="text-sm text-muted">Read at block {blk(head)}.</span>
       </p>
 
@@ -198,7 +200,7 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
           </Panel>
         )}
 
-        <Panel title="Latest drift report">
+        <Panel title="Latest change report">
           {t.latest ? (
             <p className="text-[15px]">
               <Link href={`/console/claims/detail/?id=${t.latest.id}`} className="underline underline-offset-4">
@@ -207,19 +209,21 @@ function Detail({ id, t, head, live, liveProblem, crumb }: { id: string; t: Regi
               <span className="mono text-sm text-muted">{STATE_TEXT[t.latest.state] ?? t.latest.state}</span>, changed at block {blk(t.latest.changedAtBlock)}.
             </p>
           ) : (
-            <p className="text-sm text-muted">No drift report has been made on this target.</p>
+            <p className="text-sm text-muted">No code change has been reported on this contract.</p>
           )}
         </Panel>
 
-        <Panel title="Check it yourself">
-          <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">The registry&apos;s record (a view call, no key), and the three public reads the classifier makes:</p>
+        <Disclosure title="Verify without this page" className="border border-line-2 bg-paper p-5 [&>summary]:text-[15px]">
+          <div className="mt-4">
+          <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">The registry&apos;s record (from a clone of the repository), and the three public reads the classifier makes:</p>
           <div className="mt-4 grid gap-3">
             <CopyBlock text={`node fixtures/tools.mjs view ${REGISTRY} get_class '{"target":"${id}"}'`} />
             <CopyBlock text={curlFor("view_account", id, "testnet")} />
             <CopyBlock text={curlFor("view_access_key_list", id, "testnet")} />
             <CopyBlock text={curlFor("view_code", id, "testnet")} />
           </div>
-        </Panel>
+          </div>
+        </Disclosure>
       </div>
     </article>
   );

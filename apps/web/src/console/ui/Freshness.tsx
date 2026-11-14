@@ -7,14 +7,14 @@ export function Freshness({ age }: { age: number }) {
   const stale = age > MAX_CLASS_AGE_BLOCKS;
   return (
     <span
-      className={`mono inline-block whitespace-nowrap border px-2 py-0.5 text-xs ${stale ? "border-dawn-ink bg-dawn-wash text-dawn-ink" : "border-line-2"}`}
+      className={`mono inline-block border px-2 sm:whitespace-nowrap py-0.5 text-xs ${stale ? "border-dawn-ink bg-dawn-wash text-dawn-ink" : "border-line-2"}`}
       title={
         stale
-          ? "Older than the vault's staleness bound. A spend returns ARUNA_CLASS_STALE until it is refreshed."
+          ? "Older than the vault allows. Agents are refused on this contract until its risk check is refreshed."
           : `Within the staleness bound of ${MAX_CLASS_AGE_BLOCKS.toLocaleString("en-US")} blocks.`
       }
     >
-      {stale ? "stale" : "fresh"} · {age.toLocaleString("en-US")} blocks
+      {stale ? "needs refresh" : "up to date"} · {age.toLocaleString("en-US")} blocks ago
     </span>
   );
 }

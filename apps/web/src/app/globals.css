@@ -123,3 +123,14 @@
     z-index: 1;
   }
 }
+
+/* Stacked tables on mobile (console/ui/stack.ts): a cell's column name, since the header row is hidden. */
+@media (max-width: 639px) {
+  .stack-mobile td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--font-sans, inherit);
+    font-size: 12px;
+    color: var(--color-muted, #6b6b6b);
+  }
+}

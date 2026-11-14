@@ -1,4 +1,5 @@
 "use client";
+import { CLASS_LABEL } from "@/landing/lib/class-labels";
 import { useState } from "react";
 import { lookup, EXAMPLE_ACCOUNTS } from "@/landing/lib/classifier-adapter";
 import type { LookupResult, Network } from "@/landing/lib/classifier-types";
@@ -23,7 +24,7 @@ export function CheckBox() {
     try {
       const r = await lookup(id, net);
       setRes({ r, network: net });
-      if (r.ok) toast.success(`Classified ${r.classification.evidence.accountId}`, { description: r.classification.class });
+      if (r.ok) toast.success(`Classified ${r.classification.evidence.accountId}`, { description: CLASS_LABEL[r.classification.class] });
       else toast.error("Could not classify", { description: r.reason });
     } catch (e) {
       toast.error("Lookup failed", { description: e instanceof Error ? e.message : "Unknown error" });

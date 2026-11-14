@@ -24,7 +24,7 @@ The plan file is the authority for requirements (R-numbers), decisions (KTD-numb
 | L5 | U8 | Activity, exposure, policy-to-price | L4 for actions; U3 (hosted indexer) for live history | 13 Nov |
 | L6 | U9, U10 | Deploy, README F1, live run, submission | L5 and Aris | 13 Nov cut, then 14 Nov |
 | L7 | U11 | Coverage and claims, live | L5 | after v0 |
-| L8 | U12 | Pool and underwriter, live | L5 | read-only half done 13 Nov (deposit and withdraw not in v0) |
+| L8 | U12 | Pool and underwriter, live | L5 | read-only half done 13 Nov; deposit and withdraw 14 Nov (`docs/plans/2026-11-14-1453-feat-underwriter-console-flow-plan.md`); per-class books after v0 |
 | L9 | U13 | Targets and attestor, live | L5 | done 13 Nov (read-only) |
 | L10 | U19 | Agents brought from the CLI or MCP | L3 | after v0 |
 | L11 | U16 | Migration in the console | Aris U15 | plan checked in the console, run from the CLI (13 Nov) |

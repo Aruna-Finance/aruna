@@ -5,7 +5,7 @@ import type { AgentView } from "@aruna/sdk";
 import { Button } from "@/shared/Button";
 import { availability, type ActorRole, type AgentAction } from "../agent-actions";
 import { keyInThisBrowser } from "../agent-keys";
-import { yoctoToNear } from "../fmt";
+import { yoctoToNear, shortKey } from "../fmt";
 import { StatusChip } from "./StatusChip";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
@@ -36,7 +36,7 @@ export function LiveAgentsTable({
   if (agents.length === 0) return <p className="text-muted">This vault has no agents yet.</p>;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] border-collapse text-[15px]">
+      <table className="w-full min-w-[720px] border-collapse text-[15px] max-sm:min-w-0 max-sm:block max-sm:[&_thead]:hidden max-sm:[&_tbody]:block max-sm:[&_tr]:grid max-sm:[&_tr]:grid-cols-2 max-sm:[&_tr]:gap-x-4 max-sm:[&_tr]:border-b max-sm:[&_tr]:border-line max-sm:[&_tr]:py-3 max-sm:[&_td]:block max-sm:[&_td]:border-0 max-sm:[&_td]:px-0 max-sm:[&_td]:py-1 max-sm:[&_td:first-child]:col-span-2 max-sm:[&_td:last-child]:col-span-2">
         <thead>
           <tr>
             <th className={th}>Agent</th>
@@ -60,11 +60,11 @@ export function LiveAgentsTable({
             const btn = (action: AgentAction, text: string, run: () => void) => {
               const v = can(action);
               return (
-                <div key={action} className="flex flex-col items-end gap-1">
+                <div key={action} className="flex flex-col items-end gap-1 max-sm:items-start">
                   <Button type="button" variant="outline" className="px-3! py-1.5! text-sm!" disabled={!v.enabled} onClick={run}>
                     {text}
                   </Button>
-                  {!v.enabled && <span className="max-w-[26ch] text-right text-xs leading-[1.4] text-muted">{v.reason}</span>}
+                  {!v.enabled && v.reason && <span className="max-w-[26ch] text-right text-xs leading-[1.4] text-muted">{v.reason}</span>}
                 </div>
               );
             };
@@ -74,7 +74,9 @@ export function LiveAgentsTable({
                   <Link href={`/console/agents/detail/?agent=${encodeURIComponent(a.publicKey)}`} className="block font-medium underline-offset-4 hover:underline">
                     {a.label}
                   </Link>
-                  <span className="mono break-all text-xs text-muted">{a.publicKey}</span>
+                  <span className="mono text-xs text-muted" title={a.publicKey}>
+                    {shortKey(a.publicKey)}
+                  </span>
                 </td>
                 <td className={td}>
                   <StatusChip a={a} />
@@ -95,11 +97,11 @@ export function LiveAgentsTable({
                   )}
                 </td>
                 <td className={`${td} whitespace-nowrap text-sm`}>
-                  {a.status === "Revoked" ? <span className="text-muted">Deleted</span> : keyInThisBrowser(held, a.publicKey) ? "In this browser" : <span className="text-dawn-ink">Not in this browser</span>}
+                  {a.status === "Revoked" ? <span className="text-muted">Deleted</span> : keyInThisBrowser(held, a.publicKey) ? "In this browser" : <span className="text-muted">Held elsewhere</span>}
                 </td>
                 <td className={`${td} text-right`}>
                   {a.status === "Revoked" ? null : (
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col items-end gap-2 max-sm:flex-row max-sm:flex-wrap max-sm:items-start">
                       {a.status === "Active" ? btn("pause", "Pause", () => onPause(a)) : btn("resume", "Resume", () => onResume(a))}
                       {btn("revoke", "Revoke", () => onRevoke(a))}
                     </div>

@@ -111,10 +111,10 @@ for a console) records each fund transaction; a step whose outcome the journal c
 `MigrationNeedsReview` instead of moving funds twice. `confirm` is called before every transaction. The signer
 must be a `MigrationTransport` (`nearApiTransport` is one). Decision: `docs/DECISIONS.md` D-65.
 
-### `Registry`, `Pool` and `OwnerCoverage` — `@aruna/sdk/coverage`
+### `Registry`, `Pool`, `OwnerCoverage` and `Underwriter` — `@aruna/sdk/coverage`
 
 ```ts
-import { fetchViewTransport, Registry, Pool, quoteCoverage, OwnerCoverage } from "@aruna/sdk/coverage";
+import { fetchViewTransport, Registry, Pool, quoteCoverage, OwnerCoverage, Underwriter } from "@aruna/sdk/coverage";
 
 const transport = fetchViewTransport({ network: "testnet" });          // keyless
 const registry = new Registry({ registry: "registry2.you.testnet", transport });
@@ -135,7 +135,18 @@ await quoteCoverage({ registry, pool }, { target, vault, agentPublicKey, token, 
 const owner = new OwnerCoverage({ pool: "pool.you.testnet", transport: ownerSigningTransport });
 await owner.buy({ request, token, maxPremium });   // OWNER action, never an agent key
 await owner.claim({ coverageId, reportId });
+
+const underwriter = new Underwriter({ pool: "pool.you.testnet", transport: underwriterSigningTransport });
+await underwriter.deposit({ token, amount });      // "near", or a NEP-141 contract; amounts in the token's smallest unit
+await underwriter.withdraw({ token, shares });     // → { ok: true, amount, tx } | { ok: false, reason, tx }
 ```
+
+`Underwriter` is an owner-side action like `OwnerCoverage`, never an agent key's. The pool refuses a locked or
+over-sized withdrawal with a panic; the client turns the four pool panics (`POOL_PANIC_REASONS`) into
+`{ ok: false, reason }` with no transaction hash. A USDC deposit the token contract refunded resolves as
+`DEPOSIT_REFUNDED`, and a USDC withdrawal by a holder not registered on the token resolves as
+`PAYOUT_NOT_REGISTERED` before anything is sent: the pool pays out with a detached transfer, so a payout to an
+unregistered account would be lost. An outcome no pool event shows throws `ArunaRpcError`.
 
 **As built.** The read clients are keyless. `quoteCoverage` composes the target's recorded class, the
 agent's daily cap for the token from the vault policy and the pool's own `quote` view; the SDK has no

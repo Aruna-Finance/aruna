@@ -89,8 +89,8 @@ pnpm --filter @aruna/web build
 python3 -m http.server 4173 --directory apps/web/out
 ```
 
-Open `http://localhost:4173`, click `fx-guser.arunafi.testnet`. Expected: class
-`global_by_account` and a side-by-side table: `view_account.code_hash` marked wrong, `view_code.hash`
+Open `http://localhost:4173`, click `fx-guser.arunafi.testnet`. Expected: "Can change silently", with the
+technical class `global_by_account` beside it, and a side-by-side table: `view_account.code_hash` marked wrong, `view_code.hash`
 marked as the code that runs. The tab reads public RPC directly — no backend, no wallet. Switch
 the selector to mainnet and type `wrap.near` for a mainnet read.
 
@@ -104,7 +104,7 @@ of agents. Click an agent. Expected: a page listing what its key cannot do, its 
 
 Which console screens read the chain: Lookup and the public agent page (this step), Create a vault,
 Agents and agent detail (step 5d), the Playground (step 5e), the Overview (step 5f), and Coverage, Buy
-coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) Pool (step 5j, read-only) and Targets with its detail page
+coverage and Claims (step 5h), Simulation (step 5i, the published results of `packages/sim`) Pool (step 5j: read the books, deposit and withdraw) and Targets with its detail page
 (step 5k) and Attestors (step 5l). Migration checks a plan from the SDK (step 14). Only the Guided demo, a scripted walkthrough, runs on sample data in v0. Treat the numbers on those screens as illustrations, not results; the
 results are in steps 9 to 13.
 
@@ -115,7 +115,8 @@ and click `Connect wallet` in the header. Expected: a wallet picker opens; after
 the header shows that account id and a `Disconnect` button, and the Lookup page adds a line saying whether your
 account is the vault owner, the operator, or neither (for `demo2.factory.arunafi.testnet` it is neither, unless you
 sign in as its owner). Closing the picker is not an error. Every transaction the console sends is shown in a
-preview first — receiver, method, deposit and gas — and declining it sends nothing.
+preview first — who signs, the receiver, the amount and what it does, with the method, deposit and gas under
+**Details** — and declining it sends nothing.
 
 ### 5d. Create your own vault and an agent
 
@@ -156,7 +157,7 @@ whether it was seen on a screen, is in [`docs/CONSOLE-TESTING.md`](docs/CONSOLE-
 ### 5e. Run an agent from the console
 
 You need a vault from step 5d whose ceiling holds `swap.arunafi.testnet`, an agent whose allowed targets
-include it (the wizard's Targets step), and about 0.5 NEAR in the vault. The agent's key must be in this
+include it (the wizard's Contracts step), and about 0.5 NEAR in the vault. The agent's key must be in this
 browser, which it is if you created the agent here. Open
 `http://localhost:4173/console/playground/?vault=<your vault>`.
 
@@ -187,11 +188,11 @@ tests only.
 ### 5f. The overview, and what a policy costs
 
 Open `http://localhost:4173/console/dashboard/?vault=<your vault>`. Expected: tiles for the vault balance,
-active agents and recorded exposure, a table of your agents, and the contracts they touch with the exposure
-recorded to each and the class recorded with it. Exposure is what was sent through the vault, not the value of a
+active agents and the amount sent through the vault, a table of your agents, and the contracts they touch with the
+exposure recorded to each and its risk when last sent to (for example "Upgradeable by owner"; hover for the technical class). Exposure is what was sent through the vault, not the value of a
 position. These numbers come from `readVault`; they do not depend on the indexer.
 
-Then open an agent (`Agents`, click its name), the **Policy** tab, and the panel **What this policy costs**. It
+Then open an agent (`Agents`, click its name), the **Limits** tab, and the panel **What these limits cost**. It
 shows, for each allowed target, the pool's premium with the policy as it is on chain and with the draft you are
 editing, the draft labelled "proposed, not yet signed", and "Testnet, assumed numbers". Change **Daily cap** from
 0.4 to 0.2 NEAR. Expected: the draft premium falls to about half and the on-chain one does not move. The price is
@@ -239,7 +240,7 @@ own build, replace `https://www.arunafi.xyz` with `http://localhost:4173`.
    with 0 paid, the second "paid" with 0.08 NEAR) whose formula column ends `= 0.08 NEAR`.
    Click report `2`. Expected: the report page with a timeline (drift_reported, challenge_window closed, claims_open),
    the attestor `attestor-a.arunafi.testnet`, changed at block 277,193,145, both resolved code hashes, and a
-   `get_report` command that prints the same record.
+   `get_report` command, under "Verify without this page", that prints the same record.
 3. Check the same numbers on chain, without the page:
 
 ```bash
@@ -286,26 +287,57 @@ pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published
    Expected: 4 tests passed. The test re-derives the page's data from `summary.json` in the results folder. To refresh the page
    after a new run: `node apps/web/scripts/sync-simulation.mjs packages/sim/results/<date>`.
 
-### 5j. Pool, read from the contract
+### 5j. Pool: read the books, deposit, and see the withdraw lock
 
-1. Open `https://www.arunafi.xyz/console/pool/`. Expected: a "NEAR book" read from `pool2.arunafi.testnet` with capital, limits on
-   the book against k x capital, whether withdrawals are locked and until which block, coverage counts (active, ended and not yet released, paid), and a table of coverage
-   by code hash or upgrade authority against the cap of 2 x capital per group. Connect a wallet to see your own shares.
+An underwriter adds capital to a book and takes it out once the book's lock ends. The lock covers the whole book and any
+coverage bought on it moves it later, so a deposit made now cannot be withdrawn before the `locked_until` block in step 2.
+Deposit a small amount.
+
+1. Open `https://www.arunafi.xyz/console/pool/` without a wallet. Expected: a "NEAR book" and a "tUSDC book" (the page does not name the contract; the figures come from `pool2.arunafi.testnet`, checked in step 2) each with capital, coverage
+   outstanding against what capital allows, whether withdrawals are locked and for how many more blocks, coverage counts (active, ended and not yet released, paid), and a table of coverage
+   by code version or by who can upgrade it, against the cap of 2 x capital per group. Under each book: "Connect a wallet to deposit or withdraw."
 2. Check the book without the page:
 
 ```bash
 node fixtures/tools.mjs view pool2.arunafi.testnet get_book '{"token":"near"}'
 ```
 
-   Expected: `capital`, `total_limits` and `locked_until` equal the tiles on the page. Adding and withdrawing capital are not in
-   the console in v0.
+   Expected: `capital`, `total_limits` and `locked_until` equal the tiles on the page.
+3. Connect a testnet wallet that holds a little NEAR (step 5c). Expected: under each book a deposit form with "Your wallet holds ...", and your share of the book as a percentage. With no shares you see
+   "You have no position in this book." instead of a withdraw form. A wallet with no test USDC sees "You hold no tUSDC. It isn't publicly mintable ..." under the tUSDC book: only `arunafi.testnet` can mint it.
+4. In "Deposit NEAR" enter `0.1` and choose "Review deposit". Expected: a dialog that lists "Deposit 0.1 NEAR into the NEAR book", an estimated share of the book as a percentage with the share price it is based on, and a note that
+   names the block the book is locked until (the `locked_until` of step 2) and says any new coverage on the book can push it later, for every underwriter.
+5. Confirm in your wallet. Expected: "Confirmed" with a link to the transaction, and "Your share of this book" updates without reloading the page. Check it on chain:
+
+```bash
+node fixtures/tools.mjs view pool2.arunafi.testnet get_shares '{"underwriter":"<your account>","token":"near"}'
+```
+
+   Expected: a non-zero amount of shares.
+6. Look at "Withdraw NEAR" under the NEAR book. Expected: "Your position is worth ... NEAR" (never a share count), the line "The book is locked for N more blocks.", and both "Review withdrawal" and "Withdraw everything" disabled.
+   While the book is locked the console offers no way to submit a withdrawal.
+7. The withdrawal itself is proven on a sandbox, because the NEAR book on `pool2` cannot be withdrawn from before the block in step 2. Build the contract wasm first (see `contracts/integration/Cargo.toml`), then:
+
+```bash
+cd contracts && cargo test -p aruna-integration --test coverage -- an_underwriter_is_refused_while_locked_and_withdraws_pro_rata_after a_usdc_deposit_too_small_to_mint_a_share_is_refunded_not_credited
+```
+
+   Expected: `2 passed`. The first deposits 50 NEAR, buys a coverage that locks the book, shows `ARUNA_CAPITAL_LOCKED` before the lock ends and `ARUNA_NOT_ENOUGH_SHARES` for more shares than held after it, and withdraws every share for the
+   book's whole capital: the deposit plus the premium. The second shows a USDC deposit too small to mint a share handed back by the token: it returns 0, the pool logs no `capital_deposited`, and the book is untouched.
+8. The client behind the forms, and the rule that no agent key or MCP tool can deposit or withdraw:
+
+```bash
+pnpm --filter @aruna/sdk test && pnpm --filter @aruna/mcp test && pnpm --filter "@aruna/web" test
+```
+
+   Expected: every suite passes, including `coverage-underwriter.test.ts` (a refused USDC deposit and a USDC withdrawal to an account not registered on the token are refusals, never a success) and the MCP guard that rejects a tool named for a deposit.
 
 ### 5k. Targets, read from the registry
 
 1. Open `https://www.arunafi.xyz/console/targets/`. Expected: a table of the seeded targets and every target the pool has
-   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded `global_by_account`, attestor
+   covered, from `registry2.arunafi.testnet`: `drift-target.arunafi.testnet` recorded "Can change silently" (`global_by_account`, in the tooltip), attestor
    `attestor-a.arunafi.testnet` with its heartbeat state, not frozen once the keeper has released it after report 2 (it was frozen
-   from that report until 13 November 2026); `swap.arunafi.testnet` recorded `local_upgradeable`, with the same attestor assigned.
+   from that report until 13 November 2026); `swap.arunafi.testnet` recorded "Upgradeable by owner" (`local_upgradeable`), with the same attestor assigned.
 2. Open `https://www.arunafi.xyz/console/targets/detail/?id=drift-target.arunafi.testnet`. Expected: the registry's record
    (class, block, classifier, evidence hash, resolved code hash, upgrade authority) beside a fresh run of
    `@aruna/classifier-core` over public RPC, a sentence saying whether the two classes agree, and the latest drift report.
@@ -321,8 +353,8 @@ node fixtures/tools.mjs view registry2.arunafi.testnet get_class '{"target":"dri
 
 ### 5l. Attestors, read from the registry
 
-1. Open `https://www.arunafi.xyz/console/attestor/`. Expected: `attestor-a.arunafi.testnet` with its bond (1 NEAR), the block of
-   its last heartbeat and how many blocks ago that was, "Heartbeat stale" while it is more than 600 blocks, and the targets it
+1. Open `https://www.arunafi.xyz/console/attestor/`. Expected: `attestor-a.arunafi.testnet` with its bond (1 NEAR), how many blocks
+   ago its last heartbeat was, "Heartbeat stale" while it is more than 600 blocks, and the targets it
    watches (`drift-target.arunafi.testnet` and `swap.arunafi.testnet`) with their recorded class and latest report. A target
    with no attestor assigned is listed in a notice instead.
 2. Check the record without the page:
@@ -342,7 +374,7 @@ The console finds the vaults an account owns from the registry, not from the ind
 1. Connect a wallet at `https://www.arunafi.xyz/console/create/`. Expected: "Your vaults" lists every vault the account owns,
    newest first, including one made a minute ago.
 2. Open `https://www.arunafi.xyz/console/dashboard/` with no `?vault=` and with the wallet connected. Expected: the account's
-   newest vault opens. With no wallet connected: "No vault is selected" and "Connect a wallet to see the vaults it owns."
+   newest vault opens. With no wallet connected: "Connect your wallet to see your vaults.", a **Connect wallet** button and a link to create a vault.
 3. Disconnect. Expected: the vault the browser remembered is forgotten, so the Overview no longer shows it.
 4. Check the list without the page. The registry lists the vaults that run a code hash, with the owner at registration:
 

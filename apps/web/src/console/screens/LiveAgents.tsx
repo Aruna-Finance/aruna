@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { Tabs } from "../ui/Tabs";
 import Link from "next/link";
 import { Button } from "@/shared/Button";
-import { actorFor, noActorReason } from "../live-vault";
+import { actorFor } from "../live-vault";
 import { useLiveActions } from "../useLiveActions";
 import type { LiveVault } from "../useLiveVault";
 import { useRole } from "../RoleContext";
@@ -13,6 +15,11 @@ import { useWallet } from "../WalletContext";
 import { relationOf, RELATION_TEXT } from "../walletRole";
 
 /** The agents of a real vault: read from the chain, changed through the wallet. */
+const TABS = [
+  { id: "agents" as const, label: "Agents" },
+  { id: "settings" as const, label: "Vault settings" },
+];
+
 export function LiveAgents({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
   const { accountId } = useWallet();
   const { role } = useRole();
@@ -20,6 +27,7 @@ export function LiveAgents({ live }: { live: Extract<LiveVault, { status: "ok" }
   const acts = useLiveActions(vault, refresh);
   const relation = relationOf(accountId, view);
   const actor = actorFor(relation, role);
+  const [tab, setTab] = useState<"agents" | "settings">("agents");
 
   return (
     <article>
@@ -27,8 +35,7 @@ export function LiveAgents({ live }: { live: Extract<LiveVault, { status: "ok" }
         <div>
           <h1 className="text-[clamp(28px,4vw,44px)]">Agents</h1>
           <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-            Live from <span className="mono break-all">{vault}</span> on testnet. Each agent is a function-call key on the vault. It has no account and
-            holds no funds. Revoking one deletes its key.
+            Agents that can spend from <span className="mono break-all">{vault}</span>.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -46,23 +53,28 @@ export function LiveAgents({ live }: { live: Extract<LiveVault, { status: "ok" }
         {relation === "owner" && actor === "operator" && " You are viewing it as the operator, so owner-only actions are disabled."}
       </p>
 
-      <Panel className="mt-6" title={`Agents (${view.agents.length})`}>
-        <LiveAgentsTable
-          agents={view.agents}
-          held={held}
-          actor={actor}
-          blockedReason={noActorReason(relation)}
-          onPause={(a) => acts.pause(a.publicKey, a.label)}
-          onResume={(a) => acts.resume(a.publicKey, a.label)}
-          onRevoke={(a) => acts.revoke(a.publicKey, a.label)}
-        />
-      </Panel>
-
-      <LiveVaultSettings live={live} actor={actor} blockedReason={noActorReason(relation)} />
+      <div className="mt-6">
+        <Tabs tabs={TABS} value={tab} onChange={setTab}>
+          {tab === "agents" && (
+          <Panel title={`Agents (${view.agents.length})`}>
+            <LiveAgentsTable
+              agents={view.agents}
+              held={held}
+              actor={actor}
+              blockedReason=""
+              onPause={(a) => acts.pause(a.publicKey, a.label)}
+              onResume={(a) => acts.resume(a.publicKey, a.label)}
+              onRevoke={(a) => acts.revoke(a.publicKey, a.label)}
+            />
+          </Panel>
+          )}
+          {tab === "settings" && <LiveVaultSettings live={live} actor={actor} blockedReason="" />}
+        </Tabs>
+      </div>
 
       <p className="mt-6 text-sm text-muted">
         <Link href={`/console/lookup/?vault=${encodeURIComponent(vault)}`} className="underline underline-offset-4">
-          Open this vault in Lookup
+          See this vault as others see it
         </Link>
       </p>
     </article>

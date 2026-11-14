@@ -81,7 +81,7 @@ export function PublicAgent() {
           {crumb}
           <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">{a.label}</h1>
           <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className={warn ? "text-dawn-ink" : ""}>{a.autoDisabled ? "Auto-disabled" : a.status}</span>
+            <span className={warn ? "text-dawn-ink" : ""}>{a.autoDisabled ? "Stopped by vault" : a.status}</span>
             <span className="mono text-muted break-all">{a.publicKey}</span>
             <span className="text-muted">on</span>
             <span className="mono">{view.vault}</span>
@@ -141,7 +141,7 @@ export function PublicAgent() {
               </dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-muted">Allowed targets</dt>
+              <dt className="text-muted">Allowed contracts</dt>
               <dd className="mono break-all">{a.policy.allowedTargets.join(", ") || "None"}</dd>
             </div>
             {a.usage && (
@@ -180,7 +180,7 @@ export function PublicAgent() {
           </ul>
         </Panel>
 
-        <Panel title="Recorded exposure" aside={<span className="text-sm text-muted">Sent through the vault, not current position value</span>}>
+        <Panel title="Sent through vault" aside={<span className="text-sm text-muted">Not the current value of any position</span>}>
           {view.exposure && view.exposure.length ? (
             <ul className="grid gap-2 text-[15px]">
               {view.exposure.map((e) => (

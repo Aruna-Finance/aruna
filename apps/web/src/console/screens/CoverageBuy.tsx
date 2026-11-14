@@ -1,5 +1,7 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
+import { classLabelOf } from "@/landing/lib/class-labels";
 import { quoteCoverage, type QuoteResult } from "@aruna/sdk/coverage";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,7 +25,7 @@ const DEBOUNCE_MS = 400;
 
 export function CoverageBuy() {
   const live = useLiveVault();
-  if (live.status !== "ok") return <NoVault live={live} title="Buy coverage on one target" />;
+  if (live.status !== "ok") return <NoVault live={live} title="Buy coverage" />;
   return <LiveBuy live={live} />;
 }
 
@@ -116,17 +118,16 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
     buy({
       request,
       maxPremiumYocto: quote.quote.premium,
-      actions: [`cover ${target} for ${agent.label}`, `limit ${yoctoToNear(request.limit)} NEAR, ${days} days, payout ratio ${ratioPct}%`],
+      actions: [`Cover ${target} for ${agent.label}`, `Pays up to ${yoctoToNear(request.limit)} NEAR over ${days} days, at ${ratioPct}% of what was sent`],
     });
   }
 
   return (
     <article>
       <Crumb vault={vault} />
-      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Buy coverage on one target</h1>
+      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Buy coverage</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        You choose the limit and the payout ratio. The price is the pool contract&apos;s own quote for the target&apos;s class and the most this
-        agent&apos;s policy allows. Testnet, in NEAR.
+        Pick an agent and a contract, then a limit and a payout ratio. The price is the pool&apos;s own quote. Testnet, in NEAR.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
@@ -136,14 +137,14 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
           ) : problem ? (
             <p className="text-sm text-muted">{problem}</p>
           ) : quoteFailed ? (
-            <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not get a price from the pool. {quoteFailed}</p>
+            <ReadError what="a price from the pool" detail={quoteFailed} />
           ) : !cell ? (
             <p className="text-sm text-muted">Asking the pool.</p>
           ) : cell.kind === "refused" ? (
             <div>
               <p className="text-[28px] leading-[1.1]">Not priced</p>
               <p className="mt-2 max-w-[70ch] text-sm text-muted" title={cell.detail}>
-                {cell.text} A risk product that prints a number here would be wrong on the first event.
+                {cell.text}
               </p>
             </div>
           ) : (
@@ -153,13 +154,12 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
                 <small className="ml-1 text-base text-muted">NEAR</small>
               </p>
               <p className="text-sm text-muted">
-                For a {days} day window, class {cell.cls}. The coverage can pay out up to {cell.reachable} NEAR, bounded by the agent&apos;s daily
-                cap. P(event) is an assumption of the pool, not a measurement.
+                For a {days} day window, risk &ldquo;{cell.cls ? classLabelOf(cell.cls) : "not recorded"}&rdquo;. It can pay out up to {cell.reachable} NEAR, bounded by the agent&apos;s daily
+                limit. The price uses an assumed chance of a code change, not a measured one.
               </p>
-              {quote?.ok && <p className="mono text-xs text-muted">{quote.quote.assumptions.label}</p>}
             </div>
           )}
-          {watchFailed && <p className="mt-4 text-sm text-dawn-ink">Could not read the attestor state. {watchFailed}</p>}
+          {watchFailed && <ReadError what="the attestor state" detail={watchFailed} className="mt-4" />}
           {blocked && <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]">{blocked}</p>}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button type="button" disabled={!ready} onClick={send}>
@@ -172,7 +172,7 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
           </div>
         </Panel>
 
-        <Panel title="Policy">
+        <Panel title="What to cover">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <p className="text-sm font-medium">Agent</p>
@@ -183,29 +183,28 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
                 options={agents.map((a) => ({ value: a.publicKey, label: a.label }))}
                 className="mt-1.5 w-full"
               />
-              <p className="mono mt-1.5 break-all text-sm text-muted">{agent?.publicKey}</p>
             </div>
             <div>
-              <p className="text-sm font-medium">Target on its allowed list</p>
-              <Select label="Target" value={target} onValueChange={setTargetPick} options={targets.map((t) => ({ value: t, label: t }))} className="mt-1.5 w-full" />
+              <p className="text-sm font-medium">Contract</p>
+              <Select label="Contract" value={target} onValueChange={setTargetPick} options={targets.map((t) => ({ value: t, label: t }))} className="mt-1.5 w-full" />
             </div>
             <NumberField label="Coverage limit" suffix="NEAR" min={0} step={0.1} value={limitNear} onChange={setLimit} />
             <NumberField label="Duration" suffix="days" min={1} value={days} onChange={setDays} />
-            <NumberField label="Payout ratio" suffix="%" min={1} value={ratioPct} onChange={setRatio} hint="The 80% default is an assumption of the pool's worked example." />
+            <NumberField label="Payout ratio" suffix="%" min={1} value={ratioPct} onChange={setRatio} hint="The share of what was sent that the pool pays back." />
           </div>
         </Panel>
 
         <Panel title="Who you trust">
           <p className="max-w-[80ch] text-[15px] leading-[1.6]">
-            Two parties: the <strong className="font-medium">attestor</strong> reports whether code changed and at which block, and is permanently a
-            trust assumption. The <strong className="font-medium">arbiter</strong> resolves conflicting reports. Aruna runs both at this stage, in public.
+            You rely on two parties. An <strong className="font-medium">attestor</strong> reports whether code changed and when; that trust
+            cannot be removed. An <strong className="font-medium">arbiter</strong> settles conflicting reports. Aruna runs both on testnet.
           </p>
           <p className="mt-3 max-w-[80ch] text-sm text-muted">
             {watch ? (
               watch.attestor ? (
                 <>
-                  Assigned to <span className="mono">{target}</span>: <span className="mono">{watch.attestor}</span>, heartbeat{" "}
-                  {watch.fresh ? "fresh" : "not fresh"}.
+                  Attestor for <span className="mono">{target}</span>: <span className="mono">{watch.attestor}</span>,{" "}
+                  {watch.fresh ? "reporting normally" : "not reporting recently"}.
                 </>
               ) : (
                 <>
@@ -213,10 +212,9 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
                 </>
               )
             ) : (
-              "Reading the attestor assigned to this target."
+              "Reading the attestor for this contract."
             )}{" "}
-            Recorded exposure is what passed through the vault, not the position&apos;s current value. The vault cannot read the target&apos;s state,
-            and payouts use this figure.
+            Payouts use what your agents sent through the vault, not what a position is worth now.
           </p>
         </Panel>
 
@@ -224,7 +222,7 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
           <NotCovered />
           <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm">
             <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-1 accent-ink" />
-            <span>I understand payment follows the trigger, and is not a measure of what I lost.</span>
+            <span>I understand the payout follows a code change, not my actual loss.</span>
           </label>
         </Panel>
       </div>

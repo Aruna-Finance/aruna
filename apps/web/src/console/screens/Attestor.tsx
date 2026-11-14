@@ -1,13 +1,12 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
-import { REGISTRY } from "../data/price";
 import { HEARTBEAT_STALE_BLOCKS, STATE_TEXT, attestorState, groupByAttestor, heartbeatAge, type AttestorInfo } from "../data/attestor-live";
 import { STATE_TEXT as REPORT_STATE } from "../data/report-live";
-import { block, yoctoToNear } from "../fmt";
+import { block, yoctoToNear, shortKey } from "../fmt";
 import { useAttestorsLive, type AttestorsLive } from "../useRegistryTargets";
 import { ClassTag } from "../ui/ClassTag";
-import { CopyBlock } from "../ui/CopyBlock";
 import { targetHref } from "../ui/Freshness";
 import { Panel } from "../ui/Panel";
 
@@ -21,11 +20,10 @@ export function Attestor() {
 export function AttestorView({ data }: { data: AttestorsLive }) {
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Attestors</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Who reports code changes</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        The attestor must be trusted, permanently. Every route to detection with no outside party was tested and is closed. At the MVP the dispute arbiter
-        is a second trust assumption. This page reads the registry; heartbeats and drift reports are sent from the attestor&apos;s own account, not from
-        an owner&apos;s console.
+        You trust one attestor to report code changes, and an arbiter to settle conflicting reports. Aruna runs both on testnet. This page shows
+        what they are doing.
       </p>
 
       {data.state === "loading" && (
@@ -33,7 +31,7 @@ export function AttestorView({ data }: { data: AttestorsLive }) {
           Reading the registry.
         </p>
       )}
-      {data.state === "error" && <p className="mt-8 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the registry. {data.message}</p>}
+      {data.state === "error" && <ReadError what="the contract records" detail={data.message} className="mt-8" />}
       {data.state === "ok" && <Body data={data} />}
     </article>
   );
@@ -56,16 +54,15 @@ function Body({ data }: { data: Extract<AttestorsLive, { state: "ok" }> }) {
         const a = info.get(g.attestor)?.record ?? null;
         const state = attestorState(a, data.head);
         return (
-          <Panel key={g.attestor} title={g.attestor} aside={<span className="text-sm text-muted">Read at block {block(data.head)}</span>}>
+          <Panel key={g.attestor} title={g.attestor}>
             <p className={`text-[15px] ${state === "alive" ? "" : "text-dawn-ink"}`}>{STATE_TEXT[state]}.</p>
             {a && (
               <dl className="mt-4 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 {(
                   [
                     ["Bond", `${yoctoToNear(a.bond)} NEAR`],
-                    ["Last heartbeat", `${block(a.last_heartbeat)}, ${heartbeatAge(a, data.head).toLocaleString("en-US")} blocks ago (stale after ${HEARTBEAT_STALE_BLOCKS})`],
-                    ["Registered at", block(a.registered_at)],
-                    ["Signing key", a.signing_key],
+                    ["Last heartbeat", `${heartbeatAge(a, data.head).toLocaleString("en-US")} blocks ago (stale after ${HEARTBEAT_STALE_BLOCKS})`],
+                    ["Signing key", shortKey(a.signing_key)],
                   ] as const
                 ).map(([l, v]) => (
                   <div key={l}>
@@ -76,7 +73,7 @@ function Body({ data }: { data: Extract<AttestorsLive, { state: "ok" }> }) {
               </dl>
             )}
 
-            <h3 className="mt-6 text-base font-medium">Targets it watches</h3>
+            <h3 className="mt-6 text-base font-medium">Contracts it watches</h3>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-[15px]">
                 <thead>
@@ -114,10 +111,6 @@ function Body({ data }: { data: Extract<AttestorsLive, { state: "ok" }> }) {
                   ))}
                 </tbody>
               </table>
-            </div>
-            <div className="mt-5">
-              <p className="mb-2 text-sm text-muted">The same record, without this page:</p>
-              <CopyBlock text={`node fixtures/tools.mjs view ${REGISTRY} get_attestor '{"attestor":"${g.attestor}"}'`} />
             </div>
           </Panel>
         );

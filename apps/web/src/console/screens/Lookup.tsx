@@ -1,11 +1,13 @@
 "use client";
 
+import { STACK_ON_MOBILE } from "../ui/stack";
+import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/shared/Button";
 import { isSafeAccountId } from "@/landing/lib/verify-commands";
-import { yoctoToNear } from "../fmt";
+import { yoctoToNear, shortKey } from "../fmt";
 import { useOwnedVaults } from "../useOwnedVaults";
 import { useVaultView } from "../useVaultView";
 import { TextField } from "../ui/Field";
@@ -37,10 +39,9 @@ export function Lookup() {
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Look up an agent before you transact with it</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Check an agent</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Policies and exposure are public, so reading them needs no login, account or permission. This page reads a testnet vault live
-        from the public RPC.
+        See what an agent&apos;s vault allows before you deal with it. No login needed.
       </p>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
@@ -54,7 +55,7 @@ export function Lookup() {
           >
             <div className="w-full flex-1 sm:min-w-72 sm:max-w-xl">
               <TextField
-                label="Vault account"
+                label="Vault"
                 value={draft}
                 onChange={setDraft}
                 mono
@@ -91,10 +92,14 @@ export function Lookup() {
         )}
 
         {state.status === "error" && (
-          <p className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px] leading-[1.6]">
-            Could not read <span className="mono">{vault}</span> as an Aruna vault. {state.message}. Check the account id, or that it is
-            a vault on testnet.
-          </p>
+          <div role="alert" className="border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px] leading-[1.6]">
+            <p>
+              <span className="mono">{vault}</span> isn&apos;t an Aruna vault on testnet, or couldn&apos;t be read. Check the name and try again.
+            </p>
+            <Disclosure title="Details" className="mt-2 text-sm text-slate [&>summary]:font-normal">
+              <p className="mono mt-2 break-words text-xs">{state.message}</p>
+            </Disclosure>
+          </div>
         )}
 
         {state.status === "ok" && (
@@ -122,16 +127,16 @@ export function Lookup() {
                   <dd className="mono break-all">{state.view.operator ?? "None"}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Full-access keys on the vault</dt>
+                  <dt className="text-muted">Admin (full-access) keys</dt>
                   <dd className="mono">{state.view.fullAccessKeys}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Keys the vault does not know</dt>
+                  <dt className="text-muted">Keys not registered as agents</dt>
                   <dd className="mono">{state.view.unknownKeys.length}</dd>
                 </div>
                 {state.view.ceiling && (
                   <div>
-                    <dt className="text-muted">Owner ceiling</dt>
+                    <dt className="text-muted">Vault limits</dt>
                     <dd className="mono">
                       {yoctoToNear(state.view.ceiling.maxPerTx)} NEAR per tx, {yoctoToNear(state.view.ceiling.dailyTotal)} NEAR per day
                     </dd>
@@ -143,12 +148,12 @@ export function Lookup() {
             <Panel title={`Agents on this vault (${state.view.agents.length})`}>
               {state.view.agents.length ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] border-collapse text-[15px]">
+                  <table className={`w-full min-w-[560px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
                     <thead>
                       <tr>
                         <th className={th}>Agent</th>
                         <th className={th}>Status</th>
-                        <th className={th}>Public key</th>
+                        <th className={th}>Key</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -159,10 +164,12 @@ export function Lookup() {
                               {a.label}
                             </Link>
                           </td>
-                          <td className={`${td} ${a.status !== "Active" || a.autoDisabled ? "text-dawn-ink" : ""}`}>
-                            {a.autoDisabled ? "Auto-disabled" : a.status}
+                          <td data-label="Status" className={`${td} ${a.status !== "Active" || a.autoDisabled ? "text-dawn-ink" : ""}`}>
+                            {a.autoDisabled ? "Stopped by vault" : a.status}
                           </td>
-                          <td className={`${td} mono text-sm break-all`}>{a.publicKey}</td>
+                          <td data-label="Key" className={`${td} mono text-sm`} title={a.publicKey}>
+                            {shortKey(a.publicKey)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

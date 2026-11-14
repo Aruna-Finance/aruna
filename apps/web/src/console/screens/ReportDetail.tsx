@@ -1,5 +1,7 @@
 "use client";
 
+import { ReadError } from "@/shared/ReadError";
+import { Disclosure } from "@/shared/Disclosure";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -73,7 +75,7 @@ export function ReportDetail() {
     return (
       <article>
         {crumb}
-        <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the report. {out.message}</p>
+        <ReadError what="the report" detail={out.message} className="mt-4" />
       </article>
     );
   }
@@ -138,9 +140,10 @@ function Report({ r, head, crumb }: { r: ReportRow; head: number; crumb: React.R
           </p>
         </Panel>
 
-        <Panel title="Check it yourself">
+        <Disclosure title="Verify without this page" className="border border-line-2 bg-paper p-5 [&>summary]:text-[15px]">
+          <div className="mt-4">
           <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
-            The page shows what the registry returns. To read it without the page, run this from the repository (testnet, a view call, no key):
+            From a clone of the repository (testnet, a view call, no key):
           </p>
           <div className="mt-4">
             <CopyBlock text={`node fixtures/tools.mjs view ${REGISTRY} get_report '{"id":${r.id}}'`} />
@@ -149,7 +152,8 @@ function Report({ r, head, crumb }: { r: ReportRow; head: number; crumb: React.R
             A conflicting report and the arbiter&apos;s ruling are sent from the attestor and arbiter accounts, not from an owner&apos;s console. The challenge
             window is {CHALLENGE_WINDOW_BLOCKS} blocks.
           </p>
-        </Panel>
+          </div>
+        </Disclosure>
 
         {live.status === "ok" && <ClaimsOnReport vault={live.vault} reportId={r.id} />}
       </div>
@@ -163,7 +167,7 @@ function ClaimsOnReport({ vault, reportId }: { vault: string; reportId: number }
   return (
     <Panel title={`Claims on this report for ${vault}`}>
       {data.state === "loading" && <p className="text-sm text-muted">Reading the pool.</p>}
-      {data.state === "error" && <p className="text-sm text-dawn-ink">Could not read the claims. {data.message}</p>}
+      {data.state === "error" && <ReadError what="the claims" detail={data.message} />}
       {data.state === "ok" &&
         (() => {
           const rows = data.claims.filter((c) => c.reportId === reportId);

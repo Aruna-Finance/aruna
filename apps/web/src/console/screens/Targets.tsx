@@ -1,5 +1,7 @@
 "use client";
 
+import { STACK_ON_MOBILE } from "../ui/stack";
+import { ReadError } from "@/shared/ReadError";
 import Link from "next/link";
 import { useState } from "react";
 import { block } from "../fmt";
@@ -23,11 +25,12 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
   const problem = other.trim() === "" ? null : targetIdProblem(other);
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Targets and their risk classes</h1>
+      <h1 className="text-[clamp(28px,4vw,44px)]">Contracts</h1>
       <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
-        Three checks on public chain data decide each class. Anyone can repeat them and get the same answer. Only the registry&apos;s authorized
-        classifier set records a class on chain, and a vault checks the last recorded class, never a live read. This list is what the registry
-        holds today for the seeded targets and every target the pool has covered.
+        Contracts your agents may use, and whether their code can still change.{" "}
+        <Link href="/console/attestor/" className="underline underline-offset-4">
+          Who reports code changes
+        </Link>
       </p>
 
       {data.state === "loading" && (
@@ -35,19 +38,19 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
           Reading the registry.
         </p>
       )}
-      {data.state === "error" && <p className="mt-8 border-l-[3px] border-dawn bg-dawn-wash px-5 py-4 text-[15px]">Could not read the registry. {data.message}</p>}
+      {data.state === "error" && <ReadError what="the contract records" detail={data.message} className="mt-8" />}
       {data.state === "ok" && (
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
-          <Panel title="Recorded in the registry" aside={<span className="text-sm text-muted">Read at block {block(data.head)}</span>}>
+          <Panel title="Checked contracts">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] border-collapse text-[15px]">
+              <table className={`w-full min-w-[820px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
                 <thead>
                   <tr>
-                    <th className={th}>Target</th>
-                    <th className={th}>Recorded class</th>
-                    <th className={th}>Attestor</th>
-                    <th className={th}>Latest drift report</th>
-                    <th className={`${th} text-right`}>Recorded</th>
+                    <th className={th}>Contract</th>
+                    <th className={th}>Risk</th>
+                    <th className={th}>Reported by</th>
+                    <th className={th}>Latest change report</th>
+                    <th className={`${th} text-right`}>Last checked</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -59,12 +62,12 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
             </div>
           </Panel>
 
-          <Panel title="Open another target">
+          <Panel title="Check another contract">
             <p className="max-w-[80ch] text-sm leading-[1.6] text-slate">
-              The registry has no list of its targets, so it cannot be browsed. Name one to see its record and a fresh run of the classifier beside it.
+              Name a contract to see its recorded risk and a fresh check beside it.
             </p>
             <div className="mt-4 max-w-xl">
-              <TextField label="Target account" mono value={other} onChange={setOther} />
+              <TextField label="Contract account" mono value={other} onChange={setOther} />
             </div>
             <p className="mt-3 text-sm">
               {other.trim() === "" ? (
@@ -92,20 +95,20 @@ function Row({ t, head }: { t: RegistryTarget; head: number }) {
         <Link href={targetHref(t.target)} className="mono block break-all underline-offset-4 hover:underline">
           {t.target}
         </Link>
-        {rec?.frozen && <span className="mono text-xs text-dawn-ink">frozen by a drift report</span>}
+        {rec?.frozen && <span className="mono text-xs text-dawn-ink">frozen by a change report</span>}
       </td>
-      <td className={td}>{rec ? <ClassTag c={rec.class} /> : <span className="text-sm text-muted">Not recorded</span>}</td>
-      <td className={`${td} text-sm`}>
+      <td data-label="Risk" className={td}>{rec ? <ClassTag c={rec.class} /> : <span className="text-sm text-muted">Not recorded</span>}</td>
+      <td data-label="Reported by" className={`${td} text-sm`}>
         {t.attestor ? (
           <>
             <span className="mono break-all">{t.attestor}</span>
-            <span className={`block text-xs ${t.heartbeatFresh ? "text-muted" : "text-dawn-ink"}`}>{t.heartbeatFresh ? "heartbeat fresh" : "heartbeat stale"}</span>
+            <span className={`block text-xs ${t.heartbeatFresh ? "text-muted" : "text-dawn-ink"}`}>{t.heartbeatFresh ? "reporting normally" : "not reporting recently"}</span>
           </>
         ) : (
           <span className="text-muted">None assigned</span>
         )}
       </td>
-      <td className={`${td} text-sm`}>
+      <td data-label="Latest change report" className={`${td} text-sm`}>
         {t.latest ? (
           <>
             <Link href={`/console/claims/detail/?id=${t.latest.id}`} className="underline underline-offset-4">
@@ -117,10 +120,10 @@ function Row({ t, head }: { t: RegistryTarget; head: number }) {
           <span className="text-muted">None</span>
         )}
       </td>
-      <td className={`${td} whitespace-nowrap text-right`}>
+      <td data-label="Last checked" className={`${td} whitespace-nowrap text-right`}>
         {rec ? (
           <>
-            <span className="mono block text-muted">{block(rec.classified_at_block)}</span>
+            <span className="sr-only">Recorded at block {block(rec.classified_at_block)}. </span>
             <Freshness age={freshnessOf(rec, head).age} />
           </>
         ) : (
