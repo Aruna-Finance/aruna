@@ -21,6 +21,18 @@ export function formatUnits(amount: string, decimals: number): string {
   return `${whole.toLocaleString("en-US")}${frac ? `.${frac}` : ""}`;
 }
 
+/**
+ * "12.5" with 6 decimals is 12500000n. Digits with at most one point only: a sign, an exponent, a thousands separator, a
+ * trailing point or more fraction digits than the token has gives null, so a typed amount is never rounded or guessed.
+ */
+export function parseUnits(text: string, decimals: number): bigint | null {
+  const t = text.trim();
+  if (!/^(\d+(\.\d+)?|\.\d+)$/.test(t) || !Number.isInteger(decimals) || decimals < 0 || decimals > 36) return null;
+  const [whole = "", frac = ""] = t.split(".");
+  if (frac.length > decimals) return null;
+  return BigInt((whole || "0") + frac.padEnd(decimals, "0"));
+}
+
 /** Reads `ft_metadata` into what the screens need, or null when the contract answered something else. */
 export function metaOf(raw: unknown): TokenMeta | null {
   if (typeof raw !== "object" || raw === null) return null;

@@ -1,6 +1,7 @@
 import type { Book, Coverage } from "@aruna/sdk/coverage";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { USDC } from "../data/price";
 import type { PoolLive } from "../usePoolLive";
 import { PoolView } from "./Pool";
 
@@ -17,7 +18,7 @@ const ok: PoolLive = {
   state: "ok",
   head: 500,
   coverages: [cov(0, 15n * YOCTO, "HASH_A"), cov(1, 5n * YOCTO, "HASH_B")],
-  books: new Map([["near", book]]),
+  books: new Map([["near", book], [USDC, { capital: "0", total_shares: "0", total_limits: "0", locked_until: 0 }]]),
   shares: new Map([["near", "250"]]),
 };
 

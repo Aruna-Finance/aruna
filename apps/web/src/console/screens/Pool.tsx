@@ -3,7 +3,7 @@
 import { ReadError } from "@/shared/ReadError";
 import { useMemo, useState } from "react";
 import { amountText } from "../data/coverage-live";
-import { bookFigures, bpsText, groupRows, stageCounts, tokensOf, type BookFigures, type GroupBy } from "../data/pool-live";
+import { BOOK_TOKENS, bookFigures, bpsText, groupRows, stageCounts, type BookFigures, type GroupBy } from "../data/pool-live";
 import { block } from "../fmt";
 import { usePoolLive, type PoolLive } from "../usePoolLive";
 import { useTokenMeta } from "../useTokenMeta";
@@ -25,7 +25,7 @@ export function Pool() {
 }
 
 export function PoolView({ data, account }: { data: PoolLive; account: string | null }) {
-  const tokens = data.state === "ok" ? tokensOf(data.coverages) : [];
+  const tokens = data.state === "ok" ? [...BOOK_TOKENS] : [];
   const meta = useTokenMeta(tokens);
   return (
     <article>

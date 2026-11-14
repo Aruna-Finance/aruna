@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { amountText } from "./coverage-live";
-import { formatUnits, metaOf } from "./token-amount";
+import { formatUnits, metaOf, parseUnits } from "./token-amount";
 
 describe("token units", () => {
   it("writes an amount in whole units with every digit the token has", () => {
@@ -19,6 +19,19 @@ describe("token units", () => {
     expect(metaOf({ symbol: "", decimals: 6 })).toBeNull();
     expect(metaOf({ symbol: "T", decimals: "6" })).toBeNull();
     expect(metaOf(null)).toBeNull();
+  });
+});
+
+describe("parseUnits", () => {
+  it("reads a typed amount into the token's smallest unit, with integer arithmetic only", () => {
+    expect(parseUnits("12.5", 6)).toBe(12_500_000n);
+    expect(parseUnits("1", 24)).toBe(10n ** 24n);
+    expect(parseUnits(".5", 6)).toBe(500_000n);
+    expect(parseUnits(" 0.000001 ", 6)).toBe(1n);
+  });
+  it("takes nothing it cannot read exactly: signs, exponents, separators, extra digits", () => {
+    for (const t of ["", "-1", "1e3", "1,5", "1.2.3", "abc", "0.0000001", "1."]) expect(parseUnits(t, 6)).toBeNull();
+    expect(parseUnits("1.5", 0)).toBeNull();
   });
 });
 
