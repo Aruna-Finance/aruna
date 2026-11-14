@@ -1,7 +1,7 @@
 # Classifier — the core of the product
 
-None of the five projects surveyed in `COMPETITIVE.md` has this. Everything else in Aruna
-exists to make it visible, usable and actionable.
+Whether the contracts an agent touches can still change is what Aruna measures. Everything else
+in Aruna exists to make it visible, usable and actionable.
 
 Read `NEAR-FACTS.md` §4, §6 and §7 before changing any logic here.
 
@@ -218,7 +218,7 @@ targets.** This is proven in the lab, and it is the hole most monitoring has.
 | `UseGlobalContract` action on the target | re-pointed global references |
 | `DeployGlobalContract` on the **owner** account | changes that never touch the target at all |
 
-The fourth channel is one none of the five surveyed projects has. It gives direct notice of
+The fourth channel is the one that catches an invisible change. It gives direct notice of
 a `global_by_account` change, which polling the resolved code only sees at the next poll.
 
 **Polling interval is part of the product, not an implementation detail.** Detection

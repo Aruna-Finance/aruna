@@ -64,9 +64,6 @@ Read the live version before submitting — dates and rules can change.
 Per-track starter prompts: `github.com/nearai/near-hackathon-prompt-examples`
 Relevant track ids: `security`, `agents`, `defi`, `open`.
 
-> Worth reading the `security` track's prompt file to see why five projects converged
-> on the same design. It specifies the architecture. See `COMPETITIVE.md`.
-
 Rules that affect the work:
 
 - Repo public before 14 November 23:59 UTC, with a LICENSE (MIT is fine)

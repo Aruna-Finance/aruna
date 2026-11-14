@@ -1,6 +1,6 @@
 // `aruna migrate`: the one command here that signs (plan U15, KTD14). It moves a vault to the current
 // vault version: the agents with their keys and policies, then the funds. Testnet only until the release
-// gates pass (docs/BUILD-PLAN.md). The key is read the way near-cli-rs's legacy keychain stores it
+// gates pass (docs/PRODUCT.md). The key is read the way near-cli-rs's legacy keychain stores it
 // (~/.near-credentials/<network>/<account>/ed25519_<key>.json), never from an argument or the environment.
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -48,7 +48,7 @@ export function parseMigrateArgs(argv: string[]): MigrateArgs {
   if (positionals.length !== 1) throw new Error("migrate takes exactly one old vault account id");
   for (const k of ["name", "factory", "as"] as const) if (!values[k]) throw new Error(`migrate needs --${k}`);
   const network = values.network ?? "testnet";
-  if (network !== "testnet") throw new Error(`refusing --network ${network}: transactions are testnet-only until the release gates in docs/BUILD-PLAN.md pass`);
+  if (network !== "testnet") throw new Error(`refusing --network ${network}: transactions are testnet-only until the release gates in docs/PRODUCT.md pass`);
   return {
     oldVault: positionals[0],
     name: values.name!,

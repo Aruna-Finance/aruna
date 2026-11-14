@@ -1,4 +1,4 @@
-// The five scenarios of docs/BUILD-PLAN.md stage 8 (plan R41), as overrides of the basis case, plus one
+// The five scenarios, as overrides of the basis case, plus one
 // labelled counterfactual. Each carries its full `Assumptions`, so a result file lists every input it used.
 import { baseAssumptions, type Assumptions } from "./model.js";
 

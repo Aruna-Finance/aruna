@@ -1,4 +1,4 @@
-// Roles, sidebar sections and screen metadata, from the prototype's NAV table and docs/UI-PLAN.md.
+// Roles, sidebar sections and screen metadata. See docs/FRONTEND.md.
 // Signer names are the prototype's mock values.
 
 export type RoleId = "owner" | "operator" | "underwriter" | "counterparty" | "developer";
@@ -97,7 +97,7 @@ export const ROLES: Role[] = [
 /** The roles offered in the "View as" picker. */
 export const LISTED_ROLES = ROLES.filter((r) => !r.unlisted);
 
-/** Which phase builds each screen, and what it will hold (docs/UI-PLAN.md). */
+/** Which phase builds each screen, and what it will hold. */
 export const SCREENS: Record<ScreenId, { title: string; phase: string; plan: string; role: RoleId }> = {
   dashboard: {
     title: "Overview",

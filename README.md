@@ -13,6 +13,44 @@ evidence, and gives agents a keyless tool to ask before they send funds.
 Release v0, 14 November 2026. Everything below runs from a fresh clone. Each step says what you
 should see.
 
+Built at NEAR HACKATHON (1-14 November 2026). Tracks: AI Security & Defense, Open Innovation, Agent
+Economy. All code in this repository was written in the hackathon window; the first commit is
+2026-11-08. Demo video: `<X post link>`
+
+## Who it is for
+
+- **An agent-as-a-service company and its clients.** One vault per client: the client owns it and holds
+  the funds, the company operates it and holds the agent keys, and one public URL shows what the agent
+  **cannot** do, enforced by the protocol rather than promised by us (steps 5b, 5d, 5e).
+- **Any agent developer.** `aruna_check_target` answers "can this contract still change?" for any NEAR
+  account, with no key, no account and no relationship with Aruna (steps 2, 3, 6).
+- **An underwriter.** Capital that backs parametric coverage against a target's code changing, priced
+  per risk class (steps 5j, 12, 15).
+
+## Check it in three minutes, no wallet, no install
+
+Every step here is a read. Nothing is signed, and nothing needs installing.
+
+1. Open https://www.arunafi.xyz/ and click `fx-guser.arunafi.testnet`. Expected: "Can change silently"
+   with the technical class `global_by_account`, and a side-by-side table where
+   `view_account.code_hash` is `11111111111111111111111111111111`, marked wrong, beside the
+   `view_code.hash` that is the code actually running. Full step: 5.
+2. Switch the selector to mainnet and type `npoint.noamarket.near`. Expected: `global_by_account`,
+   running a token contract published by `ft.globals.primitives.near`, with the same zero hash on the
+   monitored field. This is on mainnet today. Full step: 7 and the measurement table.
+3. Open https://www.arunafi.xyz/console/lookup/?vault=demo2.factory.arunafi.testnet and click an agent.
+   Expected: `0` full-access keys on the vault, and the agent as a single function-call key whose
+   `method_names` are `spend` and `refresh_class`, with a `curl` on the page you can run to compare.
+   Full step: 5b.
+4. Open https://www.arunafi.xyz/console/claims/?vault=test-vault-0.factory2.arunafi.testnet. Expected:
+   drift report 3 on `swap.arunafi.testnet`, state `verified`, and a claim on coverage #5 paid
+   **0.08 NEAR**, with a formula column ending `= 0.08 NEAR`. That claim was sent from this screen on
+   13 November 2026. Full step: 5h and 16.
+5. Open https://www.arunafi.xyz/console/pool/. Expected: a NEAR book and a tUSDC book, each with its
+   capital, the coverage outstanding against what that capital allows, whether withdrawals are locked
+   and for how many more blocks, and a table of coverage grouped by code version or upgrade authority
+   against a cap of 2 x capital. Full step: 5j.
+
 ---
 
 ## Steps
@@ -35,8 +73,9 @@ On Windows, `pnpm -r test` stops at a test that depends on the platform: `sdk` `
 checked the files out with CRLF line endings (`git config core.autocrlf false`, then check out again, and it
 passes). `pnpm -r --no-bail test` runs the rest.
 
-Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests
- skipped), `cli` (28), `attestor` (38), `keeper` (29), `sdk` (110), `mcp` (22), `indexer` (158, 8 skipped), `sim` (36) and `apps/web` (329).
+Expected: every package builds; tests pass in `classifier-core` (47), `rpc` (32, 3 live tests skipped),
+`cli` (28), `attestor` (38), `keeper` (37), `sdk` (132), `mcp` (23), `indexer` (158, 8 skipped), `sim` (36)
+and `apps/web` (397). Counts from a full `pnpm -r --no-bail test` run on macOS, 14 November 2026.
 
 ### 2. Classify any NEAR contract
 
@@ -82,7 +121,7 @@ Expected: `view_account.code_hash changed: no`, `view_code hash changed: YES`,
 
 ### 5. The classifier page, from a static host
 
-The same build is published at https://www.arunafi.xyz/ (also https://aruna-dun.vercel.app). Every step in 5 to 5f works there by replacing `http://localhost:4173` with that address; it is built without an indexer URL, so step 5g applies to it too.
+The same build is published at https://www.arunafi.xyz/ (also https://aruna-dun.vercel.app). Every step in 5 to 5f works there by replacing `http://localhost:4173` with that address; the published build has the hosted indexer URL set, so the History panels read it (step 5g).
 
 ```bash
 pnpm --filter @aruna/web build
@@ -203,7 +242,7 @@ node fixtures/tools.mjs view pool2.arunafi.testnet quote '{"class":"global_by_ac
 ```
 
 Expected: `"premium":"666293333333333333333332"` (0.6662 NEAR) and `"reachable_payout":"4960000000000000000000000"`,
-which is the cap times 31 days times 80%. The sum insured is set above that bound, so the price follows the cap.
+which is the cap times 31 days times 80%. The coverage limit is set above that bound, so the price follows the cap.
 Click **Save the policy** and sign: the panel then reads "No change from the current policy" and both columns match.
 
 ### 5g. History from the indexer
@@ -268,9 +307,9 @@ node fixtures/tools.mjs view registry2.arunafi.testnet heartbeat_fresh '{"target
 A purchase has been made since: coverage #5 on `swap.arunafi.testnet` (30 days, limit 1 NEAR, premium 0.0723 NEAR). Two
 earlier attempts were each refused by the pool with a `coverage_refused` event: one for an agent whose `max_risk_class`
 (`immutable_verified`) is below the target's class (`local_upgradeable`), one for a window of 47 days, above the 30-day
-maximum. Not met in v0: a claim sent from the console. The claim button is shown only when a verified report has no paid claim,
-and none has been sent from the console. Only NEAR coverage can be bought from the console; token coverage is shown but not
-bought. Two points in the pool's claim code are under review and not yet confirmed (`docs/FOR-ARIS.md`, item 7).
+maximum. A claim has been sent from the console: coverage #5 on report 3, paid 0.08 NEAR on 13 November 2026
+(tx `Bpqr87b3Fzw4afXmEmMYZLoze3nahUWi7WjkZJYMqjW5`). Only NEAR coverage can be bought from the console; token coverage is
+shown but not bought. Two points in the pool's claim code are read but not reproduced, and are not yet confirmed or refuted by a test: see Limits below.
 
 ### 5i. Simulation, read from the published results
 
@@ -286,6 +325,14 @@ pnpm --filter "@aruna/web" exec vitest run src/console/data/simulation-published
 
    Expected: 4 tests passed. The test re-derives the page's data from `summary.json` in the results folder. To refresh the page
    after a new run: `node apps/web/scripts/sync-simulation.mjs packages/sim/results/<date>`.
+
+### Underwriting: the design, and what v0 proves
+
+An underwriter supplies the capital that pays claims and, in the product, chooses which risk classes that capital
+backs. In v0 one book per token backs every class (`docs/DECISIONS.md` D-68): the capital cycle is proven, the
+choice of class is not built yet. Risk is already priced per class by the pool's `quote`, and exposure is already
+capped per code hash and per upgrade authority. Next: books keyed by token and class, locked once drift frequency
+is measured.
 
 ### 5j. Pool: read the books, deposit, and see the withdraw lock
 
@@ -331,6 +378,10 @@ pnpm --filter @aruna/sdk test && pnpm --filter @aruna/mcp test && pnpm --filter 
 ```
 
    Expected: every suite passes, including `coverage-underwriter.test.ts` (a refused USDC deposit and a USDC withdrawal to an account not registered on the token are refusals, never a success) and the MCP guard that rejects a tool named for a deposit.
+
+No withdrawal exists on testnet, and none can before block 278,833,053, because every purchase on the book moves the
+lock later. The withdrawal is proven on a sandbox: `an_underwriter_is_refused_while_locked_and_withdraws_pro_rata_after`
+in `contracts/integration/tests/coverage.rs`.
 
 ### 5k. Targets, read from the registry
 
@@ -668,25 +719,43 @@ Aruna is verifiable and reproducible. It is not trustless.
 - Four host functions are still under review and not scanned in v0 (`docs/CLASSIFIER.md`).
 - Accounts with more access keys than `view_access_key_list` returns cannot be classified over RPC
   and are reported as not classified.
+- **Nothing holds funds on mainnet.** The classifier reads mainnet read-only; every transaction in
+  this repository is on testnet.
+- `pool2`, `registry2` and `factory2` each still hold one full-access key, so Aruna's own classifier
+  reports them as `local_upgradeable` (`docs/DECISIONS.md` D-71). The vaults hold none. A keyless pool
+  needs the exit request in D-69 first. Check it:
+  `node packages/cli/dist/index.js classify pool2.arunafi.testnet --network testnet`.
+- The committed `res/*.wasm` for `registry`, `pool` and `factory` differ by hash from the code running
+  on testnet. The logic is the same by source diff: their NEP-330 metadata names commit `5574bc8`, and
+  no contract source outside tests changed between the commits that wrote `res/*.wasm` and `5574bc8`.
+  Reproducing the deployed hash needs the `sourcescan/cargo-near:0.21.1` image at that commit, which we
+  have not run (`docs/COMPONENT_MAP.md` §5, G3). The vault's hash does match (step 14).
+- Two points in the pool's claim code are read but not reproduced, and are not yet confirmed or refuted
+  by a test: a claim may still pay after `release_expired` released the
+  coverage, which would leave the book's `total_limits` lower than the limits really outstanding; and the
+  payout transfer is fire-and-forget, so a failed token transfer would still read as paid. Neither touches
+  the NEAR path for coverage that is still active.
+- Buying coverage checks the vault owner recorded at registration, not its current owner, so an ownership
+  change leaves the old owner as the only buyer and payee (`docs/AUDIT-v0.md`, coverage review L1, open).
 
 ## What is in v0, and what is not
 
 | In v0 | Not yet |
 |---|---|
 | `@aruna/classifier-core`, `@aruna/rpc`, `@aruna/cli` | |
-| console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price; coverage, claims, pool, targets, attestors, simulation and the migration plan read from the chain or the published results (steps 5c to 5m) | a claim sent from the console (step 5h); a migration sent from the console, which is the CLI's (step 14); adding or withdrawing pool capital in the console |
+| console: wallet, transaction preview, create a vault, agents and policy, run an agent, overview, policy price; coverage, claims, pool, targets, attestors, simulation and the migration plan read from the chain or the published results (steps 5c to 5m); a claim sent from the console (step 5h); adding pool capital from the console (step 5j), where a withdrawal is proven on a sandbox only | a migration sent from the console, which is the CLI's (step 14); per-class books: underwriters choose the risk classes they back; an exit request with a known date (`docs/DECISIONS.md` D-69) |
 | `@aruna/indexer`: testnet events into Postgres behind a read API, hosted at `aruna-near-indexer.up.railway.app` and read by the console (step 5g) | |
-| coverage on testnet: pool, registry drift path, vault v3 (step 12); the attestor and the keeper as hosted services, with coverage bought on `swap` (step 16) | `k` and the concentration limit locked: derived by the simulation (D-66) but not locked until drift frequency is measured |
+| coverage on testnet: pool, registry drift path, vault v3 (step 12); the attestor and the keeper as hosted services, with coverage bought on `swap` (step 16) | `k` and the concentration limit locked: derived by the simulation (D-66) but not locked until drift frequency is measured; a pool, registry and factory with no full-access key (D-71) |
 | live classifier page (`apps/web`) | |
 | keyless MCP tools, `@aruna/sdk` `Classifier` and `readVault` | an attestor independent of Aruna |
 | mainnet measurement with raw data and query | mainnet anything that holds funds |
-| testnet fixtures and the drift demo; `aruna migrate`, resumable (step 14); the pool simulation, published (step 15) | an alert when a hosted service stops; the keeper's and the attestor's gas measured over a long run |
+| testnet fixtures and the drift demo; `aruna migrate`, resumable (step 14); the pool simulation, published (step 15) | an alert when a hosted service stops; the keeper's and the attestor's gas measured over a long run; subscriptions, drift alerts and branded public pages |
 | lab evidence T0–T9 | |
 | vault, registry and factory on testnet; vault self-classified `immutable_verified` | |
 | spend path, reservations, auto-disable and one swap adapter, proven on a sandbox | |
 | the same spend path on testnet: an honest and an injected agent (`examples/`) | |
 
-Build order and release gates: [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
+Build order and release gates: [`docs/PRODUCT.md`](docs/PRODUCT.md).
 
 ## Repository
 
@@ -699,9 +768,10 @@ packages/mcp               MCP server: aruna_check_target, aruna_watch_target, a
 packages/attestor          drift attestor: follows the registry's assignments, files signed reports and heartbeats
 packages/keeper            freeze keeper: after a final report, re-classifies and lifts the freeze when the class is no riskier
 packages/indexer           testnet aruna events into Postgres, served over a read-only HTTP API
-packages/sim               empty in v0: the pool simulation follows
+packages/sim               pool solvency simulation; published results read by the console
 contracts/                 vault, registry, factory, pool, common; integration tests on a sandbox
-apps/web                   static classifier page, spec, proof and console (live: lookup, create a vault, agents)
+apps/web                   static classifier page and the console: lookup, create, agents, playground, overview,
+                           coverage, claims, pool, targets, attestors, simulation
 fixtures/                  one testnet account per class, the drift demo
 examples/                  an honest and a prompt-injected agent against the testnet vault
 measurement/               BigQuery query, raw export, results, report

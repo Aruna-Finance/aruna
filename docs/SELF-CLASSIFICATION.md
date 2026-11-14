@@ -78,7 +78,7 @@ It claims no detected upgrade path under the classifier's checks: no key and no 
 can replace this vault's code, re-point it, add a full-access key, or delete the account to free the
 name (T9). It does not claim the vault code is free of bugs — immutability is also why a bug can never
 be patched, which is why migration tooling is required before any mainnet vault
-(`docs/BUILD-PLAN.md`, stage 6). Four host functions are still under review and not scanned in v0.
+(`docs/PRODUCT.md`). Four host functions are still under review and not scanned in v0.
 
 The same property is proven on a local sandbox, with the agent-key refusals:
 `cd contracts && cargo test -p aruna-integration -- --nocapture`.

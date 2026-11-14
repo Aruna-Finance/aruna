@@ -9,9 +9,8 @@ them wrong; that history is kept deliberately, because the reasons still apply.
 ## Product shape
 
 ### D-01 — The classifier is the differentiator and is built first
-Five comparable hackathon projects already shipped vault-plus-scoped-key spending
-guards, some with more tests than we will write. Building that as the product means
-being one of five. Build order is classifier-first. See `COMPETITIVE.md`. The first customer
+Vault-plus-scoped-key spending guards are widely shipped and well tested. Building one as the
+product means shipping a commodity. Build order is therefore classifier-first. The first customer
 buys the vault and public page (D-36); the classifier is why those are worth buying.
 *Supersedes an earlier plan that built isolation and the gate first.*
 
@@ -251,7 +250,7 @@ and rulings are public. An independent attestor is a condition of gate B.
 
 ### D-44 — Mainnet gates are explicit
 A vault with real funds needs gate A: T5–T9, an independent audit, migration tooling, a TVL
-cap and capped AaaS pilots. Coverage needs gate B on top. See `BUILD-PLAN.md`.
+cap and capped AaaS pilots. Coverage needs gate B on top. See `PRODUCT.md`.
 
 ### D-45 — The measurement uses the NEAR BigQuery public dataset
 Plain RPC cannot produce "top N by calls". The source is official and the query is published,
@@ -314,8 +313,7 @@ Coverage, premium, underwriter capital, payout and recorded exposure are always 
 NEAR, or one NEP-141 token the owner's ceiling lists. The pool keeps one book per token, and `k`
 and concentration apply per book. Paying a token claim from NEAR exposure would need a price
 oracle, a third trust assumption. Ceilings and policies therefore carry limits per token. On
-testnet the token is Aruna's own test USDC, which has no value. From
-`docs/plans/2026-11-10-2106-feat-coverage-loop-testnet-plan.md`.
+testnet the token is Aruna's own test USDC, which has no value.
 
 ### D-55 — Coverage is per target, priced through the agent's daily cap
 One coverage names one agent, one target and one token. Its price depends on the target's class,
@@ -462,8 +460,7 @@ Costs accepted. Spending into the changed code reopens without a person having r
 is the class order here and each agent's `max_risk_class`. The key can record any target as any class, so a leak could
 record a dangerous target as `immutable_verified`: guard it as a secret, keep the owner's full-access key off the
 host, and revisit before mainnet. Corrects D-59: the registry keeps a freeze after the arbiter's ruling, on either
-side; only `lift_freeze` ends it (`contracts/registry/src/drift.rs`). Plan:
-`docs/plans/2026-11-13-2018-feat-hosted-attestor-keeper-plan.md`.
+side; only `lift_freeze` ends it (`contracts/registry/src/drift.rs`).
 
 14 November 2026: the keeper also pushes the freeze. D-59 assumed the freeze reaches every vault by `push_freeze`, but
 nothing hosted called it, so a vault learned of a freeze only when its cached class went stale (up to 3600 blocks). For a
@@ -471,6 +468,42 @@ target the registry holds frozen, the keeper now sends `push_freeze` when a vaul
 open, and not in the run that lifts it. Its key adds `push_freeze`, which anyone may call. The reverse direction is the
 SDK's: a pushed freeze stays in the vault's cache after `lift_freeze`, so `AgentVault.spend` refreshes on
 `TARGET_FROZEN` when the registry no longer records the target as frozen.
+
+### D-68 — v0 underwriting is one book per token; per-class books come with the next pool
+In v0 an underwriter deposits into and withdraws from the console against `pool2` unchanged, and one book per token backs
+every risk class (D-54). That is a proof that the flow works, not the product: an underwriter is meant to choose the risk
+they back (`PRODUCT.md`). The next pool keeps capital, shares, lock, `k` and concentration per token and per class, after
+drift frequency is measured, because until then a class is chosen on an assumed `P(event)`.
+*Rejected:* a maximum class per underwriter in one book, which makes shares non-uniform and every premium and claim an
+allocation; senior and junior tranches, which answer loss priority, not risk choice; class-weighted capacity with no choice,
+which drops the promise.
+
+### D-69 — An underwriter leaves by an exit request with a date known when it is made
+`pool2` locks a whole book until the latest coverage on it ends plus the reporting period, and every purchase moves that
+later for every holder, so while coverage keeps selling nobody can leave. The next pool takes an exit request instead: from
+the request, the holder's shares stop counting toward capacity for new coverage, and they can be withdrawn once every coverage
+that existed at the request has ended, its reporting period has passed and its claims are decided (D-70). The date is
+computable when the request is made and is shown then.
+*Rejected:* a lock per deposit, which lets capital leave in the middle of coverage it backs; epochs, which force coverage to
+end on period boundaries; the current book-wide lock, which has no exit while the business runs.
+
+### D-70 — A book is frozen while a loss on it is being decided
+While a drift report on a target with live coverage in a book is pending, disputed, or verified and not yet paid, the next pool
+takes no deposit into that book and pays no withdrawal from it. Otherwise a holder who knows of the report leaves before the
+payout, and a new depositor buys in at a share price that still holds capital about to be paid out. This also closes a defect
+in `pool2`: `CONTRACTS.md` "Capital lockup" says capital stays locked until pending claims are resolved and challenge windows
+closed, but the contract unlocks at coverage end plus the reporting period, before a report filed late in that period can
+clear its challenge window. In v0 the deposit dialog warns when a claim is in flight; it cannot freeze the book.
+*Rejected:* a warning alone, which lets a known loss move between underwriters; pricing the liability into the share price,
+which needs the payout before the claim computes it.
+
+### D-71 — The pool holds no full-access key from the next version on; `pool2`'s key is disclosed
+`pool2` holds a full-access key, so whoever holds it can move underwriter capital or replace the code. That contradicts what
+Aruna measures: our own classifier would not record it as unable to change. In v0 the key stays and is stated openly, with
+`pool2`'s class from our own classifier. The next pool is deployed with no full-access key, like the vault (D-06, D-08); a fix ships
+as a new pool version, and underwriters move by the exit request of D-69, which is what makes a keyless pool workable.
+*Rejected:* keeping a disclosed key, a third trust assumption beside the attestor and the arbiter; a multisig with a delay,
+which needs infrastructure and partners v0 does not have.
 
 ## Open questions — do not invent answers
 

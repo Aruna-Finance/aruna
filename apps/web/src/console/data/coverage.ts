@@ -1,7 +1,7 @@
 import type { RiskClass } from "@/landing/lib/classifier-types";
 
 // Mock coverage book and pool snapshot. Shapes follow the prototype. Every constant below is an underwriting
-// assumption owned by the contract team (docs/UI-PLAN.md), not a measurement, and the screens say so.
+// assumption owned by the contract team (docs/CONTRACTS.md), not a measurement, and the screens say so.
 
 export const DAY = 86_400;
 /** The prototype's demo clock: 2026-11-01 00:00 UTC. */

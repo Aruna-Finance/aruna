@@ -18,7 +18,7 @@ const exposure = (block: number, idx: number, amount: string, total: string, cls
   idx,
 });
 
-// BUILD-PLAN stage 5: "each exposure row carries the class at the time it was recorded".
+// Acceptance: "each exposure row carries the class at the time it was recorded".
 // The vault's own `Exposure.class_at_record` is overwritten on every record (AUDIT-v0 I1), so the
 // history has to come from the append-only `exposure_recorded` events. This pins that behaviour.
 describe("exposure rows keep the class each one was recorded under", () => {

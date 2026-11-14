@@ -68,7 +68,7 @@ registry and pool: a price depends on those three, which a spend does not fix, a
 refusal costs no gas. **Its result is not binding** — state can change before the
 transaction lands.
 
-Two things it returns that the simulate calls of the five surveyed projects do not: the target's
+Two things it returns that a plain policy check does not: the target's
 current recorded **class**, and, when asked with a coverage shape, the **premium** for that
 target. That is the policy-to-price chain surfaced at the moment of decision.
 

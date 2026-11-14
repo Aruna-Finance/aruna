@@ -1,6 +1,6 @@
 # @aruna/sim
 
-Pool solvency simulation (docs/BUILD-PLAN.md stage 8): 200 agents over 60 days, five scenarios, and what the
+Pool solvency simulation (docs/PRODUCT.md): 200 agents over 60 days, five scenarios, and what the
 simulation says about the two economic limits of the pool. Offline, seeded, deterministic, no runtime
 dependencies.
 

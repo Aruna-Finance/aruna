@@ -32,9 +32,9 @@ The product's economic claim is **the chain from policy to price**: a tighter po
 means lower maximum exposure, which means a cheaper premium. If the interface does not
 make that chain visible, the product reads as a dashboard and the thesis is lost.
 
-For the full picture read `PRODUCT.md`. For why this is not "another agent spending
-guard", read `COMPETITIVE.md` — it matters for copy, because five comparable products
-open with nearly the same sentence and we must not.
+For the full picture read `PRODUCT.md`. Copy never opens with "give your agent a budget, not
+your keys": that is the sentence every spending guard uses, and the measurement is what makes
+this different.
 
 ---
 

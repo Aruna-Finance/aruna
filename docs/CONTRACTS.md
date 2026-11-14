@@ -168,9 +168,8 @@ agent key ──► vault::spend({ adapter, action, params })
                                   fail → reserved -= amount; nothing else
 ```
 
-**Step 4 is deliberate and differs from the five projects surveyed in `COMPETITIVE.md`.**
-They validate against the target list fixed at configuration time; we re-check the most
-recently recorded class at execution. A target recorded as changed since the policy was written
+**Step 4 is deliberate.** A policy engine normally validates against the target list fixed at
+configuration time; we re-check the most recently recorded class at execution. A target recorded as changed since the policy was written
 is refused from then on, not grandfathered.
 
 **`refresh_class(target)` is callable by anyone,** including agent keys, whose method list

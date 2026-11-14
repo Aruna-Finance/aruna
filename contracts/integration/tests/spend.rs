@@ -1,4 +1,4 @@
-//! The spend path on a sandbox: docs/BUILD-PLAN.md Stage 3 and docs/TESTING.md "Reservation
+//! The spend path on a sandbox: docs/TESTING.md "Reservation
 //! accounting", "Class re-validation", "Refusals persist", "Class freshness", "Auto-disable",
 //! "Failed callback" and "The callback footgun". Run with --nocapture to read the story.
 
