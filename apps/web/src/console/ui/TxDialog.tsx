@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { classLabelOf } from "@/landing/lib/class-labels";
 import { Button } from "@/shared/Button";
 import { Disclosure } from "@/shared/Disclosure";
-import { reasonText } from "../reason-text";
+import { isContractReason, poolReasonText, reasonText } from "../reason-text";
 import { yoctoToNear } from "../fmt";
 import { explorerTxUrl, runTx, type TxPhase } from "../tx-status";
 
@@ -18,6 +18,8 @@ export interface TxRequest {
   depositYocto?: string;
   gas?: string;
   note?: string;
+  /** Whose refusal this action can meet: the vault (the default) or the pool. It chooses the words a refusal and an unconfirmed outcome use. */
+  source?: TxSource;
   okLabel?: string;
   danger?: boolean;
   /**
@@ -26,6 +28,8 @@ export interface TxRequest {
    */
   onOk: () => unknown;
 }
+
+export type TxSource = "vault" | "pool";
 
 const isPromise = (v: unknown): v is Promise<unknown> => typeof v === "object" && v !== null && typeof (v as { then?: unknown }).then === "function";
 
@@ -45,7 +49,7 @@ export function depositText(yocto: string | undefined): string {
 export const gasText = (gas: string | undefined) => (gas === undefined ? null : `${(BigInt(gas) / 10n ** 12n).toString()} Tgas`);
 
 /** What the user sees once the action has run. */
-export function PhaseView({ phase }: { phase: TxPhase }) {
+export function PhaseView({ phase, source = "vault" }: { phase: TxPhase; source?: TxSource }) {
   switch (phase.kind) {
     case "idle":
       return null;
@@ -67,6 +71,7 @@ export function PhaseView({ phase }: { phase: TxPhase }) {
         </p>
       );
     case "refused":
+      if (source === "pool") return <PoolRefusal reason={phase.reason} hash={phase.hash} />;
       return (
         <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]" role="status">
           Blocked by the vault. {reasonText(phase.reason) ?? "It refused this action."}
@@ -84,6 +89,7 @@ export function PhaseView({ phase }: { phase: TxPhase }) {
         <div className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]" role="alert">
           {phase.sent ? "The network or the contract rejected it." : "It couldn\u2019t be sent, or its result couldn\u2019t be read."}
           {!phase.sent && " Check the explorer before you try again, in case it ran."}
+          {!phase.sent && source === "pool" && " Funds may have moved: check your balance and your position in the pool before you try again."}
           {(phase.reason || phase.message) && (
             <Disclosure title="Details" className="mt-2 text-sm [&>summary]:font-normal">
               <p className="mono mt-2 break-words text-xs">
@@ -101,6 +107,25 @@ export function PhaseView({ phase }: { phase: TxPhase }) {
         </p>
       );
   }
+}
+
+/**
+ * A refusal from the pool or the token, not the vault. Nothing is recorded on chain for it, so it does not say so. A refund
+ * (the token handing a deposit back) and a payout check are not contract codes, so they show no ARUNA_ prefix.
+ */
+function PoolRefusal({ reason, hash }: { reason: string; hash: string | null }) {
+  const text = poolReasonText(reason);
+  return (
+    <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]" role="status">
+      {reason === "DEPOSIT_REFUNDED" ? "Returned by the token." : "Blocked by the pool."} {text ?? "The pool refused this action."} No funds moved.{" "}
+      <span className="mono text-xs text-muted">{isContractReason(reason) ? `ARUNA_${reason}` : reason}</span>{" "}
+      {hash && (
+        <a href={explorerTxUrl(hash)} target="_blank" rel="noreferrer" className="mono underline underline-offset-4">
+          View transaction
+        </a>
+      )}
+    </p>
+  );
 }
 
 /** The confirmation every state-changing action goes through: who signs, to whom, which actions, and why. */
@@ -185,7 +210,7 @@ export function TxDialog({ tx, onClose }: { tx: TxRequest | null; onClose: () =>
             </Disclosure>
           )}
           {tx.note && <p className="mt-4 border-l-[3px] border-dawn bg-dawn-wash px-4 py-3 text-sm leading-[1.6]">{tx.note}</p>}
-          <PhaseView phase={phase} />
+          <PhaseView phase={phase} source={tx.source} />
           <div className="mt-6 flex flex-wrap gap-3">
             {!done && (
               <Button
