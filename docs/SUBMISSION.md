@@ -1,5 +1,8 @@
 # Submission — NEAR hackathon, release v0
 
+> Superseded on 14 November 2026. The README is the current record; the status, video script and X post
+> below are from 12 November.
+
 Deadline: **14 November 2026, 23:59 UTC**. Checklist source: `docs/BUILD-PLAN.md`.
 
 ## Project description (1,353 characters, limit 2,000)

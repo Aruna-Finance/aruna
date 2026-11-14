@@ -214,7 +214,7 @@ of this work most likely to outlive the product.
 - [ ] Demo post on X tagging @NEARProtocol and #NEARHackathon, with video or screenshots
 - [ ] A mainnet NEAR account for the payout
 - [x] Project description, 20–2,000 characters (`docs/SUBMISSION.md`)
-- [ ] Every fitting track selected — `security`, `agents`, `defi`, `open`
+- [ ] Every fitting track selected — `security`, `agents`, `open`
 - [ ] Submitted before 14 November 23:59 UTC
 
 Code from 19 October 2026 counts as the build; earlier commits are baseline. Libraries and
