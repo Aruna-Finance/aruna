@@ -12,7 +12,7 @@ export { quoteCoverage } from "./quote.js";
 export type { QuoteDeps, QuoteRefusal, QuoteRequest, QuoteResult } from "./quote.js";
 export { MIN_CLAIM_GAS_TGAS, OwnerCoverage } from "./owner.js";
 export type { BuyRequest, BuyResult, ClaimResult } from "./owner.js";
-export { POOL_PANIC_REASONS, UNDERWRITER_CLIENT_REASONS, Underwriter } from "./underwriter.js";
+export { POOL_PANIC_REASONS, UNDERWRITER_CLIENT_REASONS, UNDERWRITER_GAS_TGAS, Underwriter } from "./underwriter.js";
 export type { DepositResult, UnderwriterReason, WithdrawResult } from "./underwriter.js";
 export { parseEvents } from "./events.js";
 export type { ArunaEvent } from "./events.js";

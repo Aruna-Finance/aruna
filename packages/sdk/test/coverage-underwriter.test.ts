@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { POOL_PANIC_REASONS, Underwriter } from "../src/coverage/index.js";
+import { POOL_PANIC_REASONS, UNDERWRITER_GAS_TGAS, Underwriter } from "../src/coverage/index.js";
 import { ArunaAuthError, ArunaRpcError, type CallResult, type VaultTransport } from "../src/vault/transport.js";
 
 const repo = (p: string) => fileURLToPath(new URL(`../../../${p}`, import.meta.url));
@@ -38,13 +38,13 @@ describe("Underwriter.deposit", () => {
   it("a NEAR deposit attaches the amount to the pool's deposit and returns the amount and shares the pool logged", async () => {
     const { t, calls } = transport({ logs: [deposited("near", "2000", "1900")] });
     expect(await under(t).deposit({ token: "near", amount: "2000" })).toEqual({ ok: true, amount: "2000", shares: "1900", tx: "TX" });
-    expect(calls[0]).toMatchObject({ contract: POOL, method: "deposit", args: {}, deposit: 2000n });
+    expect(calls[0]).toMatchObject({ contract: POOL, method: "deposit", args: {}, deposit: 2000n, tgas: UNDERWRITER_GAS_TGAS.deposit });
   });
 
   it("a USDC deposit is an ft_transfer_call on the token to the pool, with the deposit message and 1 yocto", async () => {
     const { t, calls } = transport({ value: "500", receipts: [{ executor: POOL, logs: [deposited({ ft: USDC }, "500", "500")] }] });
     expect(await under(t).deposit({ token: USDC, amount: "500" })).toMatchObject({ ok: true, amount: "500", shares: "500" });
-    expect(calls[0]).toMatchObject({ contract: USDC, method: "ft_transfer_call", deposit: 1n, tgas: 100n });
+    expect(calls[0]).toMatchObject({ contract: USDC, method: "ft_transfer_call", deposit: 1n, tgas: UNDERWRITER_GAS_TGAS.depositFt });
     expect(calls[0]?.args).toMatchObject({ receiver_id: POOL, amount: "500" });
     expect(JSON.parse(String(calls[0]?.args.msg))).toEqual({ action: "deposit" });
   });
@@ -89,7 +89,7 @@ describe("Underwriter.withdraw", () => {
   it("a NEAR withdrawal sends the token id and the exact share string with 1 yocto and returns the amount the pool logged", async () => {
     const { t, calls, views } = transport({ logs: [withdrawn("near", "2100")] });
     expect(await under(t).withdraw({ token: "near", shares: "1900" })).toEqual({ ok: true, amount: "2100", tx: "TX" });
-    expect(calls[0]).toMatchObject({ contract: POOL, method: "withdraw", args: { token: "near", shares: "1900" }, deposit: 1n });
+    expect(calls[0]).toMatchObject({ contract: POOL, method: "withdraw", args: { token: "near", shares: "1900" }, deposit: 1n, tgas: UNDERWRITER_GAS_TGAS.withdraw });
     expect(views).toHaveLength(0);
   });
 

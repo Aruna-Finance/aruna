@@ -10,9 +10,8 @@ import { ArunaAuthError, ArunaRpcError, type VaultTransport } from "../vault/tra
 import { poolEvents } from "./events.js";
 import { tokenId, type TokenName } from "./pool.js";
 
-const TGAS_DEPOSIT = 30n;
-const TGAS_DEPOSIT_FT = 100n;
-const TGAS_WITHDRAW = 50n;
+/** The gas the client attaches, in Tgas. A console shows the same figures before it signs, so it reads them from here. */
+export const UNDERWRITER_GAS_TGAS = { deposit: 30n, depositFt: 100n, withdraw: 50n } as const;
 
 /** The reasons the pool contract panics with (docs/CONTRACTS.md), without the ARUNA_ prefix. A test keeps them in the contract. Kept apart from the vault's REASONS, which a test pins to the vault. */
 export const POOL_PANIC_REASONS = ["CAPITAL_LOCKED", "NOT_ENOUGH_SHARES", "ZERO_DEPOSIT", "DEPOSIT_TOO_SMALL"] as const;
@@ -44,8 +43,8 @@ export class Underwriter {
     try {
       r =
         o.token === "near"
-          ? await transport.call(pool, "deposit", {}, { depositYocto: BigInt(o.amount), tgas: TGAS_DEPOSIT })
-          : await transport.call(o.token, "ft_transfer_call", { receiver_id: pool, amount: o.amount, msg: JSON.stringify({ action: "deposit" }) }, { depositYocto: 1n, tgas: TGAS_DEPOSIT_FT });
+          ? await transport.call(pool, "deposit", {}, { depositYocto: BigInt(o.amount), tgas: UNDERWRITER_GAS_TGAS.deposit })
+          : await transport.call(o.token, "ft_transfer_call", { receiver_id: pool, amount: o.amount, msg: JSON.stringify({ action: "deposit" }) }, { depositYocto: 1n, tgas: UNDERWRITER_GAS_TGAS.depositFt });
     } catch (e) {
       const reason = panicReason(e);
       if (reason) return { ok: false, reason, tx: null };
@@ -67,7 +66,7 @@ export class Underwriter {
     }
     let r;
     try {
-      r = await transport.call(pool, "withdraw", { token: tokenId(o.token), shares: o.shares }, { depositYocto: 1n, tgas: TGAS_WITHDRAW });
+      r = await transport.call(pool, "withdraw", { token: tokenId(o.token), shares: o.shares }, { depositYocto: 1n, tgas: UNDERWRITER_GAS_TGAS.withdraw });
     } catch (e) {
       const reason = panicReason(e);
       if (reason) return { ok: false, reason, tx: null };
