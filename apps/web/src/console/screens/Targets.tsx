@@ -12,6 +12,7 @@ import { ClassTag } from "../ui/ClassTag";
 import { TextField } from "../ui/Field";
 import { Freshness, targetHref } from "../ui/Freshness";
 import { Panel } from "../ui/Panel";
+import { PageHeader } from "../ui/PageHeader";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
@@ -25,13 +26,12 @@ export function TargetsView({ data }: { data: RegistryTargets }) {
   const problem = other.trim() === "" ? null : targetIdProblem(other);
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Contracts</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Contracts">
         Contracts your agents may use, and whether their code can still change.{" "}
         <Link href="/console/attestor/" className="underline underline-offset-4">
           Who reports code changes
         </Link>
-      </p>
+      </PageHeader>
 
       {data.state === "loading" && (
         <p className="mt-8 text-muted" role="status">

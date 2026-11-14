@@ -16,7 +16,7 @@ export const dynamicParams = false;
 
 export function generateStaticParams() {
   // "agents", "coverage", "claims" and "targets" have their own route folders, because they have sub-pages.
-  const own = new Set(["agents", "coverage", "claims", "targets", "lookup"]);
+  const own = new Set(["agents", "coverage", "claims", "targets", "lookup", "vault"]);
   return SCREEN_IDS.filter((section) => !own.has(section)).map((section) => ({ section }));
 }
 

@@ -5,8 +5,11 @@ import Link from "next/link";
 import { isValidAccountId } from "@aruna/rpc";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/Button";
+import { WithPlus } from "@/shared/WithPlus";
 import { fetchViewTransport, Registry } from "@aruna/sdk/coverage";
 import { createTestnetReads } from "../chain-reads";
+import { useBalance } from "../useBalance";
+import { STACK_ON_MOBILE } from "../ui/stack";
 import {
   buildCeiling,
   classifiedTarget,
@@ -35,6 +38,7 @@ import { useTx } from "../TxContext";
 import { ClassTag } from "../ui/ClassTag";
 import { NumberField, TextField } from "../ui/Field";
 import { historyNotice, targetHref } from "../ui/Freshness";
+import { PageHeader } from "../ui/PageHeader";
 import { Panel } from "../ui/Panel";
 import { TokenIcon } from "../ui/Token";
 
@@ -152,10 +156,9 @@ export function CreateVault() {
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Create your vault</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Create your vault">
         You&apos;ll own this vault. Your agents can only spend from it within the limits you set.
-      </p>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         {!accountId && (
@@ -285,7 +288,7 @@ export function CreateVault() {
             )}
             <div>
               <Button type="button" onClick={submit} disabled={!ready}>
-                Review and create
+                <WithPlus>Review and create</WithPlus>
               </Button>
             </div>
           </div>
@@ -293,7 +296,6 @@ export function CreateVault() {
 
         {created && <CreatedVault key={created} vault={created} account={accountId} reads={reads} getWallet={getWallet} open={open} />}
 
-        <MyVaults account={accountId} history={history} />
       </div>
     </article>
   );
@@ -420,7 +422,15 @@ async function fromRegistry(account: string): Promise<{ state: "ok"; list: Owned
   }
 }
 
-export function MyVaults({ account, history }: { account: string | null; history: ReturnType<typeof defaultHistory> }) {
+const TH = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
+const TD = "border-b border-line px-3 py-3 align-top";
+
+function VaultBalance({ vault }: { vault: string }) {
+  const b = useBalance(vault, vault);
+  return b === null ? <span className="text-muted">unknown</span> : <>{yoctoToNear(b.toString())} NEAR</>;
+}
+
+export function MyVaults({ account, history, to = "/console/dashboard/", current, intro, table }: { account: string | null; history: ReturnType<typeof defaultHistory>; to?: string; current?: string; intro?: string; table?: boolean }) {
   const [rows, setRows] = useState<{ vault: string; role: string }[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -449,15 +459,55 @@ export function MyVaults({ account, history }: { account: string | null; history
   if (!account) return null;
   return (
     <Panel title="Your vaults">
+      {intro && <p className="mb-4 max-w-[70ch] text-sm leading-[1.6] text-muted">{intro}</p>}
       {rows && rows.length === 0 && !problem && <p className="text-sm text-muted">No vaults found for this account.</p>}
-      {rows && rows.length > 0 && (
+      {rows && rows.length > 0 && table && (
+        <div className="overflow-x-auto">
+          <table className={`w-full min-w-[520px] border-collapse text-[15px] ${STACK_ON_MOBILE}`}>
+            <thead>
+              <tr>
+                <th className={TH}>Vault</th>
+                <th className={TH}>Your role</th>
+                <th className={`${TH} text-right`}>Balance</th>
+                <th className={TH}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.vault}>
+                  <td data-label="Vault" className={`${TD} mono break-all text-sm`}>
+                    <Link href={`${to}?vault=${encodeURIComponent(r.vault)}`} className="underline underline-offset-4">
+                      {r.vault}
+                    </Link>
+                  </td>
+                  <td data-label="Your role" className={TD}>
+                    {r.role}
+                  </td>
+                  <td data-label="Balance" className={`${TD} mono whitespace-nowrap text-right`}>
+                    <VaultBalance vault={r.vault} />
+                  </td>
+                  <td className={`${TD} whitespace-nowrap text-right`}>
+                    <Link href={`${to}?vault=${encodeURIComponent(r.vault)}`} tabIndex={-1}>
+                      <Button type="button" variant="outline" className="px-3! py-1.5! text-sm!">
+                        Open
+                      </Button>
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {rows && rows.length > 0 && !table && (
         <ul className="grid gap-2">
           {rows.map((r) => (
             <li key={r.vault} className="flex flex-wrap items-center gap-3 text-[15px]">
-              <Link href={`/console/dashboard/?vault=${encodeURIComponent(r.vault)}`} className="mono underline underline-offset-4">
+              <Link href={`${to}?vault=${encodeURIComponent(r.vault)}`} className="mono underline underline-offset-4">
                 {r.vault}
               </Link>
               <span className="text-sm text-muted">{r.role}</span>
+              {r.vault === current && <span className="border border-ink px-2 py-0.5 text-xs">open now</span>}
             </li>
           ))}
         </ul>

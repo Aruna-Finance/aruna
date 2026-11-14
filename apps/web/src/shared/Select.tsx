@@ -28,7 +28,7 @@ export function Select<T extends string>({
       <RadixSelect.Trigger
         ref={triggerRef}
         aria-label={label}
-        className={`label inline-flex min-w-[190px] cursor-pointer items-center justify-between gap-3 border border-line-2 bg-white px-3 py-3.5 text-sm tracking-[0.04em] transition-colors hover:border-ink data-[state=open]:border-ink ${className}`}
+        className={`label inline-flex min-w-[190px] cursor-pointer items-center justify-between gap-3 border border-line-2 bg-paper px-3 py-3.5 text-sm tracking-[0.04em] transition-colors hover:border-ink data-[state=open]:border-ink ${className}`}
       >
         <RadixSelect.Value />
         <RadixSelect.Icon>
@@ -39,7 +39,7 @@ export function Select<T extends string>({
         <RadixSelect.Content
           position="popper"
           sideOffset={4}
-          className="z-50 min-w-(--radix-select-trigger-width) border border-ink bg-white"
+          className="z-50 min-w-(--radix-select-trigger-width) border border-ink bg-paper"
         >
           <RadixSelect.Viewport>
             {options.map((o) => (

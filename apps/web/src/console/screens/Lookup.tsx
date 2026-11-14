@@ -15,6 +15,7 @@ import { Panel } from "../ui/Panel";
 import { agentPageHref } from "../ui/agentPageHref";
 import { useWallet } from "../WalletContext";
 import { RELATION_TEXT, relationOf } from "../walletRole";
+import { PageHeader } from "../ui/PageHeader";
 
 // The vault the team's agent examples use (docs/AUDIT-v0.md). A real testnet vault, read live.
 export const EXAMPLE_VAULT = "demo2.factory.arunafi.testnet";
@@ -39,10 +40,9 @@ export function Lookup() {
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Check an agent</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Check an agent">
         See what an agent&apos;s vault allows before you deal with it. No login needed.
-      </p>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel>

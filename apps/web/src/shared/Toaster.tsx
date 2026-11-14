@@ -35,7 +35,7 @@ export function Toaster() {
         unstyled: true,
         classNames: {
           toast:
-            "label flex w-[356px] max-w-[calc(100vw-32px)] items-start gap-3 border bg-white px-4 py-3.5 text-sm normal-case tracking-normal",
+            "label flex w-[356px] max-w-[calc(100vw-32px)] items-start gap-3 border bg-paper px-4 py-3.5 text-sm normal-case tracking-normal",
           success: "border-ink",
           error: "border-dawn-ink bg-dawn-wash",
           title: "font-sans text-[15px] font-medium",

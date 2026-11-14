@@ -37,6 +37,11 @@ describe("console navigation", () => {
     }
   });
 
+  it("gives the client one Vault screen after Overview, and the operator none", () => {
+    expect(roleById("owner").items.slice(0, 3).map((i) => i.id)).toEqual(["dashboard", "vault", "agents"]);
+    expect(roleById("operator").items.some((i) => i.id === "vault")).toBe(false);
+  });
+
   it("uses no em dash", () => {
     expect(JSON.stringify({ ROLES, SCREENS })).not.toContain("\u2014");
   });

@@ -26,7 +26,7 @@ export function NumberField({
       <label htmlFor={id} className="block text-sm font-medium">
         {label}
       </label>
-      <div className="mt-1.5 flex border border-line-2 bg-white transition-colors hover:border-ink focus-within:border-ink">
+      <div className="mt-1.5 flex border border-line-2 bg-paper transition-colors hover:border-ink focus-within:border-ink">
         <input
           id={id}
           type="number"
@@ -70,7 +70,7 @@ export function TextField({
         autoComplete="off"
         spellCheck={false}
         onChange={(e) => onChange(e.target.value)}
-        className={`mt-1.5 block w-full border border-line-2 bg-white px-3 py-3.5 text-sm outline-none transition-colors hover:border-ink focus:border-ink ${mono ? "mono" : ""}`}
+        className={`mt-1.5 block w-full border border-line-2 bg-paper px-3 py-3.5 text-sm outline-none transition-colors hover:border-ink focus:border-ink ${mono ? "mono" : ""}`}
       />
       {hint && <p className="mt-1.5 text-sm text-muted">{hint}</p>}
     </div>

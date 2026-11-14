@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "../ui/PageHeader";
 import { ReadError } from "@/shared/ReadError";
 import { classLabelOf } from "@/landing/lib/class-labels";
 import { quoteCoverage, type QuoteResult } from "@aruna/sdk/coverage";
@@ -106,9 +107,9 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
   if (relation === "operator") {
     return (
       <article>
-        <Crumb vault={vault} />
-        <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">The owner buys coverage</h1>
-        <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">Coverage is an owner action, never available to an operator or an agent key.</p>
+        <PageHeader title="The owner buys coverage" lead={<Crumb vault={vault} />}>
+          Coverage is an owner action, never available to an operator or an agent key.
+        </PageHeader>
       </article>
     );
   }
@@ -124,11 +125,9 @@ function LiveBuy({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
 
   return (
     <article>
-      <Crumb vault={vault} />
-      <h1 className="mt-3 text-[clamp(28px,4vw,44px)]">Buy coverage</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Buy coverage" lead={<Crumb vault={vault} />}>
         Pick an agent and a contract, then a limit and a payout ratio. The price is the pool&apos;s own quote. Testnet, in NEAR.
-      </p>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         <Panel title="Premium" aside={<span className="text-sm text-muted">Testnet, assumed numbers</span>}>

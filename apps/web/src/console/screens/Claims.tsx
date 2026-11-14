@@ -12,6 +12,7 @@ import { useTokenMeta } from "../useTokenMeta";
 import { useVaultClaims } from "../useVaultClaims";
 import { NoVault } from "../ui/NoVault";
 import { Panel } from "../ui/Panel";
+import { PageHeader } from "../ui/PageHeader";
 
 const th = "whitespace-nowrap border-b border-line-2 px-3 py-2 text-left font-medium";
 const td = "border-b border-line px-3 py-3 align-top";
@@ -34,10 +35,9 @@ function LiveClaims({ live }: { live: Extract<LiveVault, { status: "ok" }> }) {
 
   return (
     <article>
-      <h1 className="text-[clamp(28px,4vw,44px)]">Change reports and claims</h1>
-      <p className="mt-4 max-w-[70ch] leading-[1.6] text-slate">
+      <PageHeader title="Change reports and claims">
         Code-change reports and claims are public. A report freezes the contract.
-      </p>
+      </PageHeader>
 
       <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6">
         {data.state === "loading" && <p className="text-sm text-muted">Reading the registry and the pool.</p>}

@@ -20,14 +20,14 @@ import { TokenIcon } from "../ui/Token";
 type Ok = Extract<LiveVault, { status: "ok" }>;
 
 /** Owner-only vault settings: who the operator is, and the ceiling every agent lives under. */
-export function LiveVaultSettings({ live, actor, blockedReason }: { live: Ok; actor: ActorRole | null; blockedReason: string }) {
+export function LiveVaultSettings({ live, actor, blockedReason, only }: { live: Ok; actor: ActorRole | null; blockedReason: string; only?: "operator" | "limits" }) {
   const acts = useLiveActions(live.vault, live.refresh);
   const op = actor ? availability(actor, "set_operator") : ({ enabled: false, reason: blockedReason } as const);
   const ce = actor ? availability(actor, "set_ceiling") : ({ enabled: false, reason: blockedReason } as const);
   return (
     <>
-      <OperatorPanel live={live} v={op} onSet={(next) => acts.setOperator(next, live.view.operator)} />
-      <CeilingPanel live={live} v={ce} onSave={acts.setCeiling} />
+      {only !== "limits" && <OperatorPanel live={live} v={op} onSet={(next) => acts.setOperator(next, live.view.operator)} />}
+      {only !== "operator" && <CeilingPanel live={live} v={ce} onSave={acts.setCeiling} />}
     </>
   );
 }
@@ -43,7 +43,7 @@ function OperatorPanel({ live, v, onSet }: { live: Ok; v: ReturnType<typeof avai
         Current operator: <span className="mono break-all">{current ?? "none"}</span>
       </p>
       <p className="mt-2 max-w-[70ch] text-sm leading-[1.6] text-muted">
-        The operator can add agents, tighten their policies and pause or revoke them. It cannot loosen limits, resume an agent or withdraw.
+        The operator is the company that runs your agents. It can add agents, tighten their policies and pause or revoke them. It cannot loosen limits, resume an agent or withdraw.
       </p>
       <div className="mt-5 grid gap-4 sm:max-w-xl">
         <TextField label="New operator account" mono value={next} onChange={setNext} hint={bad ?? undefined} />
@@ -139,7 +139,7 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
       }
     >
       <p className="max-w-[70ch] text-sm leading-[1.6] text-muted">
-        The most any agent on this vault can be given. Now: {yoctoToNear(c.maxPerTx)} NEAR per transaction, {yoctoToNear(c.dailyTotal)} NEAR a day, riskiest
+        The most any agent on this vault can be given. Every agent&apos;s own limits have to fit inside these. Now: {yoctoToNear(c.maxPerTx)} NEAR per transaction, {yoctoToNear(c.dailyTotal)} NEAR a day, riskiest
         contracts allowed: {classLabelOf(c.maxRiskClass)}.
       </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -149,6 +149,7 @@ function CeilingPanel({ live, v, onSave }: { live: Ok; v: ReturnType<typeof avai
       </div>
       <fieldset className="mt-6">
         <legend className="text-sm font-medium">Allowed contracts</legend>
+        <p className="mt-1 max-w-[70ch] text-sm text-muted">Agents can only send to these contracts. The label says how a contract&apos;s code can change.</p>
         <ul className="mt-2 grid gap-2">
           {options.map((o) => (
             <li key={o.target} className="flex flex-wrap items-center gap-3">
