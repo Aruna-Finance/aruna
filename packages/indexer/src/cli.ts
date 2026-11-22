@@ -40,7 +40,7 @@ Block sources, chosen per height (no key needed):
                                   header). The backup that reads what QuickNode fails to serve; the archive alone when
                                   there is no QuickNode URL.
   QUICKNODE_CONCURRENCY           optional: blocks read at once from QuickNode (default 3).
-  fallback (config fallback_rpc)  NEAR's archival RPC, free and slow (about 19 calls a minute). Reads what the
+  fallback (config fallback_rpc)  FastNear's archival RPC, free (500K credits, one-time). Reads what the
                                   others cannot; a failing endpoint is benched for 5 minutes.
 --concurrency is how many blocks are read at a time (default 8).`;
 
@@ -70,7 +70,8 @@ const RPC_CONCURRENCY = 8;
 const ARCHIVE_CONCURRENCY = 3;
 /** dRPC's free tier: 733 calls a minute at 4 in flight on 12 November 2026, with an occasional 429 the retries absorb. */
 const LIVE_CONCURRENCY = 4;
-/** NEAR's archival RPC: about 19 calls a minute one at a time, with no 429, on 12 November 2026. */
+/** FastNear's archival RPC, one call at a time. NEAR's own (archival-rpc.testnet.near.org) answered every call with HTTP 429
+ * and a deprecation notice on 22 November 2026; FastNear's throughput has not been measured. */
 const FALLBACK_CONCURRENCY = 1;
 /** neardata with a FastNear key: one window's worth of blocks at once, so the archive never holds a window up (plan KTD2). */
 const NEARDATA_CONCURRENCY = 8;
@@ -94,12 +95,12 @@ export function chooseSource(config: IndexerConfig, env: NodeJS.ProcessEnv = pro
     live: { source: rpcSource({ url: config.live_rpc, proveSkips: true }), label: "dRPC", concurrency: LIVE_CONCURRENCY },
     // The fallback can trail the head that dRPC reported, and answers UNKNOWN_BLOCK for a final block it has not
     // synced yet, so it proves skips too. The archives read only deep history, where a missing block is a real skip.
-    fallback: { source: rpcSource({ url: config.fallback_rpc, proveSkips: true }), label: "NEAR archival", concurrency: FALLBACK_CONCURRENCY },
+    fallback: { source: rpcSource({ url: config.fallback_rpc, proveSkips: true }), label: "FastNear archival", concurrency: FALLBACK_CONCURRENCY },
     onSwitch: (label) => console.error(`block source now: ${label}`),
   });
   const label = archive
-    ? `${archive.label}${archiveBackup ? ` (${archiveBackup.label} as its backup)` : ""} to dRPC's edge, then dRPC; NEAR archival as fallback`
-    : "dRPC; NEAR archival for older blocks and as fallback";
+    ? `${archive.label}${archiveBackup ? ` (${archiveBackup.label} as its backup)` : ""} to dRPC's edge, then dRPC; FastNear archival as fallback`
+    : "dRPC; FastNear archival for older blocks and as fallback";
   return { source, label, defaultConcurrency: RPC_CONCURRENCY };
 }
 

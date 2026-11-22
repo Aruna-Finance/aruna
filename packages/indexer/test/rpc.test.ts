@@ -85,6 +85,12 @@ describe("rpc source cost and safety", () => {
     expect(calls).toEqual(["status", "EXPERIMENTAL_changes_in_block"]);
   });
 
+  it("reads UNKNOWN_BLOCK from an HTTP 422 answer, as nearcore and dRPC now send it, instead of failing the endpoint", async () => {
+    const { fetch, calls } = replay((method) => (method === "EXPERIMENTAL_changes_in_block" ? { status: 422, body: UNKNOWN_BLOCK } : undefined));
+    expect(await rpcSource({ url: URL_, fetch }).block(277068700)).toBeNull();
+    expect(calls).toEqual(["status", "EXPERIMENTAL_changes_in_block"]);
+  });
+
   it("asks for each transaction once when one transaction produced several receipts", async () => {
     const { fetch, calls } = replay();
     const src = rpcSource({ url: URL_, fetch, backoffMs: 1 });
@@ -165,8 +171,23 @@ describe("rpc source on a node that prunes old blocks (proveSkips)", () => {
     expect(await rpcSource({ url: URL_, fetch, proveSkips: true }).block(H)).toBeNull();
   });
 
+  it("returns null across a run of four skipped heights, as testnet skipped 278544042-278544045", async () => {
+    const { fetch } = replay((method, params) =>
+      method === "block" && params.block_id === H + 4 ? { body: header(H + 4, H - 1) } : unknownFor([H, H + 1, H + 2, H + 3])(method, params),
+    );
+    expect(await rpcSource({ url: URL_, fetch, proveSkips: true }).block(H)).toBeNull();
+  });
+
+  it("proves a skip from an HTTP 422 UNKNOWN_BLOCK, and names a pruned height as not served", async () => {
+    const as422 = (r: Reply | undefined) => (r ? { status: 422, body: r.body } : undefined);
+    const skipped = replay((method, params) => (method === "block" && params.block_id === H + 1 ? { body: header(H + 1, H - 1) } : as422(unknownFor([H])(method, params))));
+    expect(await rpcSource({ url: URL_, fetch: skipped.fetch, proveSkips: true }).block(H)).toBeNull();
+    const pruned = replay((method, params) => (method === "block" && params.block_id === H + 1 ? { body: header(H + 1, H) } : as422(unknownFor([H])(method, params))));
+    await expect(rpcSource({ url: URL_, fetch: pruned.fetch, proveSkips: true }).block(H)).rejects.toBeInstanceOf(BlockNotServedError);
+  });
+
   it("refuses to call a block skipped when the node holds no later block either", async () => {
-    const { fetch } = replay(unknownFor([H, H + 1, H + 2, H + 3]));
+    const { fetch } = replay(unknownFor(Array.from({ length: 11 }, (_, i) => H + i)));
     await expect(rpcSource({ url: URL_, fetch, proveSkips: true, backoffMs: 1 }).block(H)).rejects.toBeInstanceOf(BlockNotServedError);
   });
 

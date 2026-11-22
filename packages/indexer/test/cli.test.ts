@@ -8,9 +8,9 @@ import { FIRST, LAST, memorySource, recordedBlocks, SEEDS, testStore } from "./h
 const config: IndexerConfig = { network: "testnet", live_rpc: "https://live.example/rpc", fallback_rpc: "https://fallback.example/rpc", start_block: 1, factories: [], contracts: [] };
 
 describe("which block source the CLI uses", () => {
-  it("needs no environment at all: dRPC, with NEAR archival for older blocks", () => {
+  it("needs no environment at all: dRPC, with FastNear archival for older blocks", () => {
     const { label, defaultConcurrency } = chooseSource(config, {});
-    expect(label).toBe("dRPC; NEAR archival for older blocks and as fallback");
+    expect(label).toBe("dRPC; FastNear archival for older blocks and as fallback");
     expect(defaultConcurrency).toBe(8);
   });
 
@@ -23,21 +23,21 @@ describe("which block source the CLI uses", () => {
 
   it("uses neardata as the archive when only FASTNEAR_API_KEY is set, and names it without printing the key", () => {
     const { label, defaultConcurrency } = chooseSource(config, { FASTNEAR_API_KEY: "fastnear-secret-key-123456" });
-    expect(label).toBe("neardata to dRPC's edge, then dRPC; NEAR archival as fallback");
+    expect(label).toBe("neardata to dRPC's edge, then dRPC; FastNear archival as fallback");
     expect(label).not.toContain("fastnear-secret-key-123456");
     expect(defaultConcurrency).toBe(8);
   });
 
   it("keeps QuickNode as the archive and puts neardata behind it as its backup when both are set", () => {
     const { label } = chooseSource(config, { FASTNEAR_API_KEY: "fastnear-secret-key-123456", QUICKNODE_RPC_URL: "https://x.quiknode.pro/secrettoken123/" });
-    expect(label).toBe("QuickNode (neardata as its backup) to dRPC's edge, then dRPC; NEAR archival as fallback");
+    expect(label).toBe("QuickNode (neardata as its backup) to dRPC's edge, then dRPC; FastNear archival as fallback");
     expect(label).not.toContain("secrettoken123");
     expect(label).not.toContain("fastnear-secret-key-123456");
   });
 
   it("ignores the retired source switch and an empty key", () => {
-    expect(chooseSource(config, { ARUNA_BLOCK_SOURCE: "neardata" }).label).toBe("dRPC; NEAR archival for older blocks and as fallback");
-    expect(chooseSource(config, { FASTNEAR_API_KEY: "" }).label).toBe("dRPC; NEAR archival for older blocks and as fallback");
+    expect(chooseSource(config, { ARUNA_BLOCK_SOURCE: "neardata" }).label).toBe("dRPC; FastNear archival for older blocks and as fallback");
+    expect(chooseSource(config, { FASTNEAR_API_KEY: "" }).label).toBe("dRPC; FastNear archival for older blocks and as fallback");
   });
 
   it("treats an empty QUICKNODE_RPC_URL as unset", () => {
@@ -47,7 +47,7 @@ describe("which block source the CLI uses", () => {
   it("names the public endpoints in the shipped testnet config", () => {
     const shipped = loadConfig();
     expect(shipped.live_rpc).toBe("https://near-testnet.drpc.org");
-    expect(shipped.fallback_rpc).toBe("https://archival-rpc.testnet.near.org");
+    expect(shipped.fallback_rpc).toBe("https://archival-rpc.testnet.fastnear.com");
   });
 
   it("starts at the creation of factory2 and follows only the v2 contracts", () => {

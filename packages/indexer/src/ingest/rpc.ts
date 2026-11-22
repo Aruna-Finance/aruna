@@ -54,8 +54,9 @@ export class BlockNotServedError extends Error {
 }
 
 const TX_CACHE_SIZE = 256;
-/** Later heights tried when proving a skip; consecutive skipped heights longer than this are not seen on testnet. */
-const SKIP_PROOF_SPAN = 3;
+/** Later heights tried when proving a skip. Testnet skipped four heights in a row at 278544042-278544045, which a span
+ * of 3 could not prove; a longer run than this reads as a block the node does not hold, and goes to another source. */
+const SKIP_PROOF_SPAN = 10;
 const RETRYABLE_RPC_ERRORS = new Set(["TIMEOUT_ERROR", "INTERNAL_ERROR"]);
 
 export interface RpcSourceOptions {
@@ -108,23 +109,26 @@ export function rpcSource(o: RpcSourceOptions): RpcBlockSource {
           body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
           signal: AbortSignal.timeout(timeoutMs),
         });
-        if (res.ok) {
-          const body = (await res.json()) as { result?: T; error?: RpcErrorBody };
-          if (body.error === undefined) return body.result as T;
+        // nearcore (and dRPC) send a JSON-RPC error such as UNKNOWN_BLOCK with HTTP 422, so the body is read whatever
+        // the status; only a non-2xx answer without a JSON-RPC error falls through to the status checks below.
+        const body = (await res.json().catch(() => undefined)) as { result?: T; error?: RpcErrorBody } | undefined;
+        if (res.ok && body !== undefined && body.error === undefined) return body.result as T;
+        if (body?.error !== undefined) {
           const name = body.error.cause?.name ?? body.error.name ?? "";
-          const err = new RpcError(redact(`${method} failed: ${name || body.error.message || "error"}`), method, name);
-          if (body.error.code !== -429 && !RETRYABLE_RPC_ERRORS.has(name)) throw err;
+          const err = new RpcError(redact(`${method} failed: ${name || body.error.message || "error"} (HTTP ${res.status})`), method, name);
+          const retryable = body.error.code === -429 || res.status === 429 || res.status >= 500 || RETRYABLE_RPC_ERRORS.has(name);
+          if (!retryable) throw err;
           last = err;
+        } else if (res.ok) {
+          last = new Error(`${method} answered HTTP ${res.status} with a body that is not JSON-RPC`);
+        } else {
+          last = new Error(`${method} answered HTTP ${res.status}`);
+          // A rejected token (401, 403) or a wrong path does not get better with a retry; a rate limit or a 5xx might.
+          if (res.status !== 429 && res.status < 500) throw last;
         }
       } catch (e) {
-        if (e instanceof RpcError) throw e;
+        if (e instanceof RpcError || (e instanceof Error && e === last)) throw e;
         last = new Error(redact(`${method} could not be read: ${e instanceof Error ? e.message : String(e)}`));
-      }
-      if (res && !res.ok) {
-        await res.body?.cancel();
-        last = new Error(`${method} answered HTTP ${res.status}`);
-        // A rejected token (401, 403) or a wrong path does not get better with a retry; a rate limit or a 5xx might.
-        if (res.status !== 429 && res.status < 500) throw last;
       }
       if (attempt < retries) await sleep(backoff * 2 ** attempt);
     }

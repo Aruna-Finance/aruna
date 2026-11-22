@@ -3,7 +3,7 @@
 //   archive   optional (neardata with a FastNear key, or a QuickNode trial). Reads only the heights the live node no
 //             longer holds. It may have a backup (QuickNode behind neardata) that reads what it fails to serve.
 //   live      free, prunes old blocks (dRPC). Reads everything from its lower edge on, and the head.
-//   fallback  free, archival, slow (NEAR's archival RPC). Reads whatever the other two cannot.
+//   fallback  free, archival, slow (FastNear's archival RPC). Reads whatever the other two cannot.
 //
 // The router only chooses which endpoint answers a call. The endpoints' scans differ (a neardata block, an RPC scan), so
 // a scan is only ever expanded by the endpoint that scanned it: when that endpoint fails, the height is read again from
