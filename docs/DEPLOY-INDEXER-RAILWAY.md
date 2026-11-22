@@ -21,8 +21,8 @@ builder, the healthcheck and the restart policy.
   - Not the Transaction pooler (port 6543): it is meant for short-lived serverless clients, and the indexer is one
     long-lived process.
 - An archive for the old blocks. The indexer starts at block 277103284, about 110,000 blocks before the lower edge
-  of what dRPC keeps, and that part needs an archive; without one it is read from NEAR's archival RPC, which takes
-  days. Either or both:
+  of what dRPC keeps, and that part needs an archive; without one it is read from FastNear's archival RPC, one call
+  at a time, which is slow. Either or both:
   - **A QuickNode testnet endpoint URL** (the archive), the full "HTTP Provider" URL:
     `https://<name>.<network>.quiknode.pro/<token>/`. It carries the token, so it is a secret (see "The credit check").
   - **A FastNear key** (the backup): neardata at `testnet.neardata.xyz` keeps every block and charges no credits.
@@ -50,7 +50,7 @@ builder, the healthcheck and the restart policy.
    | `QUICKNODE_CONCURRENCY` | a number, default 3 | no: blocks read at once from QuickNode; lower it to 2 if the log shows `QuickNode failed (... HTTP 429)` |
    | `PORT` | `8080` | no: the port the API listens on. Set it so the domain's target port is unambiguous |
 
-   The indexer needs no key to read the chain: dRPC and NEAR's archival RPC are keyless.
+   The indexer needs no key to read the chain: dRPC and FastNear's archival RPC are keyless.
 6. **Networking.** Generate a public domain, target port `8080`. CORS is open, so the console can call it from
    another origin.
 7. **Deploy.**
@@ -94,7 +94,7 @@ echo $(( (EARLIEST + 2000 - CURSOR) * 55 ))   # credits needed, with 10% to spar
 ```
 
 If that number is above the credits the key has left, do not spend the key: the run would stop partway, and
-the rest of the gap would be read from NEAR's archival RPC at about 19 blocks a minute, slower than the chain.
+the rest of the gap would be read from FastNear's archival RPC, one call at a time.
 The gap grows by about 3,600 blocks (180,000 credits) an hour, because dRPC's window moves with the chain, and
 the number above is for the moment you run it. Start the backfill as soon as the service is deployed, then
 measure the blocks per second it reaches and compute again how long the gap needs: a slower rate means a bigger gap
@@ -111,13 +111,13 @@ The run goes through three phases. `/health` names the endpoint serving blocks i
 | 2. dRPC, catching up inside its window | `block source now: dRPC` | `"source":"dRPC","mode":"catching_up"` |
 | 3. following the head | `indexed through <block> of <head>` | `"source":"dRPC","mode":"following","healthy":true` |
 
-A line `dRPC failed (...); using NEAR archival for 5 min` means an endpoint was benched; `source` then reads
-`NEAR archival` until it recovers.
+A line `dRPC failed (...); using FastNear archival for 5 min` means an endpoint was benched; `source` then reads
+`FastNear archival` until it recovers.
 
 - Deploy logs: `serving on :8080, database <host>` (the host only, never the credentials), then one of
-  `block source: QuickNode (neardata as its backup) to dRPC's edge, then dRPC; NEAR archival as fallback`,
+  `block source: QuickNode (neardata as its backup) to dRPC's edge, then dRPC; FastNear archival as fallback`,
   `block source: QuickNode to dRPC's edge, ...`, `block source: neardata to dRPC's edge, ...`, or, with no archive,
-  `block source: dRPC; NEAR archival for older blocks and as fallback`.
+  `block source: dRPC; FastNear archival for older blocks and as fallback`.
 - `curl https://<domain>/health` answers HTTP 200 with JSON:
   `{"last_indexed_block":…,"head_block":…,"lag_blocks":…,"healthy":false,…}`.
   During a backfill `healthy` is `false` and `last_indexed_block` rises. `healthy` turns `true` once the lag is
@@ -167,12 +167,12 @@ backfill as on the first deploy.
 | `Tenant or user not found` | the user must be `postgres.<project-ref>` on the pooler, as the Connect dialog shows it |
 | `max clients reached` | the pooler's client limit; stop other clients, or two deploys overlapped and one has not exited yet |
 | `/health` answers `"last_indexed_block":0,"healthy":false` for more than a minute | the database is unreachable; check the Supabase project is not paused and the URI is right |
-| `neardata failed (neardata /v0/block/... answered 401)` or `403` | the FastNear key is not valid for testnet neardata; the reads move to NEAR archival. Fix or unset `FASTNEAR_API_KEY` |
+| `neardata failed (neardata /v0/block/... answered 401)` or `403` | the FastNear key is not valid for testnet neardata; the reads move to FastNear archival. Fix or unset `FASTNEAR_API_KEY` |
 | `QuickNode failed (... HTTP 429)` with a FastNear key set | QuickNode is rate-limiting or out of credits; the reads move to neardata for 5 minutes, then QuickNode is tried again |
 | `QUICKNODE_RPC_URL is not a URL` | the value is only the token; paste the full HTTP Provider URL |
 | build cannot find `package.json` or `src` | Root Directory is not `/packages/indexer`, so the build runs from the repository root |
 | deploy fails its healthcheck | the app is not on the port Railway expects; set `PORT=8080` |
-| `last_indexed_block` barely moves, `source` is `NEAR archival` | the endpoint before it is failing. If it is QuickNode, its credits have likely run out: the index stays correct but reads about 19 blocks a minute, slower than the chain, so it will not catch up alone. Not built yet: a sparse backfill that reads only the blocks with Aruna transactions (see the plan of 12 November 2026) |
+| `last_indexed_block` barely moves, `source` is `FastNear archival` | the endpoint before it is failing. If it is QuickNode, its credits have likely run out: the index stays correct but reads one call at a time from the fallback, which may be slower than the chain, so it may not catch up alone. Not built yet: a sparse backfill that reads only the blocks with Aruna transactions (see the plan of 12 November 2026) |
 | `last_indexed_block` barely moves, `source` is `dRPC` | dRPC is rate-limiting; keep `--concurrency` at its default of 8 |
 
 ## Not confirmed in Railway's documentation

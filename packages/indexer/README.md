@@ -18,12 +18,14 @@ Every route answers with the types in `src/api.ts`. Deploying it: `docs/DEPLOY-I
   - **neardata** (`FASTNEAR_API_KEY`, optional), the backup behind QuickNode: `testnet.neardata.xyz` keeps every
     block and is read with a FastNear key, sent only as a Bearer header and never logged. It reads what QuickNode
     fails to serve (a 429, an exhausted trial), under the same edge rule, and is the archive alone without a QuickNode URL.
-  - **NEAR's archival RPC** (`fallback_rpc`), free and slow, about 19 calls a minute. It reads older blocks
+  - **FastNear's archival RPC** (`fallback_rpc`), free for 500K credits, one-time (docs.near.org/api/rpc/providers);
+    NEAR's own archival RPC answered every call with HTTP 429 and a deprecation notice on 22 November 2026. It reads older blocks
     when no archive is set, and any read the others failed; the failing endpoint is skipped for 5 minutes, then
     tried again. When an endpoint fails after it read a block, the block is read again, whole, from the next one.
 
   dRPC answers `UNKNOWN_BLOCK` both for a height the chain skipped and for one it no longer holds, so a
-  height read there counts as skipped only when a later block's `prev_height` shows it. Each read:
+  height read there counts as skipped only when a later block's `prev_height` shows it. nearcore and dRPC send
+  `UNKNOWN_BLOCK` with HTTP 422, so the JSON-RPC error is read from the body whatever the status. Each read:
   1. `EXPERIMENTAL_changes_in_block` lists every account a block touched. A block that touches no
      watched account costs this one call.
   2. For the watched accounts it asks for the receipts that changed them (`EXPERIMENTAL_changes`), the
@@ -41,7 +43,7 @@ Every route answers with the types in `src/api.ts`. Deploying it: `docs/DEPLOY-I
   credits per block it reads, and only blocks older than dRPC's window go to it. neardata charges no credits: one
   request per block. `--concurrency` (default 8)
   is the window of heights read at once; each endpoint has its own limit inside it: neardata 8, QuickNode 3 (`QUICKNODE_CONCURRENCY`;
-  a trial rate-limits at about 15 requests a second, and 8 hit HTTP 429 on 13 November 2026), dRPC 4, NEAR archival 1.
+  a trial rate-limits at about 15 requests a second, and 8 hit HTTP 429 on 13 November 2026), dRPC 4, FastNear archival 1.
 - **Which events count.** Only receipts that succeeded and were executed by a watched account. The
   watched set starts from the registries, factories and pools in `config/testnet.json`. A vault joins
   it when one of those factories emits `vault_created` for it. A look-alike event from any other
@@ -71,7 +73,7 @@ curl -s localhost:8080/health
 ```
 
 For a local database, `DATABASE_URL=postgresql://postgres@127.0.0.1:5432/postgres` with a running Postgres works.
-With no other environment the indexer reads from dRPC and NEAR's archival RPC. `QUICKNODE_RPC_URL`, when set,
+With no other environment the indexer reads from dRPC and FastNear's archival RPC. `QUICKNODE_RPC_URL`, when set,
 is the full "HTTP Provider" URL from the QuickNode dashboard, `https://<name>.<network>.quiknode.pro/<token>/`,
 not only the token. The CLI does not read `.env` by itself, so pass it with `--env-file`. Expected: JSON
 with `last_indexed_block` rising toward `head_block`, `source` naming the endpoint serving blocks, and

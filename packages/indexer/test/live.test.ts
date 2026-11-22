@@ -47,7 +47,7 @@ describe.skipIf(!process.env.ARUNA_LIVE)("live endpoints (read-only)", () => {
   it("a block near the head scans and expands through the router", async () => {
     const src = routedSource({
       live: { source: live, label: "dRPC", concurrency: 4 },
-      fallback: { source: rpcSource({ url: config.fallback_rpc }), label: "NEAR archival", concurrency: 1 },
+      fallback: { source: rpcSource({ url: config.fallback_rpc }), label: "FastNear archival", concurrency: 1 },
     });
     const h = (await src.finalHeight()) - 100;
     const scan = await src.block(h);
