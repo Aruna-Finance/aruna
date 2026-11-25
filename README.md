@@ -234,7 +234,9 @@ position. These numbers come from `readVault`; they do not depend on the indexer
 Then open an agent (`Agents`, click its name), the **Limits** tab, and the panel **What these limits cost**. It
 shows, for each allowed target, the pool's premium with the policy as it is on chain and with the draft you are
 editing, the draft labelled "proposed, not yet signed", and "Testnet, assumed numbers". Change **Daily cap** from
-0.4 to 0.2 NEAR. Expected: the draft premium falls to about half and the on-chain one does not move. The price is
+0.4 to 0.2 NEAR. Expected: the draft premium falls from about 0.8597 to about 0.6663 NEAR, a fall of roughly a
+quarter rather than a half, because `reachable_payout` is clamped by the coverage limit at the looser cap; the
+on-chain premium does not move. The price is
 the pool contract's own; compare it by hand, for a `global_by_account` target at a 0.2 NEAR cap:
 
 ```bash
